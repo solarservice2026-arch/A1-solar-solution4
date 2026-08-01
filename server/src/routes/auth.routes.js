@@ -179,25 +179,40 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
   if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
     const db = mongoose.connection.db;
     const passwordHash = bcryptjs.hashSync(input.password, 10);
-    const result = await db.collection("users").updateOne(
-      { email: input.email.trim().toLowerCase() },
-      {
-        $setOnInsert: {
-          name: input.fullName,
-          email: input.email.trim().toLowerCase(),
-          role: input.role,
-          created_at: new Date(),
-          password_hash: passwordHash,
-        },
-        $set: {
-          status: input.active ? "Active" : "Disabled",
+    const normalizedEmail = input.email.trim().toLowerCase();
+
+    const existing = await db.collection("users").findOne({ email: normalizedEmail });
+    if (existing) {
+      const finalRole = existing.role === "super_admin" ? "super_admin" : input.role;
+      await db.collection("users").updateOne(
+        { _id: existing._id },
+        {
+          $set: {
+            name: input.fullName,
+            role: finalRole,
+            status: input.active ? "Active" : "Disabled",
+            password_hash: passwordHash,
+            phone: input.phone || existing.phone || null,
+          }
         }
-      },
-      { upsert: true }
-    );
-    const userId = result.upsertedId ? result.upsertedId.toString() : "00000000-0000-0000-0000-000000000001";
+      );
+      await audit(req.auth.userId, "staff.updated", existing._id.toString(), { role: finalRole });
+      return success(res.status(200), "Staff account updated with new password", { id: existing._id.toString(), email: normalizedEmail });
+    }
+
+    const userDoc = {
+      name: input.fullName,
+      email: normalizedEmail,
+      role: input.role,
+      status: input.active ? "Active" : "Disabled",
+      created_at: new Date(),
+      password_hash: passwordHash,
+      phone: input.phone || null,
+    };
+    const result = await db.collection("users").insertOne(userDoc);
+    const userId = result.insertedId.toString();
     await audit(req.auth.userId, "staff.created", userId, { role: input.role });
-    return success(res.status(201), "Staff account created", { id: userId, email: input.email });
+    return success(res.status(201), "Staff account created", { id: userId, email: normalizedEmail });
   }
   throw new AppError(503, "Database unavailable", "DATABASE_ERROR");
 }));
@@ -291,9 +306,16 @@ usersRouter.patch("/:id", requirePermission("users:update"), asyncHandler(async 
     if (mongoose.Types.ObjectId.isValid(paramId)) {
       query = { $or: [ { _id: new ObjectId(paramId) }, { profile_id: paramId } ] };
     }
+
+    const setFields = { name: fullName, phone: req.body.phone ?? null };
+    const rawPwd = req.body.password || req.body.newPassword;
+    if (rawPwd && String(rawPwd).trim().length >= 6) {
+      setFields.password_hash = bcryptjs.hashSync(String(rawPwd).trim(), 10);
+    }
+
     await db.collection("users").updateOne(
       query,
-      { $set: { name: fullName, phone: req.body.phone ?? null } }
+      { $set: setFields }
     );
     await audit(req.auth.userId, "staff.updated", paramId, { fullName });
     return success(res, "Staff updated", { id: paramId, full_name: fullName, phone: req.body.phone });

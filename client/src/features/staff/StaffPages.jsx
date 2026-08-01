@@ -276,12 +276,17 @@ export function StaffEdit() {
   const submit = async (e) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const pwd = form.get("password");
     try {
       await api(`/staff/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ fullName: form.get("fullName"), phone: form.get("phone") || null }),
+        body: JSON.stringify({
+          fullName: form.get("fullName"),
+          phone: form.get("phone") || null,
+          ...(pwd ? { password: String(pwd).trim() } : {}),
+        }),
       });
-      toast.success("Staff updated");
+      toast.success("Staff updated successfully");
       navigate(`/app/staff/${id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to update staff");
@@ -297,6 +302,7 @@ export function StaffEdit() {
       <form className="card operational-form" onSubmit={submit}>
         <label>Full name<input name="fullName" required defaultValue={staff.full_name} /></label>
         <label>Mobile<input name="phone" pattern="[6-9][0-9]{9}" defaultValue={staff.phone} /></label>
+        <label>New password (optional)<input name="password" type="password" minLength={6} placeholder="Leave blank to keep existing password" /></label>
         <button className="primary">Save changes</button>
       </form>
     </main>
