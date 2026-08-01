@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: a1-solar-backend
+    env: node
+    buildCommand: npm install --prefix server
+    startCommand: npm start --prefix server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
