@@ -370,9 +370,9 @@ quotationsRouter.use(requireAuth);
 
 async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
   const isCustomer = req.auth?.roles?.includes("customer");
-  const isSuperAdmin = req.auth?.roles?.includes("super_admin");
+  const isStaff = !isCustomer;
 
-  if (isSuperAdmin) {
+  if (isStaff) {
     return { ...extraFilter };
   }
 
@@ -380,7 +380,7 @@ async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
     const userEmail = (req.auth?.email || "").trim().toLowerCase();
     const custObj = await mongo.collection("customers").findOne({
       $or: [
-        ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail + "$", "i") } }] : []),
+        ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } }] : []),
         ...(req.auth?.userId ? [{ profile_id: req.auth.userId }] : [])
       ]
     });
@@ -391,7 +391,9 @@ async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
       customerOrs.push({ customer_id: custObj._id.toString() });
     }
     if (userEmail) {
+      const escapedEmail = userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       customerOrs.push({ customer_email: userEmail });
+      customerOrs.push({ customer_email: { $regex: new RegExp("^" + escapedEmail + "$", "i") } });
     }
 
     if (customerOrs.length === 0) {
@@ -404,34 +406,7 @@ async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
     };
   }
 
-  const adminCustomers = await mongo.collection("customers").find({
-    $or: [
-      { created_by: req.auth?.userId },
-      { created_by_email: req.auth?.email }
-    ]
-  }).toArray();
-
-  const myCustIds = adminCustomers.map(c => c._id);
-  const myCustIdStrs = adminCustomers.map(c => c._id.toString());
-  const myCustEmails = adminCustomers.map(c => c.email ? String(c.email).trim().toLowerCase() : null).filter(Boolean);
-
-  const adminOrs = [
-    { created_by: req.auth?.userId },
-    { created_by_email: req.auth?.email },
-    { created_by: { $exists: false } }
-  ];
-
-  if (myCustIds.length > 0) {
-    adminOrs.push({ customer_id: { $in: [...myCustIds, ...myCustIdStrs] } });
-  }
-  if (myCustEmails.length > 0) {
-    adminOrs.push({ customer_email: { $in: myCustEmails } });
-  }
-
-  return {
-    ...extraFilter,
-    $or: adminOrs
-  };
+  return { ...extraFilter };
 }
 
 quotationsRouter.get(
@@ -646,6 +621,7 @@ agreementsRouter.get(
   requirePermission("agreements:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
+    const isCustomer = req.auth?.roles?.includes("customer");
     const filter = await getScopedDocumentQuery(mongo, req, {});
     const items = await mongo.collection("agreements").find(filter).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
@@ -790,20 +766,27 @@ agreementsRouter.get(
     } catch {}
 
     if (req.auth?.roles?.includes("customer")) {
+      const userEmail = (req.auth.email || "").trim().toLowerCase();
       const custObj = await mongo.collection("customers").findOne({
         $or: [
-          { email: { $regex: new RegExp("^" + (req.auth.email || "").trim() + "$", "i") } },
-          { profile_id: req.auth.userId }
+          ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } }] : []),
+          ...(req.auth?.userId ? [{ profile_id: req.auth.userId }] : [])
         ]
       });
+      const customerOrs = [];
       if (custObj) {
+        customerOrs.push({ customer_id: custObj._id });
+        customerOrs.push({ customer_id: custObj._id.toString() });
+      }
+      if (userEmail) {
+        const escapedEmail = userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        customerOrs.push({ customer_email: userEmail });
+        customerOrs.push({ customer_email: { $regex: new RegExp("^" + escapedEmail + "$", "i") } });
+      }
+      if (customerOrs.length > 0) {
         filter = {
           ...filter,
-          $or: [
-            { customer_id: custObj._id },
-            { customer_id: custObj._id.toString() },
-            { customer_email: (req.auth.email || "").trim().toLowerCase() }
-          ]
+          $or: customerOrs
         };
       } else {
         throw new AppError(403, "Access denied: You can only view your own agreements", "FORBIDDEN");
@@ -852,6 +835,25 @@ agreementsRouter.post(
           customerMobile = cust.mobile || customerMobile;
         }
       } catch {}
+    }
+
+    if (!customObjId) {
+      let cust = null;
+      if (customerEmail) {
+        cust = await mongo.collection("customers").findOne({ email: { $regex: new RegExp("^" + String(customerEmail).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } });
+      }
+      if (!cust && customerMobile) {
+        cust = await mongo.collection("customers").findOne({ mobile: String(customerMobile).trim() });
+      }
+      if (!cust && customerName && customerName !== "Customer") {
+        cust = await mongo.collection("customers").findOne({ name: { $regex: new RegExp("^" + String(customerName).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } });
+      }
+      if (cust) {
+        customObjId = cust._id;
+        customerEmail = customerEmail || cust.email;
+        customerMobile = customerMobile || cust.mobile;
+        customerName = cust.name || customerName;
+      }
     }
 
     const today = new Date();

@@ -200,6 +200,7 @@ function DataPage({
     if (title === "Quotations") {
       const subtotal = qItems.reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
       const tax = Math.round(subtotal * 0.18);
+      const selCust = availableCustomers.find(c => c.name === qCustName);
       body = {
         quotationNumber: qNumber,
         quotationDate: qDate,
@@ -217,11 +218,13 @@ function DataPage({
         discount: 0,
         grandTotal: subtotal + tax,
         status: "Draft",
-        customerSignatureUrl: qCustomerSignature
+        customerSignatureUrl: qCustomerSignature,
+        customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Invoices") {
       const subtotal = iItems.reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
       const tax = Math.round(subtotal * 0.18);
+      const selCust = availableCustomers.find(c => c.name === iCustName);
       body = {
         invoiceNumber: iNumber,
         title: iTitle,
@@ -236,9 +239,11 @@ function DataPage({
         status: iStatus,
         items: iItems,
         tax,
-        total: subtotal + tax
+        total: subtotal + tax,
+        customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Agreements") {
+      const selCust = availableCustomers.find(c => c.name === aCustName);
       body = {
         agreementNumber: aNumber,
         agreementDate: aDate,
@@ -251,7 +256,8 @@ function DataPage({
         paymentAmount: aAmount,
         termsOfPayment: aTerms,
         status: "Draft",
-        customerSignatureUrl: aCustomerSignature
+        customerSignatureUrl: aCustomerSignature,
+        customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else {
       body = formObject(e.currentTarget);
