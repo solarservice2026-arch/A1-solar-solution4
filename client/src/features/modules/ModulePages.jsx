@@ -65,6 +65,53 @@ function DataPage({
   const [payuRow, setPayuRow] = useState(null);
   const [paying, setPaying] = useState(false);
 
+  // ─── CUSTOM FORMS STATES ───
+  // Quotation States
+  const [qNumber, setQNumber] = useState("SEQ-0094");
+  const [qDate, setQDate] = useState("2026-04-25");
+  const [qCapacity, setQCapacity] = useState("3");
+  const [qType, setQType] = useState("ON-GRID SOLAR POWER SYSTEM");
+  const [qCustName, setQCustName] = useState("ARJUN CHAUDHARY");
+  const [qCustMobile, setQCustMobile] = useState("9955964771");
+  const [qCustEmail, setQCustEmail] = useState("");
+  const [qCustGst, setQCustGst] = useState("");
+  const [qAddress, setQAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
+  const [qValid, setQValid] = useState("2026-05-25");
+  const [qItems, setQItems] = useState([
+    { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000 },
+    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000 },
+    { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000 },
+    { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000 }
+  ]);
+
+  // Invoice States
+  const [iNumber, setINumber] = useState("A1-F1DBAC3B");
+  const [iTitle, setITitle] = useState("FOR 5KW MOUNTING STRUCTURE — OFF-GRID");
+  const [iCustName, setICustName] = useState("Rohan Sharma");
+  const [iCustMobile, setICustMobile] = useState("9876500001");
+  const [iCustEmail, setICustEmail] = useState("customer.home@a1solar.test");
+  const [iCustGst, setICustGst] = useState("sdfsdf");
+  const [iAddress, setIAddress] = useState("VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR");
+  const [iDate, setIDate] = useState("2026-07-29");
+  const [iDueDate, setIDueDate] = useState("2026-07-29");
+  const [iPaidAmount, setIPaidAmount] = useState("0");
+  const [iStatus, setIStatus] = useState("Unpaid");
+  const [iItems, setIItems] = useState([
+    { productName: "5kW Mounting Structure", description: "MS-5K — Structure", brand: "A1 Fabrication", quantity: "1", unitPrice: 34000 }
+  ]);
+
+  // Agreement States
+  const [aNumber, setANumber] = useState("AGR-20260425-8A2F");
+  const [aDate, setADate] = useState("2026-04-25");
+  const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
+  const [aCustMobile, setACustMobile] = useState("9955964771");
+  const [aCustEmail, setACustEmail] = useState("");
+  const [aAddress, setAAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
+  const [aQuotationNumber, setAQuotationNumber] = useState("SEQ-0094");
+  const [aCapacity, setACapacity] = useState("3");
+  const [aAmount, setAAmount] = useState("244000");
+  const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
+
   const canCreate =
     user?.roles?.includes("super_admin") ||
     user?.permissions?.includes(permission);
@@ -95,7 +142,66 @@ function DataPage({
 
   const submit = async (e) => {
     e.preventDefault();
-    const body = formObject(e.currentTarget);
+    let body = {};
+
+    if (title === "Quotations") {
+      const subtotal = qItems.reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
+      const tax = Math.round(subtotal * 0.18);
+      body = {
+        quotationNumber: qNumber,
+        quotationDate: qDate,
+        capacityKw: qCapacity,
+        quotationType: qType,
+        customerName: qCustName,
+        customerMobile: qCustMobile,
+        customerEmail: qCustEmail,
+        customerGst: qCustGst,
+        consumerAddress: qAddress,
+        validUntil: qValid,
+        items: qItems,
+        tax,
+        subtotal,
+        discount: 0,
+        grandTotal: subtotal + tax,
+        status: "Draft"
+      };
+    } else if (title === "Invoices") {
+      const subtotal = iItems.reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
+      const tax = Math.round(subtotal * 0.18);
+      body = {
+        invoiceNumber: iNumber,
+        title: iTitle,
+        customerName: iCustName,
+        customerMobile: iCustMobile,
+        customerEmail: iCustEmail,
+        customerGst: iCustGst,
+        consumerAddress: iAddress,
+        invoiceDate: iDate,
+        dueDate: iDueDate,
+        paidAmount: iPaidAmount,
+        status: iStatus,
+        items: iItems,
+        tax,
+        total: subtotal + tax
+      };
+    } else if (title === "Agreements") {
+      body = {
+        agreementNumber: aNumber,
+        agreementDate: aDate,
+        customerName: aCustName,
+        customerMobile: aCustMobile,
+        customerEmail: aCustEmail,
+        consumerAddress: aAddress,
+        quotationNumber: aQuotationNumber,
+        capacityKw: aCapacity,
+        paymentAmount: aAmount,
+        termsOfPayment: aTerms,
+        status: "Draft"
+      };
+    } else {
+      body = formObject(e.currentTarget);
+    }
+
     try {
       await api(path, { method: "POST", body: JSON.stringify(body) });
       toast.success(`${title.slice(0, -1)} created`);
@@ -115,6 +221,23 @@ function DataPage({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
     }
+  };
+
+  // Item list helper functions
+  const addQItem = () => setQItems([...qItems, { productName: "", description: "", brand: "", quantity: "1", unitPrice: 0 }]);
+  const removeQItem = (idx) => setQItems(qItems.filter((_, i) => i !== idx));
+  const updateQItem = (idx, key, val) => {
+    const next = [...qItems];
+    next[idx][key] = val;
+    setQItems(next);
+  };
+
+  const addIItem = () => setIItems([...iItems, { productName: "", description: "", brand: "", quantity: "1", unitPrice: 0 }]);
+  const removeIItem = (idx) => setIItems(iItems.filter((_, i) => i !== idx));
+  const updateIItem = (idx, key, val) => {
+    const next = [...iItems];
+    next[idx][key] = val;
+    setIItems(next);
   };
 
   return (
@@ -143,36 +266,162 @@ function DataPage({
 
       {open && fields && (
         <div className="modal-backdrop">
-          <form className="card modal-form" onSubmit={submit}>
-            <h2>Create {title.slice(0, -1)}</h2>
-            {fields.map(([name, label, type, options, req]) => (
-              <label key={name}>
-                {label}
-                {type === "select" ? (
-                  <select name={name} required={req !== false}>
-                    {options?.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
+          {title === "Quotations" ? (
+            <form className="card modal-form" style={{ maxWidth: "880px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
+              <h2>Create Premium Quotation</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <label>Quote Number<input value={qNumber} onChange={e => setQNumber(e.target.value)} required /></label>
+                <label>Quotation Date<input type="date" value={qDate} onChange={e => setQDate(e.target.value)} required /></label>
+                <label>System Capacity (kW)<input type="number" value={qCapacity} onChange={e => setQCapacity(e.target.value)} required /></label>
+                <label>Quotation Type<input value={qType} onChange={e => setQType(e.target.value)} required /></label>
+                <label>Customer Name<input value={qCustName} onChange={e => setQCustName(e.target.value)} required /></label>
+                <label>Customer Mobile<input value={qCustMobile} onChange={e => setQCustMobile(e.target.value)} required /></label>
+                <label>Customer Email<input type="email" value={qCustEmail} onChange={e => setQCustEmail(e.target.value)} /></label>
+                <label>Customer GSTIN<input value={qCustGst} onChange={e => setQCustGst(e.target.value)} /></label>
+                <label style={{ gridColumn: "span 2" }}>Installation Address<textarea value={qAddress} onChange={e => setQAddress(e.target.value)} rows={2} required /></label>
+                <label>Valid Until<input type="date" value={qValid} onChange={e => setQValid(e.target.value)} required /></label>
+              </div>
+
+              <h3 style={{ margin: "24px 0 12px", borderBottom: "1px solid var(--line)", paddingBottom: "6px" }}>Quotation Items</h3>
+              <table style={{ width: "100%", marginBottom: "16px" }}>
+                <thead>
+                  <tr style={{ background: "#f9fafb" }}>
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>Brand/Model</th>
+                    <th style={{ width: "80px" }}>Qty</th>
+                    <th style={{ width: "120px" }}>Price (₹)</th>
+                    <th style={{ width: "50px" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {qItems.map((item, idx) => (
+                    <tr key={idx}>
+                      <td><input style={{ width: "100%" }} value={item.productName} onChange={e => updateQItem(idx, "productName", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateQItem(idx, "description", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateQItem(idx, "brand", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} value={item.quantity} onChange={e => updateQItem(idx, "quantity", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} type="number" value={item.unitPrice} onChange={e => updateQItem(idx, "unitPrice", Number(e.target.value))} required /></td>
+                      <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeQItem(idx)}>×</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button type="button" className="secondary" style={{ marginBottom: "20px" }} onClick={addQItem}>+ Add Item</button>
+
+              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>
+                <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
+                <button className="primary">Create Quotation</button>
+              </div>
+            </form>
+          ) : title === "Invoices" ? (
+            <form className="card modal-form" style={{ maxWidth: "880px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
+              <h2>Create Invoice</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <label>Invoice Number<input value={iNumber} onChange={e => setINumber(e.target.value)} required /></label>
+                <label>Invoice Title<input value={iTitle} onChange={e => setITitle(e.target.value)} required /></label>
+                <label>Invoice Date<input type="date" value={iDate} onChange={e => setIDate(e.target.value)} required /></label>
+                <label>Due Date<input type="date" value={iDueDate} onChange={e => setIDueDate(e.target.value)} required /></label>
+                <label>Customer Name<input value={iCustName} onChange={e => setICustName(e.target.value)} required /></label>
+                <label>Customer Mobile<input value={iCustMobile} onChange={e => setICustMobile(e.target.value)} required /></label>
+                <label>Customer Email<input type="email" value={iCustEmail} onChange={e => setICustEmail(e.target.value)} /></label>
+                <label>Customer GSTIN<input value={iCustGst} onChange={e => setICustGst(e.target.value)} /></label>
+                <label style={{ gridColumn: "span 2" }}>Billing Address<textarea value={iAddress} onChange={e => setIAddress(e.target.value)} rows={2} required /></label>
+                <label>Paid Amount (₹)<input type="number" value={iPaidAmount} onChange={e => setIPaidAmount(e.target.value)} required /></label>
+                <label>Status
+                  <select value={iStatus} onChange={e => setIStatus(e.target.value)}>
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Draft">Draft</option>
                   </select>
-                ) : (
-                  <input
-                    name={name}
-                    type={type}
-                    required={req !== false && type !== "password"}
-                    placeholder={type === "password" ? "Default: admin123" : undefined}
-                  />
-                )}
-              </label>
-            ))}
-            <div className="row-actions">
-              <button type="button" className="secondary" onClick={() => setOpen(false)}>
-                Cancel
-              </button>
-              <button className="primary">Create</button>
-            </div>
-          </form>
+                </label>
+              </div>
+
+              <h3 style={{ margin: "24px 0 12px", borderBottom: "1px solid var(--line)", paddingBottom: "6px" }}>Invoice Items</h3>
+              <table style={{ width: "100%", marginBottom: "16px" }}>
+                <thead>
+                  <tr style={{ background: "#f9fafb" }}>
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>Brand/Model</th>
+                    <th style={{ width: "80px" }}>Qty</th>
+                    <th style={{ width: "120px" }}>Price (₹)</th>
+                    <th style={{ width: "50px" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {iItems.map((item, idx) => (
+                    <tr key={idx}>
+                      <td><input style={{ width: "100%" }} value={item.productName} onChange={e => updateIItem(idx, "productName", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
+                      <td><input style={{ width: "100%" }} type="number" value={item.quantity} onChange={e => updateIItem(idx, "quantity", Number(e.target.value))} required /></td>
+                      <td><input style={{ width: "100%" }} type="number" value={item.unitPrice} onChange={e => updateIItem(idx, "unitPrice", Number(e.target.value))} required /></td>
+                      <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeIItem(idx)}>×</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button type="button" className="secondary" style={{ marginBottom: "20px" }} onClick={addIItem}>+ Add Item</button>
+
+              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>
+                <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
+                <button className="primary">Create Invoice</button>
+              </div>
+            </form>
+          ) : title === "Agreements" ? (
+            <form className="card modal-form" style={{ maxWidth: "780px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
+              <h2>Create Agreement</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <label>Agreement Number<input value={aNumber} onChange={e => setANumber(e.target.value)} required /></label>
+                <label>Agreement Date<input type="date" value={aDate} onChange={e => setADate(e.target.value)} required /></label>
+                <label>Consumer Name<input value={aCustName} onChange={e => setACustName(e.target.value)} required /></label>
+                <label>Consumer Mobile<input value={aCustMobile} onChange={e => setACustMobile(e.target.value)} required /></label>
+                <label>Consumer Email<input type="email" value={aCustEmail} onChange={e => setACustEmail(e.target.value)} /></label>
+                <label>Quotation Reference #<input value={aQuotationNumber} onChange={e => setAQuotationNumber(e.target.value)} required /></label>
+                <label>System Capacity (kW)<input type="number" value={aCapacity} onChange={e => setACapacity(e.target.value)} required /></label>
+                <label>Project Value (₹)<input type="number" value={aAmount} onChange={e => setAAmount(e.target.value)} required /></label>
+                <label style={{ gridColumn: "span 2" }}>Consumer Site Address<textarea value={aAddress} onChange={e => setAAddress(e.target.value)} rows={2} required /></label>
+                <label style={{ gridColumn: "span 2" }}>Terms of Payment<textarea value={aTerms} onChange={e => setATerms(e.target.value)} rows={3} required /></label>
+              </div>
+
+              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>
+                <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
+                <button className="primary">Create Agreement</button>
+              </div>
+            </form>
+          ) : (
+            <form className="card modal-form" onSubmit={submit}>
+              <h2>Create {title.slice(0, -1)}</h2>
+              {fields.map(([name, label, type, options, req]) => (
+                <label key={name}>
+                  {label}
+                  {type === "select" ? (
+                    <select name={name} required={req !== false}>
+                      {options?.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      name={name}
+                      type={type}
+                      required={req !== false && type !== "password"}
+                      placeholder={type === "password" ? "Default: admin123" : undefined}
+                    />
+                  )}
+                </label>
+              ))}
+              <div className="row-actions">
+                <button type="button" className="secondary" onClick={() => setOpen(false)}>
+                  Cancel
+                </button>
+                <button className="primary">Create</button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 

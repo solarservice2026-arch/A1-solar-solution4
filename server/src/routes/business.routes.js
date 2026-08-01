@@ -370,7 +370,17 @@ quotationsRouter.get(
       return {
         id: q._id.toString(),
         ...q,
-        customers: c ? { name: c.name, mobile: c.mobile } : { name: q.customer_name || "Customer", mobile: "" },
+        customers: c ? {
+          name: c.name,
+          mobile: c.mobile,
+          email: c.email,
+          gst_number: c.gst_number
+        } : {
+          name: q.customer_name || "Customer",
+          mobile: q.customer_mobile || "",
+          email: q.customer_email || "",
+          gst_number: q.customer_gst || ""
+        },
         quotation_items: q.quotation_items || q.items || [],
       };
     });
@@ -402,19 +412,24 @@ quotationsRouter.post(
     const items = Array.isArray(b.items) ? b.items : [];
     const normalized = items.map((item) => ({
       product_name: String(item.productName || item.name || "Product"),
-      quantity: Number(item.quantity || 1),
+      description: String(item.description || ""),
+      brand: String(item.brand || ""),
+      quantity: isNaN(Number(item.quantity)) ? String(item.quantity) : Number(item.quantity || 1),
       unit_price: Number(item.unitPrice || item.price || 0),
-      line_amount: Number((item.quantity || 1) * (item.unitPrice || item.price || 0)),
+      line_amount: Number((Number(item.quantity) || 1) * (item.unitPrice || item.price || 0)),
     }));
-    const subtotal = normalized.reduce((sum, i) => sum + i.line_amount, 0);
+    const subtotal = normalized.reduce((sum, i) => sum + (Number(i.line_amount) || 0), 0);
     const discount = Number(b.discount || 0);
     const tax = Number(b.tax || 0);
     const grandTotal = subtotal > 0 ? subtotal - discount + tax : Number(b.grandTotal || 0);
 
     const qDoc = {
-      quotation_number: number("QUO"),
+      quotation_number: b.quotationNumber || number("QUO"),
       customer_id: customerId,
       customer_name: customerName,
+      customer_mobile: b.customerMobile || null,
+      customer_email: b.customerEmail || null,
+      customer_gst: b.customerGst || null,
       quotation_date: b.quotationDate || new Date().toISOString().slice(0, 10),
       valid_until: b.validUntil || null,
       capacity_kw: Number(b.capacityKw || 0),
@@ -433,7 +448,7 @@ quotationsRouter.post(
       created_by_email: req.auth?.email || null,
     };
     const result = await mongo.collection("quotations").insertOne(qDoc);
-    const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName } };
+    const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName, mobile: b.customerMobile, email: b.customerEmail, gst_number: b.customerGst } };
     return success(res.status(201), "Quotation created", createdQuotation);
   }),
 );
@@ -494,7 +509,26 @@ invoicesRouter.get(
     }
 
     const items = await mongo.collection("invoices").find(query).sort({ created_at: -1 }).toArray();
-    const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
+    const customers = await mongo.collection("customers").find().toArray();
+    const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
+    const formatted = items.map(item => {
+      const c = customerMap.get(String(item.customer_id));
+      return {
+        id: item._id.toString(),
+        ...item,
+        customers: c ? {
+          name: c.name,
+          mobile: c.mobile,
+          email: c.email,
+          gst_number: c.gst_number
+        } : {
+          name: item.customer_name || "Customer",
+          mobile: item.customer_mobile || "",
+          email: item.customer_email || "",
+          gst_number: item.customer_gst || ""
+        }
+      };
+    });
     return success(res, "Invoices retrieved", formatted);
   }),
 );
@@ -515,6 +549,8 @@ invoicesRouter.post(
       const unitPrice = Number(item.unitPrice || 0);
       return {
         product_name: String(item.productName || item.name || "Product"),
+        description: String(item.description || ""),
+        brand: String(item.brand || ""),
         quantity,
         unit_price: unitPrice,
         line_amount: quantity * unitPrice,
@@ -526,12 +562,16 @@ invoicesRouter.post(
     const total = subtotal > 0 ? subtotal + tax : Number(b.total || 0);
 
     const doc = {
-      invoice_number: invoiceNumber(),
+      invoice_number: b.invoiceNumber || invoiceNumber(),
       customer_id: b.customerId || null,
       customer_name: customerName,
+      customer_mobile: b.customerMobile || null,
+      customer_email: b.customerEmail || null,
+      customer_gst: b.customerGst || null,
       invoice_date: b.invoiceDate || new Date().toISOString().slice(0, 10),
       due_date: b.dueDate || new Date().toISOString().slice(0, 10),
       title: b.title || "Solar Invoice",
+      installation_address: b.installationAddress || b.consumerAddress || null,
       subtotal,
       tax,
       total,
@@ -595,7 +635,17 @@ agreementsRouter.get(
       const base = {
         id: a._id.toString(),
         ...a,
-        customers: c ? { name: c.name, mobile: c.mobile } : { name: a.customer_name || "Customer" },
+        customers: c ? {
+          name: c.name,
+          mobile: c.mobile,
+          email: c.email,
+          address: c.address
+        } : {
+          name: a.customer_name || "Customer",
+          mobile: a.customer_mobile || "",
+          email: a.customer_email || "",
+          address: a.consumer_address || ""
+        },
       };
       if (isCustomer && a.payment_status !== "Paid") {
         return {
@@ -769,7 +819,8 @@ agreementsRouter.post(
 
     // Accept customerName directly from simple form OR look up by customerId
     let customerName = b.customerName || "Customer";
-    let customerEmail = null;
+    let customerEmail = b.customerEmail || null;
+    let customerMobile = b.customerMobile || null;
     let customObjId = null;
     if (b.customerId) {
       try {
@@ -777,7 +828,8 @@ agreementsRouter.post(
         const cust = await mongo.collection("customers").findOne({ _id: customObjId });
         if (cust) {
           customerName = String(cust.name ?? customerName);
-          customerEmail = cust.email || null;
+          customerEmail = cust.email || customerEmail;
+          customerMobile = cust.mobile || customerMobile;
         }
       } catch {}
     }
@@ -785,18 +837,22 @@ agreementsRouter.post(
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
     const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-    const agreementNumber = `AGR-${dateStr}-${rand}`;
+    const agreementNumber = b.agreementNumber || `AGR-${dateStr}-${rand}`;
 
     const doc = {
       agreement_number: agreementNumber,
       customer_id: customObjId ?? b.customerId ?? null,
       customer_name: customerName,
       customer_email: customerEmail,
+      customer_mobile: customerMobile,
       quotation_id: b.quotationId || null,
+      quotation_number: b.quotationNumber || null,
       status: "Draft",
       payment_status: "Unpaid",
       payment_amount: Number(b.paymentAmount || 1),
       consumer_address: b.consumerAddress || null,
+      capacity_kw: Number(b.capacityKw || 3),
+      terms_of_payment: b.termsOfPayment || "70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion.",
       agreement_date: b.agreementDate || today.toISOString().slice(0, 10),
       created_at: today.toISOString(),
       updated_at: today.toISOString(),
@@ -807,7 +863,7 @@ agreementsRouter.post(
     return success(res.status(201), "Agreement draft created", {
       ...doc,
       id: result.insertedId.toString(),
-      customers: { name: customerName },
+      customers: { name: customerName, mobile: customerMobile, email: customerEmail, address: b.consumerAddress },
     });
   }),
 );
