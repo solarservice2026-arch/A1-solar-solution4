@@ -59,14 +59,8 @@ function Header() {
   const { user, signOut } = useAuth();
   return (
     <header className="header">
-      <Link className="brand" to="/">
-        <span className="brandmark" style={{ background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px", overflow: "hidden" }}>
-          <img src="/logo.png" alt="A1 Solar Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-        </span>
-        <span>
-          A1 <b>Solar</b>
-          <small>Solution</small>
-        </span>
+      <Link className="brand" to="/" style={{ display: "flex", alignItems: "center", padding: "4px 0" }}>
+        <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "62px", width: "auto", objectFit: "contain" }} />
       </Link>
       <nav className={open ? "nav open" : "nav"}>
         {nav.map(([label, to]) => (
@@ -118,14 +112,10 @@ function Footer() {
     <footer>
       <div className="footer-grid">
         <div>
-          <div className="brand light">
-            <span className="brandmark" style={{ background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px", overflow: "hidden" }}>
-              <img src="/logo.png" alt="A1 Solar Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-            </span>
-            <span>
-              A1 <b>Solar</b>
-              <small>Solution</small>
-            </span>
+          <div className="brand light" style={{ marginBottom: "16px" }}>
+            <Link to="/" style={{ display: "inline-block" }}>
+              <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "72px", width: "auto", objectFit: "contain", background: "#ffffff", padding: "6px 14px", borderRadius: "8px" }} />
+            </Link>
           </div>
           <p>
             Thoughtful solar planning for homes and businesses. Estimates are

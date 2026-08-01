@@ -138,11 +138,10 @@ export function AppShell() {
   return (
     <div className="app-layout">
       <aside className={open ? "app-sidebar open" : "app-sidebar"}>
-        <div className="app-logo">
-          <span className="brandmark" style={{ background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px", overflow: "hidden" }}>
-            <img src="/logo.png" alt="A1 Solar Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-          </span>
-          <b>A1 Solar</b>
+        <div className="app-logo" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Link to="/" style={{ display: "flex", alignItems: "center" }}>
+            <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "48px", width: "auto", objectFit: "contain", background: "#ffffff", padding: "5px 10px", borderRadius: "8px" }} />
+          </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu">
             <X />
           </button>
