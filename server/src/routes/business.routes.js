@@ -674,8 +674,8 @@ agreementsRouter.post(
     const agreement = await mongo.collection("agreements").findOne(filter);
     if (!agreement) throw new AppError(404, "Agreement not found", "NOT_FOUND");
 
-    const key = process.env.PAYU_KEY || "JPbcRu";
-    const salt = process.env.PAYU_SALT || "eCwTwh2v";
+    const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "hMFjB7";
+    const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "a1uB7QLzzynWz1leQbHGa61hKTBKdZq8";
     const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
     const amount = Number(agreement.payment_amount || 1).toFixed(2);
     const productinfo = `Agreement ${agreement.agreement_number}`;
