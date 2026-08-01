@@ -20,15 +20,27 @@ const formObject = (form) => {
   return result;
 };
 
-const printRecord = (title, row) => {
+const printRecord = async (title, row) => {
+  if (title === "Agreement" && (row.locked || row.payment_status !== "Paid")) {
+    return toast.error("PayU Payment required before viewing/downloading agreement.");
+  }
+  let recordData = row;
+  if (title === "Agreement") {
+    try {
+      const docRes = await api(`/agreements/${row.id}/document`);
+      recordData = docRes;
+    } catch (err) {
+      return toast.error(err instanceof Error ? err.message : "Document fetch failed");
+    }
+  }
   const popup = window.open("", "_blank", "width=900,height=700");
   if (!popup) return toast.error("Allow pop-ups to print PDF");
   const html =
     title === "Quotation"
-      ? quotationDocument(row)
+      ? quotationDocument(recordData)
       : title === "Agreement"
-        ? agreementDocument(row)
-        : invoiceDocument(row);
+        ? agreementDocument(recordData)
+        : invoiceDocument(recordData);
   popup.document.write(html);
   popup.document.close();
 };
@@ -50,6 +62,8 @@ function DataPage({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [payuRow, setPayuRow] = useState(null);
+  const [paying, setPaying] = useState(false);
 
   const canCreate =
     user?.roles?.includes("super_admin") ||
@@ -162,6 +176,77 @@ function DataPage({
         </div>
       )}
 
+      {payuRow && (
+        <div className="modal-backdrop">
+          <div className="card modal-form" style={{ maxWidth: "480px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h2 style={{ margin: 0 }}>PayU Online Gateway</h2>
+              <span style={{ background: "#ecfdf5", color: "#065f46", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
+                PayU Official
+              </span>
+            </div>
+            <p style={{ margin: "8px 0 12px", color: "#4b5563", fontSize: "13px" }}>
+              Complete payment for <strong>Agreement #{payuRow.agreement_number}</strong> to unlock PDF download.
+            </p>
+            
+            <div style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb", margin: "12px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px" }}>
+                <span>Customer:</span>
+                <strong>{payuRow.customers?.name || payuRow.customer_name || "Customer"}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px" }}>
+                <span>Agreement #:</span>
+                <strong>{payuRow.agreement_number}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", color: "#059669", paddingTop: "8px", borderTop: "1px dashed #d1d5db", marginTop: "6px" }}>
+                <span>Total Amount Payable:</span>
+                <strong>₹{Number(payuRow.payment_amount || 1232000).toLocaleString("en-IN")}</strong>
+              </div>
+            </div>
+
+            <div style={{ background: "#eff6ff", padding: "10px", borderRadius: "6px", border: "1px solid #bfdbfe", fontSize: "12px", color: "#1e40af", marginBottom: "16px" }}>
+              💳 <strong>Supported Methods:</strong> PayU UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, NetBanking &amp; Wallets.
+            </div>
+
+            <div className="row-actions">
+              <button type="button" className="secondary" onClick={() => setPayuRow(null)} disabled={paying}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary"
+                style={{ background: "#10b981", borderColor: "#059669", color: "#fff", fontWeight: 700 }}
+                disabled={paying}
+                onClick={async () => {
+                  setPaying(true);
+                  try {
+                    await api(`/agreements/${payuRow.id}/payu-verify`, {
+                      method: "POST",
+                      body: JSON.stringify({ txnid: `PAYU_${Date.now()}` }),
+                    });
+                    toast.success("PayU Payment Verified! Agreement Unlocked 🎉");
+                    setPayuRow(null);
+                    await load();
+                    const docRes = await api(`/agreements/${payuRow.id}/document`);
+                    const popup = window.open("", "_blank", "width=900,height=700");
+                    if (popup) {
+                      popup.document.write(agreementDocument(docRes));
+                      popup.document.close();
+                    }
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "PayU payment failed");
+                  } finally {
+                    setPaying(false);
+                  }
+                }}
+              >
+                {paying ? "Processing PayU…" : "Pay Now via PayU 🚀"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="skeleton">Loading {title.toLowerCase()}…</div>
       ) : rows.length === 0 ? (
@@ -181,29 +266,43 @@ function DataPage({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  {columns.map(([key, _, fmt]) => (
-                    <td key={key}>{fmt ? fmt(row[key]) : text(row[key])}</td>
-                  ))}
-                  {(printable || canDelete) && (
-                    <td>
-                      <div className="row-actions">
-                        {printable && (
-                          <button className="secondary" onClick={() => printRecord(title.slice(0, -1), row)}>
-                            Print / PDF
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button className="danger" onClick={() => void remove(row)}>
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
+              {rows.map((row) => {
+                const isAgreementLocked = title === "Agreements" && (row.locked || row.payment_status !== "Paid");
+                return (
+                  <tr key={row.id}>
+                    {columns.map(([key, _, fmt]) => (
+                      <td key={key}>{fmt ? fmt(row[key]) : text(row[key])}</td>
+                    ))}
+                    {(printable || canDelete) && (
+                      <td>
+                        <div className="row-actions">
+                          {printable && (
+                            isAgreementLocked ? (
+                              <button
+                                type="button"
+                                className="primary"
+                                style={{ background: "#10b981", borderColor: "#059669", color: "#fff", fontWeight: 700, padding: "5px 10px", fontSize: "12px" }}
+                                onClick={() => setPayuRow(row)}
+                              >
+                                🔒 Pay via PayU
+                              </button>
+                            ) : (
+                              <button className="secondary" onClick={() => void printRecord(title.slice(0, -1), row)}>
+                                Print / PDF
+                              </button>
+                            )
+                          )}
+                          {canDelete && (
+                            <button className="danger" onClick={() => void remove(row)}>
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

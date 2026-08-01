@@ -608,6 +608,82 @@ agreementsRouter.get(
 );
 
 agreementsRouter.post(
+  "/:id/payu-initiate",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const idStr = String(req.params.id);
+    const { ObjectId } = await import("mongodb");
+    let filter = { agreement_number: idStr };
+    try {
+      if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
+    } catch {}
+
+    const agreement = await mongo.collection("agreements").findOne(filter);
+    if (!agreement) throw new AppError(404, "Agreement not found", "NOT_FOUND");
+
+    const key = process.env.PAYU_KEY || "JPbcRu";
+    const salt = process.env.PAYU_SALT || "eCwTwh2v";
+    const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+    const amount = Number(agreement.payment_amount || 1).toFixed(2);
+    const productinfo = `Agreement ${agreement.agreement_number}`;
+    const firstname = agreement.customer_name || "Customer";
+    const email = agreement.customer_email || req.auth?.email || "customer@a1solar.com";
+    const phone = "9999999999";
+
+    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
+    const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+    return success(res, "PayU payment initiated", {
+      payu_url: process.env.PAYU_URL || "https://test.payu.in/_payment",
+      key,
+      txnid,
+      amount,
+      productinfo,
+      firstname,
+      email,
+      phone,
+      hash,
+      agreement_id: agreement._id.toString(),
+      agreement_number: agreement.agreement_number
+    });
+  }),
+);
+
+agreementsRouter.post(
+  "/:id/payu-verify",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const idStr = String(req.params.id);
+    const { txnid } = req.body;
+    const { ObjectId } = await import("mongodb");
+    let filter = { agreement_number: idStr };
+    try {
+      if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
+    } catch {}
+
+    const payuTxnId = txnid || `PAYU_${Date.now()}`;
+
+    await mongo.collection("agreements").updateOne(filter, {
+      $set: {
+        payment_status: "Paid",
+        paid_at: new Date().toISOString(),
+        payment_method: "PayU Online",
+        payu_txnid: payuTxnId
+      }
+    });
+
+    const updated = await mongo.collection("agreements").findOne(filter);
+    return success(res, "PayU Payment verified successfully", {
+      paid: true,
+      payment_status: "Paid",
+      payu_txnid: payuTxnId,
+      agreement_id: updated._id.toString(),
+      agreement_number: updated.agreement_number
+    });
+  }),
+);
+
+agreementsRouter.post(
   "/:id/test-payment",
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
@@ -618,7 +694,7 @@ agreementsRouter.post(
       if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
     } catch {}
     await mongo.collection("agreements").updateOne(filter, {
-      $set: { payment_status: "Paid", paid_at: new Date().toISOString() }
+      $set: { payment_status: "Paid", paid_at: new Date().toISOString(), payment_method: "PayU Online" }
     });
     return success(res, "Test payment completed successfully", { paid: true });
   }),
