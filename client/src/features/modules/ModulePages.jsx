@@ -752,6 +752,7 @@ export function CustomersPage() {
           "Customer Type / Role",
           "select",
           [
+            "Customer",
             "Residential",
             "Commercial",
             "Industrial",
