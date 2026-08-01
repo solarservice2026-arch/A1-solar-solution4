@@ -71,9 +71,9 @@ export const testAccountMap = {
     "payments:view", "payments:verify"
   ]},
 
-  // Customer – view own agreements/invoices and pay
+  // Customer – view own quotations/invoices/agreements and pay
   "customer@a1solar.test": { fullName: "Rohan Sharma (Customer)", pass: "TestPassword123!", roles: ["customer"], permissions: [
-    "agreements:view", "invoices:view"
+    "quotations:view", "invoices:view", "agreements:view"
   ]}
 };
 
@@ -125,7 +125,7 @@ export class MongoAuthProvider {
           email,
           active: true,
           roles: ["customer"],
-          permissions: ["agreements:view", "payments:create"],
+          permissions: ["quotations:view", "invoices:view", "agreements:view", "payments:create"],
         };
       }
 

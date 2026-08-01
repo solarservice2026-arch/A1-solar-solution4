@@ -83,7 +83,7 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
         } else if (userRoles.includes("accountant")) {
           permissions.push("dashboard:view", "customers:view", "quotations:view", "agreements:view", "invoices:view", "invoices:create", "invoices:update", "payments:view", "payments:verify");
         } else {
-          permissions.push("agreements:view", "payments:create");
+          permissions.push("quotations:view", "invoices:view", "agreements:view", "payments:create");
         }
 
         const token = jwt.sign(

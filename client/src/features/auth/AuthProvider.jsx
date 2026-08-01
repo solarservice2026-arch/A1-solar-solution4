@@ -29,7 +29,7 @@ const testAccountMap = {
   "installer@a1solar.test": { pass: "TestPassword123!", fullName: "Installation Staff User", roles: ["installation_staff"], permissions: ["dashboard:view", "projects:view", "projects:update", "quotations:view", "agreements:view", "invoices:view"] },
   "technician@a1solar.test": { pass: "TestPassword123!", fullName: "Service Technician User", roles: ["service_technician"], permissions: ["dashboard:view", "tickets:view", "tickets:update", "quotations:view", "agreements:view", "invoices:view"] },
   "accounts@a1solar.test": { pass: "TestPassword123!", fullName: "Finance & Accounts User", roles: ["accountant"], permissions: ["dashboard:view", "customers:view", "quotations:view", "agreements:view", "invoices:view", "invoices:create", "invoices:update", "payments:view", "payments:verify"] },
-  "customer@a1solar.test": { pass: "TestPassword123!", fullName: "Rohan Sharma (Customer)", roles: ["customer"], permissions: ["agreements:view", "invoices:view"] }
+  "customer@a1solar.test": { pass: "TestPassword123!", fullName: "Rohan Sharma (Customer)", roles: ["customer"], permissions: ["quotations:view", "invoices:view", "agreements:view"] }
 };
 
 const createTestUser = (email) => {
@@ -61,7 +61,7 @@ const createTestUser = (email) => {
     fullName: "Customer",
     active: true,
     roles: ["customer"],
-    permissions: ["agreements:view", "payments:create"],
+    permissions: ["quotations:view", "invoices:view", "agreements:view", "payments:create"],
   };
 };
 

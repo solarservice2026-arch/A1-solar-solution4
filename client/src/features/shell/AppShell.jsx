@@ -108,7 +108,7 @@ export function AppShell() {
       );
     }
     if (user.roles?.includes("customer")) {
-      return to === "/app/agreements" || to === "/app/profile";
+      return to === "/app/quotations" || to === "/app/invoices" || to === "/app/agreements" || to === "/app/profile";
     }
     return user.permissions?.includes(permission);
   };

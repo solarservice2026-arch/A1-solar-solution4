@@ -349,23 +349,79 @@ ticketsRouter.patch(
 
 export const quotationsRouter = Router();
 quotationsRouter.use(requireAuth);
+
+async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
+  const isCustomer = req.auth?.roles?.includes("customer");
+  const isSuperAdmin = req.auth?.roles?.includes("super_admin");
+
+  if (isSuperAdmin) {
+    return { ...extraFilter };
+  }
+
+  if (isCustomer) {
+    const userEmail = (req.auth?.email || "").trim().toLowerCase();
+    const custObj = await mongo.collection("customers").findOne({
+      $or: [
+        ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail + "$", "i") } }] : []),
+        ...(req.auth?.userId ? [{ profile_id: req.auth.userId }] : [])
+      ]
+    });
+
+    const customerOrs = [];
+    if (custObj) {
+      customerOrs.push({ customer_id: custObj._id });
+      customerOrs.push({ customer_id: custObj._id.toString() });
+    }
+    if (userEmail) {
+      customerOrs.push({ customer_email: userEmail });
+    }
+
+    if (customerOrs.length === 0) {
+      return { ...extraFilter, _id: null };
+    }
+
+    return {
+      ...extraFilter,
+      $or: customerOrs
+    };
+  }
+
+  const adminCustomers = await mongo.collection("customers").find({
+    $or: [
+      { created_by: req.auth?.userId },
+      { created_by_email: req.auth?.email }
+    ]
+  }).toArray();
+
+  const myCustIds = adminCustomers.map(c => c._id);
+  const myCustIdStrs = adminCustomers.map(c => c._id.toString());
+  const myCustEmails = adminCustomers.map(c => c.email ? String(c.email).trim().toLowerCase() : null).filter(Boolean);
+
+  const adminOrs = [
+    { created_by: req.auth?.userId },
+    { created_by_email: req.auth?.email },
+    { created_by: { $exists: false } }
+  ];
+
+  if (myCustIds.length > 0) {
+    adminOrs.push({ customer_id: { $in: [...myCustIds, ...myCustIdStrs] } });
+  }
+  if (myCustEmails.length > 0) {
+    adminOrs.push({ customer_email: { $in: myCustEmails } });
+  }
+
+  return {
+    ...extraFilter,
+    $or: adminOrs
+  };
+}
+
 quotationsRouter.get(
   "/",
   requirePermission("quotations:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    let query = { status: { $ne: "Archived" } };
-
-    if (!req.auth?.roles?.includes("super_admin")) {
-      query = {
-        status: { $ne: "Archived" },
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } }
-        ]
-      };
-    }
+    const query = await getScopedDocumentQuery(mongo, req, { status: { $ne: "Archived" } });
 
     const items = await mongo.collection("quotations").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
@@ -482,36 +538,7 @@ invoicesRouter.get(
   requirePermission("invoices:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    let query = {};
-    const isCustomer = req.auth?.roles?.includes("customer");
-    const isSuperAdmin = req.auth?.roles?.includes("super_admin");
-
-    if (isCustomer) {
-      const custObj = await mongo.collection("customers").findOne({
-        $or: [
-          { email: { $regex: new RegExp("^" + (req.auth.email || "").trim() + "$", "i") } },
-          { profile_id: req.auth.userId }
-        ]
-      });
-      if (custObj) {
-        query = {
-          $or: [
-            { customer_id: custObj._id },
-            { customer_id: custObj._id.toString() }
-          ]
-        };
-      } else {
-        return success(res, "Invoices retrieved", []);
-      }
-    } else if (!isSuperAdmin) {
-      query = {
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } }
-        ]
-      };
-    }
+    const query = await getScopedDocumentQuery(mongo, req, {});
 
     const items = await mongo.collection("invoices").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
@@ -600,38 +627,7 @@ agreementsRouter.get(
   requirePermission("agreements:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-
-    let filter = {};
-    const isCustomer = req.auth?.roles?.includes("customer");
-    const isSuperAdmin = req.auth?.roles?.includes("super_admin");
-
-    if (isCustomer) {
-      const custObj = await mongo.collection("customers").findOne({
-        $or: [
-          { email: { $regex: new RegExp("^" + (req.auth.email || "").trim() + "$", "i") } },
-          { profile_id: req.auth.userId }
-        ]
-      });
-      if (custObj) {
-        filter = {
-          $or: [
-            { customer_id: custObj._id },
-            { customer_id: custObj._id.toString() },
-            { customer_email: (req.auth.email || "").trim().toLowerCase() }
-          ]
-        };
-      } else {
-        return success(res, "Agreements retrieved", []);
-      }
-    } else if (!isSuperAdmin) {
-      filter = {
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } }
-        ]
-      };
-    }
+    const filter = await getScopedDocumentQuery(mongo, req, {});
     const items = await mongo.collection("agreements").find(filter).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
