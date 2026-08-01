@@ -20,6 +20,7 @@ import {
 } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { api } from "../../lib/api.js";
+import logo from "../../assets/a1-solar-logo-transparent.png";
 
 const items = [
   {
@@ -119,8 +120,8 @@ export function AppShell() {
     <div className="app-layout">
       <aside className={open ? "app-sidebar open" : "app-sidebar"}>
         <div className="app-logo" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link to="/" style={{ display: "flex", alignItems: "center" }}>
-            <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "60px", width: "auto", objectFit: "contain" }} />
+          <Link className="flex items-center bg-transparent" to="/">
+            <img src={logo} alt="A1 Solar Solution" className="h-14 sm:h-16 lg:h-20 w-auto object-contain bg-transparent" />
           </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu">
             <X />
