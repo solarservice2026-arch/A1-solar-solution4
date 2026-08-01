@@ -33,11 +33,23 @@ dashboardRouter.get(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
 
+    let query = {};
+    if (!req.auth?.roles?.includes("super_admin")) {
+      query = {
+        $or: [
+          { created_by: req.auth?.userId },
+          { created_by_email: req.auth?.email },
+          { created_by: { $exists: false } },
+          { created_by: null }
+        ]
+      };
+    }
+
     const counts = {
-      leads: await mongo.collection("enquiries").countDocuments(),
-      customers: await mongo.collection("customers").countDocuments(),
-      quotations: await mongo.collection("quotations").countDocuments(),
-      invoices: await mongo.collection("agreements").countDocuments(),
+      leads: await mongo.collection("enquiries").countDocuments(query),
+      customers: await mongo.collection("customers").countDocuments(query),
+      quotations: await mongo.collection("quotations").countDocuments(query),
+      invoices: await mongo.collection("agreements").countDocuments(query),
       products: await mongo.collection("products").countDocuments(),
       staff: await mongo.collection("users").countDocuments(),
     };
@@ -71,7 +83,8 @@ customersRouter.get(
         $or: [
           { created_by: req.auth?.userId },
           { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } }
+          { created_by: { $exists: false } },
+          { created_by: null }
         ]
       };
     }

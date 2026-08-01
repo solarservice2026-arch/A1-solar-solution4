@@ -144,6 +144,18 @@ usersRouter.get("/", requirePermission("users:view"), asyncHandler(async (req, r
     if (query.search) {
       filter.name = { $regex: String(query.search).trim(), $options: "i" };
     }
+
+    if (!req.auth?.roles?.includes("super_admin")) {
+      filter = {
+        ...filter,
+        $or: [
+          { created_by: req.auth?.userId },
+          { created_by_email: req.auth?.email },
+          { created_by: { $exists: false } },
+          { created_by: null }
+        ]
+      };
+    }
     const total = await db.collection("users").countDocuments(filter);
     const start = (query.page - 1) * query.pageSize;
     const items = await db.collection("users")
