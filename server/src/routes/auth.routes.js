@@ -168,7 +168,6 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
           name: input.fullName,
           email: input.email.trim().toLowerCase(),
           role: input.role,
-          status: input.active ? "Active" : "Disabled",
           created_at: new Date(),
           password_hash: defaultHash,
         },
