@@ -60,8 +60,8 @@ function Header() {
   const { user, signOut } = useAuth();
   return (
     <header className="header">
-      <Link className="brand flex items-center bg-transparent" to="/">
-        <img src={logo} alt="A1 Solar Solution" className="h-14 sm:h-16 lg:h-20 w-auto object-contain bg-transparent" />
+      <Link className="brand" to="/" style={{ display: "flex", alignItems: "center", padding: "4px 0" }}>
+        <img src={logo} alt="A1 Solar Solution" style={{ height: "88px", width: "auto", objectFit: "contain", maxHeight: "90px" }} />
       </Link>
       <nav className={open ? "nav open" : "nav"}>
         {nav.map(([label, to]) => (
@@ -115,7 +115,7 @@ function Footer() {
         <div>
           <div className="brand light" style={{ marginBottom: "16px" }}>
             <Link to="/" style={{ display: "inline-block" }}>
-              <img src={logo} alt="A1 Solar Solution" className="h-14 sm:h-16 lg:h-20 w-auto object-contain bg-transparent" />
+              <img src={logo} alt="A1 Solar Solution" style={{ height: "98px", width: "auto", objectFit: "contain", maxHeight: "90px" }} />
             </Link>
           </div>
           <p>
