@@ -2,12 +2,20 @@
   "name": "a1-solar-platform",
   "private": true,
   "version": "1.0.0",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
-    "build": "npm install --prefix client && npm run build --prefix client",
+    "build": "npm run build --prefix client",
     "start": "npm start --prefix server",
     "client": "npm run dev --prefix client",
     "server": "npm run dev --prefix server"
+  },
+  "dependencies": {
+    "vite": "^7.0.6",
+    "@vitejs/plugin-react": "^4.7.0"
   },
   "devDependencies": {
     "concurrently": "^9.2.0"
