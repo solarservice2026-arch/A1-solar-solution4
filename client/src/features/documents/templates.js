@@ -45,9 +45,13 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .hero{width:100%;height:58mm;display:block;object-fit:cover;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
-.doc-header.cols-4{grid-template-columns:36mm 1fr 34mm 36mm}
-.doc-header.cols-3{grid-template-columns:36mm 1fr 60mm}
+.doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
+.doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
 .mini-brand{font-weight:900;color:#163d52;font-size:13px;line-height:1.3;text-transform:uppercase}
+.logo-brand{display:block;height:18mm;width:auto;max-width:42mm;object-fit:contain;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+/* ─── Agreement logo header ─── */
+.agr-logo-header{display:flex;align-items:center;justify-content:center;padding:4mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:3mm}
+.agr-logo-header img{height:16mm;width:auto;object-fit:contain;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .doc-title{text-align:center}
 .doc-title h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.06em;color:#1a3a6b}
 .doc-title b{display:block;color:#586bc5;font-size:12px;margin-top:2px}
@@ -115,6 +119,7 @@ export function quotationDocument(row) {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const header = `${origin}/document-assets/solar-document-header.png`;
   const signature = `${origin}/document-assets/vendor-authorized-signature.png`;
+  const logoUrl = `${origin}/logo.png`;
 
   const itemRows = items.map((item, i) => {
     const product = item.products ?? {};
@@ -136,7 +141,7 @@ export function quotationDocument(row) {
 <main class="sheet">
   <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
   <div class="doc-header cols-4">
-    <div class="mini-brand">A1 SOLAR<br>SOLUTION</div>
+    <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
     <div class="meta">Date<b>${esc(row.quotation_date)}</b></div>
     <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
@@ -162,7 +167,7 @@ export function quotationDocument(row) {
   <div class="page-break"></div>
 
   <div class="doc-header cols-4" style="margin-top:8mm">
-    <div class="mini-brand">A1 SOLAR<br>SOLUTION</div>
+    <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
     <div class="meta">Valid Until<b>${esc(row.valid_until)}</b></div>
     <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
@@ -213,13 +218,14 @@ export function invoiceDocument(row) {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const header = `${origin}/document-assets/solar-document-header.png`;
   const signature = `${origin}/document-assets/vendor-authorized-signature.png`;
+  const logoUrl = `${origin}/logo.png`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(row.invoice_number)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
   <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
   <div class="doc-header cols-4">
-    <div class="mini-brand">A1 SOLAR<br>SOLUTION</div>
+    <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
     <div class="meta">Date<b>${esc(row.invoice_date)}</b></div>
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
@@ -271,6 +277,7 @@ export function agreementDocument(row) {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const stamp = `${origin}/document-assets/agreement-stamp-paper.png`;
   const vendorSign = `${origin}/document-assets/vendor-authorized-signature.png`;
+  const logoUrl = `${origin}/logo.png`;
 
   const rawDate = String(merged.agreement_date ?? row.created_at ?? new Date().toISOString());
   const parsedDate = new Date(rawDate);
@@ -289,7 +296,8 @@ export function agreementDocument(row) {
 
 <!-- PAGE 1 -->
 <div class="page">
-  <div class="agreement-body" style="padding:10mm 14mm">
+  <div class="agr-logo-header"><img src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'"></div>
+  <div class="agreement-body" style="padding:6mm 14mm">
     <div style="position:relative;text-align:center;margin-bottom:4mm">
       <img class="stamp" src="${esc(stamp)}" alt="Revenue stamp" style="max-height:22mm;object-fit:contain;margin:0 auto" onerror="this.style.display='none'">
       <div style="position:absolute;right:0;top:0;font-weight:700;font-size:11px">Annexure 2</div>
@@ -342,7 +350,8 @@ export function agreementDocument(row) {
 
 <!-- PAGE 2 -->
 <div class="page">
-  <div class="agreement-body" style="padding:10mm 14mm">
+  <div class="agr-logo-header"><img src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'"></div>
+  <div class="agreement-body" style="padding:6mm 14mm">
     <p style="margin-bottom:4mm">The Vendor must follow all standards and safety guidelines prescribed under State regulations, DISCOM/SERC/MNRE requirements and applicable technical standards.</p>
     
     <p class="clause"><b>Site Survey:</b> Site visit, feasibility study, roof-strength and shadow-free-area assessment. Additional customization required by site conditions shall be separately estimated with applicable tax.</p>
@@ -369,7 +378,8 @@ export function agreementDocument(row) {
 
 <!-- PAGE 3 -->
 <div class="page">
-  <div class="agreement-body" style="padding:10mm 14mm">
+  <div class="agr-logo-header"><img src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'"></div>
+  <div class="agreement-body" style="padding:6mm 14mm">
     <p class="clause"><b>Dispute:</b> Any dispute between Consumer and Vendor relating to supply, installation, maintenance or payment shall be settled mutually or according to applicable law. MNRE/DISCOM shall not be a party to such private dispute.</p>
     
     <p class="clause"><b>Subsidy / Project Related Documents:</b> Vendor shall provide relevant documents and assist with National Portal submission for subsidy processing.</p>
