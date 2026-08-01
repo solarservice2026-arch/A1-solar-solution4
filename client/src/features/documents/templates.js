@@ -188,7 +188,10 @@ export function quotationDocument(row) {
     <p><b>Monitoring:</b> Performance monitoring subject to selected equipment.</p>
   </div>
   <div class="sig-row">
-    <div class="sig-block"><div class="sig-line">Customer Acceptance Signature</div></div>
+    <div class="sig-block">
+      ${row.customer_signature_url ? `<img src="${esc(row.customer_signature_url)}" alt="Customer Signature">` : ""}
+      <div class="sig-line">Customer Acceptance Signature</div>
+    </div>
     <div class="sig-block">
       <img src="${esc(signature)}" alt="A1 Solar proprietor signature">
       <div class="sig-line"><b>For A1 Solar Solution</b><br>Authorized Signatory / Proprietor</div>

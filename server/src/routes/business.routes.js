@@ -522,6 +522,7 @@ quotationsRouter.post(
       terms: b.terms || null,
       status: b.status || "Draft",
       quotation_items: normalized,
+      customer_signature_url: b.customerSignatureUrl || null,
       created_at: new Date(),
       created_by: req.auth?.userId || null,
       created_by_email: req.auth?.email || null,
