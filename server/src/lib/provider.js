@@ -23,12 +23,58 @@ export const testAccountMap = {
   "admin@admin.com": { fullName: "Ayush Admin", pass: "admin123", roles: ["admin"], permissions: fullPermissions },
   "superadmin@a1solar.test": { fullName: "A1 Super Admin", pass: "admin123", roles: ["super_admin", "admin"], permissions: fullPermissions },
   "admin@a1solar.test": { fullName: "A1 Solar Admin", pass: "admin123", roles: ["admin"], permissions: fullPermissions },
-  "manager@a1solar.test": { fullName: "Sales Manager", pass: "admin123", roles: ["manager"], permissions: ["business:view", "leads:view", "leads:create", "leads:update", "quotations:view", "quotations:create", "quotations:update", "agreements:view", "invoices:view", "installations:view", "technicians:view"] },
-  "sales@a1solar.test": { fullName: "Sales Executive User", pass: "admin123", roles: ["sales_executive"], permissions: ["leads:view", "leads:create", "leads:update", "quotations:view", "quotations:create"] },
-  "installer@a1solar.test": { fullName: "Installation Staff User", pass: "admin123", roles: ["installation_staff"], permissions: ["dashboard:view", "projects:view", "projects:update", "quotations:view", "agreements:view", "invoices:view"] },
-  "technician@a1solar.test": { fullName: "Service Technician User", pass: "admin123", roles: ["service_technician"], permissions: ["dashboard:view", "tickets:view", "tickets:update", "quotations:view", "agreements:view", "invoices:view"] },
-  "accounts@a1solar.test": { fullName: "Finance & Accounts User", pass: "admin123", roles: ["accountant"], permissions: ["dashboard:view", "customers:view", "quotations:view", "agreements:view", "invoices:view", "invoices:create", "invoices:update", "payments:view", "payments:verify"] },
-  "customer@a1solar.test": { fullName: "Rohan Sharma (Customer)", pass: "admin123", roles: ["customer"], permissions: ["agreements:view", "invoices:view"] }
+
+  // Sales Manager – can create Quotations AND Agreements (but NOT invoices)
+  "manager@a1solar.test": { fullName: "Sales Manager", pass: "admin123", roles: ["manager"], permissions: [
+    "dashboard:view", "business:view",
+    "leads:view", "leads:create", "leads:update",
+    "customers:view", "customers:create",
+    "quotations:view", "quotations:create", "quotations:update", "quotations:delete",
+    "agreements:view", "agreements:create", "agreements:update",
+    "invoices:view",
+    "installations:view", "technicians:view"
+  ]},
+
+  // Sales Executive – can create Quotations only
+  "sales@a1solar.test": { fullName: "Sales Executive User", pass: "admin123", roles: ["sales_executive"], permissions: [
+    "dashboard:view",
+    "leads:view", "leads:create", "leads:update",
+    "customers:view",
+    "quotations:view", "quotations:create", "quotations:update"
+  ]},
+
+  // Installation Staff – view only for quotations/agreements/invoices
+  "installer@a1solar.test": { fullName: "Installation Staff User", pass: "admin123", roles: ["installation_staff"], permissions: [
+    "dashboard:view",
+    "projects:view", "projects:update",
+    "quotations:view",
+    "agreements:view",
+    "invoices:view"
+  ]},
+
+  // Service Technician – view tickets + view documents
+  "technician@a1solar.test": { fullName: "Service Technician User", pass: "admin123", roles: ["service_technician"], permissions: [
+    "dashboard:view",
+    "tickets:view", "tickets:update",
+    "quotations:view",
+    "agreements:view",
+    "invoices:view"
+  ]},
+
+  // Accountant / Finance – can create AND update invoices (not quotations/agreements)
+  "accounts@a1solar.test": { fullName: "Finance & Accounts User", pass: "admin123", roles: ["accountant"], permissions: [
+    "dashboard:view",
+    "customers:view",
+    "quotations:view",
+    "agreements:view",
+    "invoices:view", "invoices:create", "invoices:update",
+    "payments:view", "payments:verify"
+  ]},
+
+  // Customer – view own agreements/invoices and pay
+  "customer@a1solar.test": { fullName: "Rohan Sharma (Customer)", pass: "admin123", roles: ["customer"], permissions: [
+    "agreements:view", "invoices:view"
+  ]}
 };
 
 export class MongoAuthProvider {

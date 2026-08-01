@@ -385,14 +385,18 @@ quotationsRouter.post(
     const mongo = await getMongoDb();
     const b = req.body;
 
-    let customerName = "Customer";
-    try {
-      const { ObjectId } = await import("mongodb");
-      const cDoc = await mongo.collection("customers").findOne({ _id: new ObjectId(b.customerId) });
-      if (cDoc) customerName = cDoc.name;
-    } catch {
-      const cDoc = await mongo.collection("customers").findOne({ customer_number: b.customerId });
-      if (cDoc) customerName = cDoc.name;
+    // Accept customerName directly from simple form OR look up by customerId
+    let customerName = b.customerName || "Customer";
+    let customerId = b.customerId || null;
+    if (customerId && !b.customerName) {
+      try {
+        const { ObjectId } = await import("mongodb");
+        const cDoc = await mongo.collection("customers").findOne({ _id: new ObjectId(customerId) });
+        if (cDoc) customerName = cDoc.name;
+      } catch {
+        const cDoc = await mongo.collection("customers").findOne({ customer_number: customerId });
+        if (cDoc) customerName = cDoc.name;
+      }
     }
 
     const items = Array.isArray(b.items) ? b.items : [];
@@ -405,23 +409,24 @@ quotationsRouter.post(
     const subtotal = normalized.reduce((sum, i) => sum + i.line_amount, 0);
     const discount = Number(b.discount || 0);
     const tax = Number(b.tax || 0);
+    const grandTotal = subtotal > 0 ? subtotal - discount + tax : Number(b.grandTotal || 0);
 
     const qDoc = {
       quotation_number: number("QUO"),
-      customer_id: b.customerId,
+      customer_id: customerId,
       customer_name: customerName,
       quotation_date: b.quotationDate || new Date().toISOString().slice(0, 10),
-      valid_until: b.validUntil,
+      valid_until: b.validUntil || null,
       capacity_kw: Number(b.capacityKw || 0),
       quotation_type: b.quotationType || "Residential",
       title: b.title || "Solar Installation Quotation",
-      installation_address: b.installationAddress || null,
+      installation_address: b.installationAddress || b.consumerAddress || null,
       subtotal,
       discount,
       tax,
-      grand_total: subtotal - discount + tax,
+      grand_total: grandTotal,
       terms: b.terms || null,
-      status: "Draft",
+      status: b.status || "Draft",
       quotation_items: normalized,
       created_at: new Date(),
       created_by: req.auth?.userId || null,
@@ -500,9 +505,10 @@ invoicesRouter.post(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const b = req.body;
+
+    // Accept customerName directly from simple form
+    const customerName = b.customerName || "Customer";
     const items = Array.isArray(b.items) ? b.items : [];
-    if (!b.customerId || items.length === 0)
-      throw new AppError(400, "Customer and products are required", "VALIDATION_ERROR");
 
     const normalized = items.map((item) => {
       const quantity = Number(item.quantity || 1);
@@ -517,11 +523,12 @@ invoicesRouter.post(
 
     const subtotal = normalized.reduce((sum, item) => sum + item.line_amount, 0);
     const tax = Number(b.tax || 0);
-    const total = subtotal + tax;
+    const total = subtotal > 0 ? subtotal + tax : Number(b.total || 0);
 
     const doc = {
       invoice_number: invoiceNumber(),
-      customer_id: b.customerId,
+      customer_id: b.customerId || null,
+      customer_name: customerName,
       invoice_date: b.invoiceDate || new Date().toISOString().slice(0, 10),
       due_date: b.dueDate || new Date().toISOString().slice(0, 10),
       title: b.title || "Solar Invoice",
@@ -760,7 +767,8 @@ agreementsRouter.post(
     const b = req.body;
     const { ObjectId } = await import("mongodb");
 
-    let customerName = "Customer";
+    // Accept customerName directly from simple form OR look up by customerId
+    let customerName = b.customerName || "Customer";
     let customerEmail = null;
     let customObjId = null;
     if (b.customerId) {
@@ -768,7 +776,7 @@ agreementsRouter.post(
         customObjId = new ObjectId(b.customerId);
         const cust = await mongo.collection("customers").findOne({ _id: customObjId });
         if (cust) {
-          customerName = String(cust.name ?? "Customer");
+          customerName = String(cust.name ?? customerName);
           customerEmail = cust.email || null;
         }
       } catch {}
@@ -781,7 +789,7 @@ agreementsRouter.post(
 
     const doc = {
       agreement_number: agreementNumber,
-      customer_id: customObjId ?? b.customerId,
+      customer_id: customObjId ?? b.customerId ?? null,
       customer_name: customerName,
       customer_email: customerEmail,
       quotation_id: b.quotationId || null,
@@ -789,6 +797,7 @@ agreementsRouter.post(
       payment_status: "Unpaid",
       payment_amount: Number(b.paymentAmount || 1),
       consumer_address: b.consumerAddress || null,
+      agreement_date: b.agreementDate || today.toISOString().slice(0, 10),
       created_at: today.toISOString(),
       updated_at: today.toISOString(),
       created_by: req.auth?.userId || null,

@@ -436,6 +436,13 @@ export function QuotationsPage() {
         ["grand_total", "Grand Total", money],
         ["status", "Status"],
       ]}
+      fields={[
+        ["customerName", "Customer Name", "text"],
+        ["capacityKw", "System Capacity (kW)", "number"],
+        ["grandTotal", "Grand Total (₹)", "number"],
+        ["consumerAddress", "Installation Address", "text"],
+        ["status", "Status", "select", ["Draft", "Sent", "Approved", "Rejected"]],
+      ]}
       icon={<FileText />}
     />
   );
@@ -458,6 +465,15 @@ export function InvoicesPage() {
         ["paid_amount", "Paid Amount", money],
         ["status", "Status"],
       ]}
+      fields={[
+        ["title", "Invoice Title", "text"],
+        ["customerName", "Customer Name", "text"],
+        ["total", "Total Amount (₹)", "number"],
+        ["paidAmount", "Paid Amount (₹)", "number"],
+        ["tax", "Tax / GST (₹)", "number"],
+        ["dueDate", "Due Date", "date"],
+        ["status", "Status", "select", ["Draft", "Sent", "Paid", "Overdue", "Cancelled"]],
+      ]}
       icon={<FileText />}
     />
   );
@@ -479,6 +495,13 @@ export function AgreementsPage() {
         ["payment_status", "Payment Status"],
         ["payment_amount", "Amount", money],
         ["status", "Status"],
+      ]}
+      fields={[
+        ["customerName", "Customer Name", "text"],
+        ["paymentAmount", "Project / Payment Amount (₹)", "number"],
+        ["consumerAddress", "Consumer Address", "text"],
+        ["quotationId", "Quotation # (optional)", "text", null, false],
+        ["agreementDate", "Agreement Date", "date"],
       ]}
       icon={<FileText />}
     />
