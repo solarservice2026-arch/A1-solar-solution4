@@ -66,18 +66,27 @@ function DataPage({
   const [paying, setPaying] = useState(false);
 
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [availableCustomers, setAvailableCustomers] = useState([]);
+  const [isCustomCustomer, setIsCustomCustomer] = useState(false);
 
   useEffect(() => {
-    if (open && (title === "Quotations" || title === "Invoices")) {
-      const fetchProds = async () => {
+    if (open && (title === "Quotations" || title === "Invoices" || title === "Agreements")) {
+      const fetchData = async () => {
         try {
-          const res = await api("/products");
-          if (Array.isArray(res)) setAvailableProducts(res);
+          if (title === "Quotations" || title === "Invoices") {
+            const res = await api("/products");
+            if (Array.isArray(res)) setAvailableProducts(res);
+          }
+          const custRes = await api("/customers");
+          if (Array.isArray(custRes)) setAvailableCustomers(custRes);
         } catch (e) {
-          console.error("Failed to load products", e);
+          console.error("Failed to load data", e);
         }
       };
-      void fetchProds();
+      void fetchData();
+    }
+    if (!open) {
+      setIsCustomCustomer(false);
     }
   }, [open, title]);
 
@@ -305,7 +314,39 @@ function DataPage({
                 <label>Quotation Date<input type="date" value={qDate} onChange={e => setQDate(e.target.value)} required /></label>
                 <label>System Capacity (kW)<input type="number" value={qCapacity} onChange={e => setQCapacity(e.target.value)} required /></label>
                 <label>Quotation Type<input value={qType} onChange={e => setQType(e.target.value)} required /></label>
-                <label>Customer Name<input value={qCustName} onChange={e => setQCustName(e.target.value)} required /></label>
+                <label>Customer Name
+                  {isCustomCustomer ? (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <input style={{ flex: 1, minWidth: 0 }} value={qCustName} onChange={e => setQCustName(e.target.value)} placeholder="Type name" required autoFocus />
+                      <button type="button" onClick={() => { setIsCustomCustomer(false); setQCustName(""); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
+                    </div>
+                  ) : (
+                    <select
+                      value={availableCustomers.some(c => c.name === qCustName) ? qCustName : ""}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === "custom") {
+                          setIsCustomCustomer(true);
+                          setQCustName("");
+                        } else {
+                          setQCustName(val);
+                          const customer = availableCustomers.find(c => c.name === val);
+                          if (customer) {
+                            setQCustMobile(customer.mobile || "");
+                            setQCustEmail(customer.email || "");
+                          }
+                        }
+                      }}
+                      required
+                    >
+                      <option value="" disabled>-- Select Customer --</option>
+                      {availableCustomers.map(c => (
+                        <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
+                      ))}
+                      <option value="custom">+ Add Custom Name</option>
+                    </select>
+                  )}
+                </label>
                 <label>Customer Mobile<input value={qCustMobile} onChange={e => setQCustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={qCustEmail} onChange={e => setQCustEmail(e.target.value)} /></label>
                 <label>Customer GSTIN<input value={qCustGst} onChange={e => setQCustGst(e.target.value)} /></label>
@@ -416,7 +457,39 @@ function DataPage({
                 <label>Invoice Title<input value={iTitle} onChange={e => setITitle(e.target.value)} required /></label>
                 <label>Invoice Date<input type="date" value={iDate} onChange={e => setIDate(e.target.value)} required /></label>
                 <label>Due Date<input type="date" value={iDueDate} onChange={e => setIDueDate(e.target.value)} required /></label>
-                <label>Customer Name<input value={iCustName} onChange={e => setICustName(e.target.value)} required /></label>
+                <label>Customer Name
+                  {isCustomCustomer ? (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <input style={{ flex: 1, minWidth: 0 }} value={iCustName} onChange={e => setICustName(e.target.value)} placeholder="Type name" required autoFocus />
+                      <button type="button" onClick={() => { setIsCustomCustomer(false); setICustName(""); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
+                    </div>
+                  ) : (
+                    <select
+                      value={availableCustomers.some(c => c.name === iCustName) ? iCustName : ""}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === "custom") {
+                          setIsCustomCustomer(true);
+                          setICustName("");
+                        } else {
+                          setICustName(val);
+                          const customer = availableCustomers.find(c => c.name === val);
+                          if (customer) {
+                            setICustMobile(customer.mobile || "");
+                            setICustEmail(customer.email || "");
+                          }
+                        }
+                      }}
+                      required
+                    >
+                      <option value="" disabled>-- Select Customer --</option>
+                      {availableCustomers.map(c => (
+                        <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
+                      ))}
+                      <option value="custom">+ Add Custom Name</option>
+                    </select>
+                  )}
+                </label>
                 <label>Customer Mobile<input value={iCustMobile} onChange={e => setICustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={iCustEmail} onChange={e => setICustEmail(e.target.value)} /></label>
                 <label>Customer GSTIN<input value={iCustGst} onChange={e => setICustGst(e.target.value)} /></label>
@@ -536,7 +609,39 @@ function DataPage({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <label>Agreement Number<input value={aNumber} onChange={e => setANumber(e.target.value)} required /></label>
                 <label>Agreement Date<input type="date" value={aDate} onChange={e => setADate(e.target.value)} required /></label>
-                <label>Consumer Name<input value={aCustName} onChange={e => setACustName(e.target.value)} required /></label>
+                <label>Consumer Name
+                  {isCustomCustomer ? (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <input style={{ flex: 1, minWidth: 0 }} value={aCustName} onChange={e => setACustName(e.target.value)} placeholder="Type name" required autoFocus />
+                      <button type="button" onClick={() => { setIsCustomCustomer(false); setACustName(""); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
+                    </div>
+                  ) : (
+                    <select
+                      value={availableCustomers.some(c => c.name === aCustName) ? aCustName : ""}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === "custom") {
+                          setIsCustomCustomer(true);
+                          setACustName("");
+                        } else {
+                          setACustName(val);
+                          const customer = availableCustomers.find(c => c.name === val);
+                          if (customer) {
+                            setACustMobile(customer.mobile || "");
+                            setACustEmail(customer.email || "");
+                          }
+                        }
+                      }}
+                      required
+                    >
+                      <option value="" disabled>-- Select Consumer --</option>
+                      {availableCustomers.map(c => (
+                        <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
+                      ))}
+                      <option value="custom">+ Add Custom Name</option>
+                    </select>
+                  )}
+                </label>
                 <label>Consumer Mobile<input value={aCustMobile} onChange={e => setACustMobile(e.target.value)} required /></label>
                 <label>Consumer Email<input type="email" value={aCustEmail} onChange={e => setACustEmail(e.target.value)} /></label>
                 <label>Quotation Reference #<input value={aQuotationNumber} onChange={e => setAQuotationNumber(e.target.value)} required /></label>
