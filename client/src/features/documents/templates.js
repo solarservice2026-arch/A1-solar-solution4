@@ -48,10 +48,10 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
 .mini-brand{font-weight:900;color:#163d52;font-size:13px;line-height:1.3;text-transform:uppercase}
-.logo-brand{display:block;height:18mm;width:auto;max-width:42mm;object-fit:contain;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.logo-brand{display:block;height:18mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;mix-blend-mode:multiply;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Agreement logo header ─── */
 .agr-logo-header{display:flex;align-items:center;justify-content:center;padding:4mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:3mm}
-.agr-logo-header img{height:16mm;width:auto;object-fit:contain;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.agr-logo-header img{height:16mm;width:auto;object-fit:contain;background:transparent;mix-blend-mode:multiply;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .doc-title{text-align:center}
 .doc-title h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.06em;color:#1a3a6b}
 .doc-title b{display:block;color:#586bc5;font-size:12px;margin-top:2px}

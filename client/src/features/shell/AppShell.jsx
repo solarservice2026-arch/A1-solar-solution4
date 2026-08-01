@@ -120,7 +120,7 @@ export function AppShell() {
       <aside className={open ? "app-sidebar open" : "app-sidebar"}>
         <div className="app-logo" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Link to="/" style={{ display: "flex", alignItems: "center" }}>
-            <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "60px", width: "auto", objectFit: "contain", background: "#ffffff", padding: "6px 12px", borderRadius: "8px" }} />
+            <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "60px", width: "auto", objectFit: "contain" }} />
           </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu">
             <X />

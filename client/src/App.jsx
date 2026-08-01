@@ -114,7 +114,7 @@ function Footer() {
         <div>
           <div className="brand light" style={{ marginBottom: "16px" }}>
             <Link to="/" style={{ display: "inline-block" }}>
-              <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "98px", width: "auto", objectFit: "contain", background: "#ffffff", padding: "8px 16px", borderRadius: "10px" }} />
+              <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "98px", width: "auto", objectFit: "contain", maxHeight: "90px" }} />
             </Link>
           </div>
           <p>
