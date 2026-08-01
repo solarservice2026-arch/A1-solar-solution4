@@ -767,27 +767,50 @@ function DataPage({
                 onClick={async () => {
                   setPaying(true);
                   try {
-                    await api(`/agreements/${payuRow.id}/payu-verify`, {
+                    const payuData = await api(`/agreements/${payuRow.id}/payu-initiate`, {
                       method: "POST",
-                      body: JSON.stringify({ txnid: `PAYU_${Date.now()}` }),
                     });
-                    toast.success("PayU Payment Verified! Agreement Unlocked 🎉");
-                    setPayuRow(null);
-                    await load();
-                    const docRes = await api(`/agreements/${payuRow.id}/document`);
-                    const popup = window.open("", "_blank", "width=900,height=700");
-                    if (popup) {
-                      popup.document.write(agreementDocument(docRes));
-                      popup.document.close();
+
+                    if (payuData && payuData.payu_url && payuData.hash) {
+                      toast.success("Redirecting to PayU Payment Gateway…");
+                      const form = document.createElement("form");
+                      form.method = "POST";
+                      form.action = payuData.payu_url;
+
+                      const params = {
+                        key: payuData.key,
+                        txnid: payuData.txnid,
+                        amount: payuData.amount,
+                        productinfo: payuData.productinfo,
+                        firstname: payuData.firstname,
+                        email: payuData.email,
+                        phone: payuData.phone || "9999999999",
+                        surl: payuData.surl,
+                        furl: payuData.furl,
+                        hash: payuData.hash,
+                        service_provider: "payu_paisa"
+                      };
+
+                      Object.entries(params).forEach(([k, v]) => {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = k;
+                        input.value = String(v);
+                        form.appendChild(input);
+                      });
+
+                      document.body.appendChild(form);
+                      form.submit();
+                    } else {
+                      throw new Error("PayU checkout initiation failed");
                     }
                   } catch (err) {
                     toast.error(err instanceof Error ? err.message : "PayU payment failed");
-                  } finally {
                     setPaying(false);
                   }
                 }}
               >
-                {paying ? "Processing PayU…" : "Pay Now via PayU 🚀"}
+                {paying ? "Opening PayU Gateway…" : "Pay Now via PayU 🚀"}
               </button>
             </div>
           </div>

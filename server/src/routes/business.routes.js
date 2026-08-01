@@ -615,6 +615,44 @@ invoicesRouter.post(
 );
 
 export const agreementsRouter = Router();
+
+agreementsRouter.post(
+  "/payu-callback",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const payload = req.body || {};
+    const { status, txnid, amount, productinfo, firstname, email, hash, mihpayid } = payload;
+
+    let agreementNum = "";
+    if (productinfo && productinfo.includes("Agreement ")) {
+      agreementNum = productinfo.replace("Agreement ", "").trim();
+    }
+
+    let filter = {};
+    if (txnid) {
+      filter = { $or: [{ payu_txnid: txnid }, ...(agreementNum ? [{ agreement_number: agreementNum }] : [])] };
+    } else if (agreementNum) {
+      filter = { agreement_number: agreementNum };
+    }
+
+    if (status === "success" || status === "SUCCESS") {
+      await mongo.collection("agreements").updateOne(filter, {
+        $set: {
+          payment_status: "Paid",
+          paid_at: new Date().toISOString(),
+          payment_method: "PayU Online",
+          payu_txnid: mihpayid || txnid || `PAYU_${Date.now()}`
+        }
+      });
+    }
+
+    const webUrl = process.env.WEB_URL || "https://a1-solar-solution4.vercel.app";
+    const redirectUrl = `${webUrl}/app/agreements?status=${status || "success"}`;
+    res.setHeader("content-type", "text/html");
+    return res.send(`<!DOCTYPE html><html><head><title>PayU Payment Processing</title></head><body><h3>Payment Processing... Redirecting back to dashboard.</h3><script>window.location.href = ${JSON.stringify(redirectUrl)};</script></body></html>`);
+  })
+);
+
 agreementsRouter.use(requireAuth);
 agreementsRouter.get(
   "/",
@@ -681,10 +719,19 @@ agreementsRouter.post(
     const productinfo = `Agreement ${agreement.agreement_number}`;
     const firstname = agreement.customer_name || "Customer";
     const email = agreement.customer_email || req.auth?.email || "customer@a1solar.com";
-    const phone = "9999999999";
+    const phone = agreement.customer_mobile || "9999999999";
+
+    const apiUrl = process.env.API_URL || "https://a1-solar-solution4.vercel.app/api/v1";
+    const surl = `${apiUrl}/agreements/payu-callback`;
+    const furl = `${apiUrl}/agreements/payu-callback`;
 
     const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
     const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+    await mongo.collection("agreements").updateOne(
+      { _id: agreement._id },
+      { $set: { payu_txnid: txnid, updated_at: new Date().toISOString() } }
+    );
 
     return success(res, "PayU payment initiated", {
       payu_url: process.env.PAYU_URL || "https://test.payu.in/_payment",
@@ -695,6 +742,8 @@ agreementsRouter.post(
       firstname,
       email,
       phone,
+      surl,
+      furl,
       hash,
       agreement_id: agreement._id.toString(),
       agreement_number: agreement.agreement_number
