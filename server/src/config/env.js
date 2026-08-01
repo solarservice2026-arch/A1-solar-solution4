@@ -2,13 +2,12 @@ import { config } from "dotenv";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
-if (process.env.NODE_ENV !== "production") {
-  config({
-    path: fileURLToPath(new URL("../../../.env", import.meta.url)),
-    quiet: true,
-    override: false,
-  });
-}
+try {
+  config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)), quiet: true, override: false });
+} catch {}
+try {
+  config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true, override: false });
+} catch {}
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
