@@ -127,6 +127,20 @@ function DataPage({
   const [aCapacity, setACapacity] = useState("3");
   const [aAmount, setAAmount] = useState("244000");
   const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
+  const [aCustomerSignature, setACustomerSignature] = useState(null);
+
+  const handleSignatureUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setACustomerSignature(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setACustomerSignature(null);
+    }
+  };
 
   const canCreate =
     user?.roles?.includes("super_admin") ||
@@ -212,7 +226,8 @@ function DataPage({
         capacityKw: aCapacity,
         paymentAmount: aAmount,
         termsOfPayment: aTerms,
-        status: "Draft"
+        status: "Draft",
+        customerSignatureUrl: aCustomerSignature
       };
     } else {
       body = formObject(e.currentTarget);
@@ -529,6 +544,11 @@ function DataPage({
                 <label>Project Value (₹)<input type="number" value={aAmount} onChange={e => setAAmount(e.target.value)} required /></label>
                 <label style={{ gridColumn: "span 2" }}>Consumer Site Address<textarea value={aAddress} onChange={e => setAAddress(e.target.value)} rows={2} required /></label>
                 <label style={{ gridColumn: "span 2" }}>Terms of Payment<textarea value={aTerms} onChange={e => setATerms(e.target.value)} rows={3} required /></label>
+                <label style={{ gridColumn: "span 2" }}>
+                  Customer Signature (Image)
+                  <input type="file" accept="image/*" onChange={handleSignatureUpload} style={{ marginTop: "4px" }} />
+                  {aCustomerSignature && <img src={aCustomerSignature} alt="Signature Preview" style={{ height: "40px", marginTop: "8px", objectFit: "contain", display: "block" }} />}
+                </label>
               </div>
 
               <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>

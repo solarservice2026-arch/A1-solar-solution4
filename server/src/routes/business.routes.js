@@ -858,6 +858,7 @@ agreementsRouter.post(
       updated_at: today.toISOString(),
       created_by: req.auth?.userId || null,
       created_by_email: req.auth?.email || null,
+      customer_signature_url: b.customerSignatureUrl || null,
     };
     const result = await mongo.collection("agreements").insertOne(doc);
     return success(res.status(201), "Agreement draft created", {
