@@ -152,9 +152,9 @@ function AuthCard({ title, subtitle, children }) {
   return (
     <main className="page auth">
       <div className="card">
-        <Link to="/" style={{ display: "inline-block", marginBottom: "12px" }}>
-          <img src="/logo.png" alt="A1 Solar Solution Logo" style={{ height: "64px", width: "auto", objectFit: "contain" }} />
-        </Link>
+        <span className="brandmark" style={{ background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px", overflow: "hidden", width: "48px", height: "48px", borderRadius: "12px", marginBottom: "14px" }}>
+          <img src="/logo.png" alt="A1 Solar Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+        </span>
         <span className="kicker">SECURE PORTAL</span>
         <h1>{title}</h1>
         <p>{subtitle}</p>
