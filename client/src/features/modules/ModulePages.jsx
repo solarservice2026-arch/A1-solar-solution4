@@ -753,15 +753,6 @@ export function CustomersPage() {
           "select",
           [
             "Customer",
-            "Residential",
-            "Commercial",
-            "Industrial",
-            "Admin",
-            "Manager",
-            "Sales Executive",
-            "Installation Staff",
-            "Service Technician",
-            "Accountant",
           ],
         ],
       ]}
