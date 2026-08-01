@@ -18,6 +18,20 @@ console.log("Seeding users collection...");
 await db.collection("users").deleteMany({});
 await db.collection("users").insertMany([
   {
+    name: "Test Admin User",
+    email: "test@a1solar.com",
+    role: "super_admin",
+    status: "Active",
+    created_at: new Date(),
+  },
+  {
+    name: "Test User",
+    email: "testuser@a1solar.com",
+    role: "admin",
+    status: "Active",
+    created_at: new Date(),
+  },
+  {
     name: "Super Admin",
     email: "a1-e2e-super-admin@example.test",
     role: "super_admin",

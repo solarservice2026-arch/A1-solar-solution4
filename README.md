@@ -1,40 +1,25 @@
-<<<<<<< HEAD
-# A1 Solar Solution Platform
+# A1 Solar Solution Platform (MERN Stack)
 
-Production-oriented monorepo for A1 Solar Solution: a responsive public website,
-CRM, customer/staff portals, REST API, and Supabase PostgreSQL schema.
+Standalone MERN (MongoDB, Express, React, Node.js) platform for A1 Solar Solution: responsive public website, CRM, customer/staff portals, REST API, and MongoDB backend.
 
 ## Stack
 
-React, Vite, TypeScript, Express, Zod, Supabase Auth/PostgreSQL/Storage, Vitest,
-Supertest, and Playwright.
+React, Vite, Node.js, Express, MongoDB (Mongoose), Zod, and JavaScript (ES Modules / JSX).
 
 ## Quick start
 
-1. Copy `.env.example` to `.env` and add your own Supabase project values.
+1. Create a `.env` file with `MONGODB_URI` and `JWT_SECRET`.
 2. Run `npm install`.
-3. Run `npm run db:migrate`, then `npm run db:seed`.
-4. Run `npm run dev`.
-
-The web app runs at `http://localhost:5173`; the API defaults to
-`http://localhost:5000/api/v1`. Never expose the service-role key to the web app.
+3. Run `npm run dev` to start both frontend (`http://localhost:5173`) and backend (`http://localhost:5000`).
 
 ## Commands
 
-`npm run dev`, `npm run build`, `npm run lint`, `npm run typecheck`,
-`npm run test`, `npm run test:e2e`, `npm run db:migrate`, `npm run db:seed`.
+- `npm run dev` — Run web frontend and Express backend concurrently
+- `npm run build` — Build web frontend for production
+- `npm start` — Start production backend API server
 
-## Workspace
+## Workspace Structure
 
-- `apps/web` — public site and portals
-- `apps/api` — versioned REST API
-- `packages/validation` — shared Zod contracts
-- `supabase` — migrations, RLS, and fictional seed data
-- `docs` — audit, architecture, security, and operations
-
-Development users must be created through Supabase Auth; seed data never includes
-passwords. Start with `docs/README.md`, then see `docs/SUPABASE_SETUP.md` and
-`docs/SECURITY.md`.
-=======
-# A1-solar-solution1
->>>>>>> c8bf8eaaa5c79a05e6e036eae21151b88fc9e313
+- `apps/web` — React + Vite frontend application (JavaScript JSX)
+- `apps/api` — Node.js + Express + Mongoose REST API (JavaScript ES Module)
+- `packages/validation` — Shared Zod validation schemas

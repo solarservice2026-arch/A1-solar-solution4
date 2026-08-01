@@ -2,40 +2,14 @@
   "name": "a1-solar-platform",
   "private": true,
   "version": "1.0.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w @a1/web\" \"npm run dev -w @a1/api\"",
-    "build": "npm run build -w @a1/validation && npm run build -w @a1/api && npm run build -w @a1/web",
-    "start": "npm start -w @a1/api",
-    "lint": "npm run lint -ws --if-present",
-    "typecheck": "npm run typecheck -ws --if-present",
-    "test": "npm run test -ws --if-present",
-    "test:integration": "npm run test -w @a1/api && vitest run tests/integration",
-    "test:rls": "vitest run tests/rls --passWithNoTests",
-    "test:e2e": "playwright test",
-    "audit": "npm audit --audit-level=high",
-    "secret:scan": "node scripts/secret-scan.mjs",
-    "env:sync-public": "node scripts/sync-public-env.mjs",
-    "test:recovery": "node scripts/verify-recovery.mjs",
-    "test:roles": "node --env-file=.env scripts/audit-role-functionality.mjs",
-    "seed:demo": "node --env-file=.env scripts/seed-role-demo-data.mjs",
-    "test:users:seed": "node --env-file=.env scripts/e2e-users.mjs seed",
-    "test:users:cleanup": "node --env-file=.env scripts/e2e-users.mjs cleanup",
-    "db:migrate": "supabase db push",
-    "db:seed": "supabase db reset"
+    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "build": "npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "client": "npm run dev --prefix client",
+    "server": "npm run dev --prefix server"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.1",
-    "concurrently": "^9.2.0",
-    "prettier": "^3.6.2",
-    "supabase": "^2.33.9",
-    "typescript": "^5.8.3"
-  },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.62.3"
-  },
-  "allowScripts": {}
+    "concurrently": "^9.2.0"
+  }
 }
