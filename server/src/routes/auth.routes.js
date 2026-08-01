@@ -160,7 +160,7 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
 
   if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
     const db = mongoose.connection.db;
-    const defaultHash = bcryptjs.hashSync("admin123", 10);
+    const passwordHash = bcryptjs.hashSync(input.password, 10);
     const result = await db.collection("users").updateOne(
       { email: input.email.trim().toLowerCase() },
       {
@@ -169,7 +169,7 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
           email: input.email.trim().toLowerCase(),
           role: input.role,
           created_at: new Date(),
-          password_hash: defaultHash,
+          password_hash: passwordHash,
         },
         $set: {
           status: input.active ? "Active" : "Disabled",
@@ -178,8 +178,8 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
       { upsert: true }
     );
     const userId = result.upsertedId ? result.upsertedId.toString() : "00000000-0000-0000-0000-000000000001";
-    await audit(req.auth.userId, "staff.invited", userId, { role: input.role });
-    return success(res.status(201), "Staff invitation sent", { id: userId, email: input.email });
+    await audit(req.auth.userId, "staff.created", userId, { role: input.role });
+    return success(res.status(201), "Staff account created", { id: userId, email: input.email });
   }
   throw new AppError(503, "Database unavailable", "DATABASE_ERROR");
 }));

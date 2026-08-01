@@ -126,15 +126,16 @@ export function StaffForm() {
         body: JSON.stringify({
           fullName: form.get("fullName"),
           email: form.get("email"),
+          password: form.get("password"),
           phone: form.get("phone") || undefined,
           role: form.get("role"),
           active: true,
         }),
       });
-      toast.success("Staff invitation sent");
+      toast.success("Staff account created");
       navigate("/app/staff");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to invite staff");
+      toast.error(err instanceof Error ? err.message : "Unable to create staff account");
     } finally {
       setSaving(false);
     }
@@ -145,14 +146,15 @@ export function StaffForm() {
   return (
     <main className="app-page">
       <span className="kicker">ACCOUNT MANAGEMENT</span>
-      <h1>{user?.roles?.includes("super_admin") ? "Invite an administrator or user" : "Invite a user"}</h1>
+      <h1>{user?.roles?.includes("super_admin") ? "Create an administrator or user" : "Create a user"}</h1>
       <p>Access is enforced by the server. Admins can manage operational users only.</p>
       <form className="card operational-form" onSubmit={submit}>
         <label>Full name<input name="fullName" required minLength={2} /></label>
         <label>Email<input name="email" type="email" required /></label>
+        <label>Password<input name="password" type="password" required minLength={6} /></label>
         <label>Mobile<input name="phone" pattern="[6-9][0-9]{9}" /></label>
         <label>Role<select name="role" required>{allowed.map(r => <option key={r.id} value={r.name}>{r.name.replaceAll("_", " ")}</option>)}</select></label>
-        <button className="primary" disabled={saving}>{saving ? "Sending invitation…" : "Send secure invitation"}</button>
+        <button className="primary" disabled={saving}>{saving ? "Creating account…" : "Create account"}</button>
       </form>
     </main>
   );

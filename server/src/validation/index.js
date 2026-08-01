@@ -12,6 +12,7 @@ export const appRoles = ["super_admin","admin","manager","sales_executive","inst
 export const staffSchema = z.object({
   email: emailSchema,
   fullName: z.string().trim().min(2).max(120),
+  password: z.string().min(6),
   phone: z.string().regex(/^[6-9]\d{9}$/).optional(),
   role: z.enum(appRoles),
   active: z.boolean().default(true)
