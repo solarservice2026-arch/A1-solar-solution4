@@ -283,9 +283,9 @@ function DataPage({
       {open && fields && (
         <div className="modal-backdrop">
           {title === "Quotations" ? (
-            <form className="card modal-form" style={{ maxWidth: "880px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
-              <h2>Create Premium Quotation</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+            <form className="card modal-form" style={{ maxWidth: "920px", width: "95%", maxHeight: "92vh", overflowY: "auto", padding: "28px" }} onSubmit={submit}>
+              <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>Create Premium Quotation</h2>
+              <div className="create-form-grid">
                 <label>Quote Number<input value={qNumber} onChange={e => setQNumber(e.target.value)} required /></label>
                 <label>Quotation Date<input type="date" value={qDate} onChange={e => setQDate(e.target.value)} required /></label>
                 <label>System Capacity (kW)<input type="number" value={qCapacity} onChange={e => setQCapacity(e.target.value)} required /></label>
@@ -294,86 +294,109 @@ function DataPage({
                 <label>Customer Mobile<input value={qCustMobile} onChange={e => setQCustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={qCustEmail} onChange={e => setQCustEmail(e.target.value)} /></label>
                 <label>Customer GSTIN<input value={qCustGst} onChange={e => setQCustGst(e.target.value)} /></label>
-                <label style={{ gridColumn: "span 2" }}>Installation Address<textarea value={qAddress} onChange={e => setQAddress(e.target.value)} rows={2} required /></label>
+                <label className="span-2">Installation Address<textarea value={qAddress} onChange={e => setQAddress(e.target.value)} rows={2} required /></label>
                 <label>Valid Until<input type="date" value={qValid} onChange={e => setQValid(e.target.value)} required /></label>
               </div>
 
-              <h3 style={{ margin: "24px 0 12px", borderBottom: "1px solid var(--line)", paddingBottom: "6px" }}>Quotation Items</h3>
-              <table style={{ width: "100%", marginBottom: "16px" }}>
-                <thead>
-                  <tr style={{ background: "#f9fafb" }}>
-                    <th>Product</th>
-                    <th>Description</th>
-                    <th>Brand/Model</th>
-                    <th style={{ width: "80px" }}>Qty</th>
-                    <th style={{ width: "120px" }}>Price (₹)</th>
-                    <th style={{ width: "50px" }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {qItems.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>
-                        <select
-                          style={{ width: "100%", marginBottom: "5px" }}
-                          value={item.productId || ""}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === "custom") {
-                              updateQItem(idx, "productId", "custom");
-                            } else {
-                              const found = availableProducts.find(p => p.id === val);
-                              if (found) {
-                                const next = [...qItems];
-                                next[idx] = {
-                                  ...next[idx],
-                                  productId: val,
-                                  productName: found.name,
-                                  description: `${found.category || ""} - ${found.name}`,
-                                  brand: found.brand || "",
-                                  unitPrice: found.selling_price || 0
-                                };
-                                setQItems(next);
-                              }
-                            }
-                          }}
-                        >
-                          <option value="">-- Choose Product --</option>
-                          {availableProducts.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.brand}) - ₹{p.selling_price}</option>
-                          ))}
-                          <option value="custom">-- Custom Product (Type below) --</option>
-                        </select>
-                        {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
-                          <input
-                            placeholder="Type product name"
-                            style={{ width: "100%" }}
-                            value={item.productName}
-                            onChange={e => updateQItem(idx, "productName", e.target.value)}
-                            required
-                          />
-                        )}
-                      </td>
-                      <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateQItem(idx, "description", e.target.value)} required /></td>
-                      <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateQItem(idx, "brand", e.target.value)} required /></td>
-                      <td><input style={{ width: "100%" }} value={item.quantity} onChange={e => updateQItem(idx, "quantity", e.target.value)} required /></td>
-                      <td><input style={{ width: "100%" }} type="number" value={item.unitPrice} onChange={e => updateQItem(idx, "unitPrice", Number(e.target.value))} required /></td>
-                      <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeQItem(idx)}>×</button></td>
+              <h3 className="section-divider">Quotation Items</h3>
+              <div className="items-responsive-table">
+                <table>
+                  <thead>
+                    <tr style={{ background: "#f0f4fb" }}>
+                      <th>#</th>
+                      <th>Product</th>
+                      <th>Description</th>
+                      <th>Brand/Model</th>
+                      <th style={{ width: "70px", textAlign: "center" }}>Qty</th>
+                      <th style={{ width: "120px", textAlign: "right" }}>Price (₹)</th>
+                      <th style={{ width: "120px", textAlign: "right" }}>Amount (₹)</th>
+                      <th style={{ width: "40px" }}></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button type="button" className="secondary" style={{ marginBottom: "20px" }} onClick={addQItem}>+ Add Item</button>
+                  </thead>
+                  <tbody>
+                    {qItems.map((item, idx) => {
+                      const lineAmt = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                      return (
+                        <tr key={idx}>
+                          <td style={{ color: "#888", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>{idx + 1}</td>
+                          <td>
+                            <select
+                              style={{ width: "100%", marginBottom: "5px" }}
+                              value={item.productId || ""}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === "custom") {
+                                  updateQItem(idx, "productId", "custom");
+                                } else {
+                                  const found = availableProducts.find(p => p.id === val);
+                                  if (found) {
+                                    const next = [...qItems];
+                                    next[idx] = {
+                                      ...next[idx],
+                                      productId: val,
+                                      productName: found.name,
+                                      description: `${found.category || ""} - ${found.name}`,
+                                      brand: found.brand || "",
+                                      unitPrice: found.selling_price || 0
+                                    };
+                                    setQItems(next);
+                                  }
+                                }
+                              }}
+                            >
+                              <option value="">-- Choose Product --</option>
+                              {availableProducts.map(p => (
+                                <option key={p.id} value={p.id}>{p.name} ({p.brand}) - ₹{p.selling_price}</option>
+                              ))}
+                              <option value="custom">-- Custom Product --</option>
+                            </select>
+                            {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
+                              <input
+                                placeholder="Type product name"
+                                style={{ width: "100%" }}
+                                value={item.productName}
+                                onChange={e => updateQItem(idx, "productName", e.target.value)}
+                                required
+                              />
+                            )}
+                          </td>
+                          <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateQItem(idx, "description", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateQItem(idx, "brand", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center" }} value={item.quantity} onChange={e => updateQItem(idx, "quantity", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "right" }} type="number" value={item.unitPrice} onChange={e => updateQItem(idx, "unitPrice", Number(e.target.value))} required /></td>
+                          <td style={{ textAlign: "right", fontWeight: 700, color: "#1a3a6b", verticalAlign: "top", paddingTop: "14px" }}>₹{lineAmt.toLocaleString("en-IN")}</td>
+                          <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeQItem(idx)}>×</button></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" className="secondary" style={{ marginBottom: "16px", marginTop: "10px" }} onClick={addQItem}>+ Add Item</button>
 
-              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>
+              {/* Live Total Summary */}
+              {(() => {
+                const sub = qItems.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
+                const tax = Math.round(sub * 0.18);
+                const grand = sub + tax;
+                return (
+                  <div className="live-total-box">
+                    <div className="live-total-row"><span>Subtotal</span><span>₹{sub.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row"><span>GST 18%</span><span>₹{tax.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row grand"><span>Grand Total</span><span>₹{grand.toLocaleString("en-IN")}</span></div>
+                  </div>
+                );
+              })()}
+
+              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "16px" }}>
                 <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
                 <button className="primary">Create Quotation</button>
               </div>
             </form>
           ) : title === "Invoices" ? (
-            <form className="card modal-form" style={{ maxWidth: "880px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
-              <h2>Create Invoice</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+            <form className="card modal-form" style={{ maxWidth: "920px", width: "95%", maxHeight: "92vh", overflowY: "auto", padding: "28px" }} onSubmit={submit}>
+              <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>Create Invoice</h2>
+              <div className="create-form-grid">
                 <label>Invoice Number<input value={iNumber} onChange={e => setINumber(e.target.value)} required /></label>
                 <label>Invoice Title<input value={iTitle} onChange={e => setITitle(e.target.value)} required /></label>
                 <label>Invoice Date<input type="date" value={iDate} onChange={e => setIDate(e.target.value)} required /></label>
@@ -382,7 +405,7 @@ function DataPage({
                 <label>Customer Mobile<input value={iCustMobile} onChange={e => setICustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={iCustEmail} onChange={e => setICustEmail(e.target.value)} /></label>
                 <label>Customer GSTIN<input value={iCustGst} onChange={e => setICustGst(e.target.value)} /></label>
-                <label style={{ gridColumn: "span 2" }}>Billing Address<textarea value={iAddress} onChange={e => setIAddress(e.target.value)} rows={2} required /></label>
+                <label className="span-2">Billing Address<textarea value={iAddress} onChange={e => setIAddress(e.target.value)} rows={2} required /></label>
                 <label>Paid Amount (₹)<input type="number" value={iPaidAmount} onChange={e => setIPaidAmount(e.target.value)} required /></label>
                 <label>Status
                   <select value={iStatus} onChange={e => setIStatus(e.target.value)}>
@@ -393,74 +416,101 @@ function DataPage({
                 </label>
               </div>
 
-              <h3 style={{ margin: "24px 0 12px", borderBottom: "1px solid var(--line)", paddingBottom: "6px" }}>Invoice Items</h3>
-              <table style={{ width: "100%", marginBottom: "16px" }}>
-                <thead>
-                  <tr style={{ background: "#f9fafb" }}>
-                    <th>Product</th>
-                    <th>Description</th>
-                    <th>Brand/Model</th>
-                    <th style={{ width: "80px" }}>Qty</th>
-                    <th style={{ width: "120px" }}>Price (₹)</th>
-                    <th style={{ width: "50px" }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {iItems.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>
-                        <select
-                          style={{ width: "100%", marginBottom: "5px" }}
-                          value={item.productId || ""}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === "custom") {
-                              updateIItem(idx, "productId", "custom");
-                            } else {
-                              const found = availableProducts.find(p => p.id === val);
-                              if (found) {
-                                const next = [...iItems];
-                                next[idx] = {
-                                  ...next[idx],
-                                  productId: val,
-                                  productName: found.name,
-                                  description: `${found.category || ""} - ${found.name}`,
-                                  brand: found.brand || "",
-                                  unitPrice: found.selling_price || 0
-                                };
-                                setIItems(next);
-                              }
-                            }
-                          }}
-                        >
-                          <option value="">-- Choose Product --</option>
-                          {availableProducts.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.brand}) - ₹{p.selling_price}</option>
-                          ))}
-                          <option value="custom">-- Custom Product (Type below) --</option>
-                        </select>
-                        {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
-                          <input
-                            placeholder="Type product name"
-                            style={{ width: "100%" }}
-                            value={item.productName}
-                            onChange={e => updateIItem(idx, "productName", e.target.value)}
-                            required
-                          />
-                        )}
-                      </td>
-                      <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
-                      <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
-                      <td><input style={{ width: "100%" }} type="number" value={item.quantity} onChange={e => updateIItem(idx, "quantity", Number(e.target.value))} required /></td>
-                      <td><input style={{ width: "100%" }} type="number" value={item.unitPrice} onChange={e => updateIItem(idx, "unitPrice", Number(e.target.value))} required /></td>
-                      <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeIItem(idx)}>×</button></td>
+              <h3 className="section-divider">Invoice Items</h3>
+              <div className="items-responsive-table">
+                <table>
+                  <thead>
+                    <tr style={{ background: "#f0f4fb" }}>
+                      <th>#</th>
+                      <th>Product</th>
+                      <th>Description</th>
+                      <th>Brand/Model</th>
+                      <th style={{ width: "70px", textAlign: "center" }}>Qty</th>
+                      <th style={{ width: "120px", textAlign: "right" }}>Price (₹)</th>
+                      <th style={{ width: "120px", textAlign: "right" }}>Amount (₹)</th>
+                      <th style={{ width: "40px" }}></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button type="button" className="secondary" style={{ marginBottom: "20px" }} onClick={addIItem}>+ Add Item</button>
+                  </thead>
+                  <tbody>
+                    {iItems.map((item, idx) => {
+                      const lineAmt = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                      return (
+                        <tr key={idx}>
+                          <td style={{ color: "#888", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>{idx + 1}</td>
+                          <td>
+                            <select
+                              style={{ width: "100%", marginBottom: "5px" }}
+                              value={item.productId || ""}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === "custom") {
+                                  updateIItem(idx, "productId", "custom");
+                                } else {
+                                  const found = availableProducts.find(p => p.id === val);
+                                  if (found) {
+                                    const next = [...iItems];
+                                    next[idx] = {
+                                      ...next[idx],
+                                      productId: val,
+                                      productName: found.name,
+                                      description: `${found.category || ""} - ${found.name}`,
+                                      brand: found.brand || "",
+                                      unitPrice: found.selling_price || 0
+                                    };
+                                    setIItems(next);
+                                  }
+                                }
+                              }}
+                            >
+                              <option value="">-- Choose Product --</option>
+                              {availableProducts.map(p => (
+                                <option key={p.id} value={p.id}>{p.name} ({p.brand}) - ₹{p.selling_price}</option>
+                              ))}
+                              <option value="custom">-- Custom Product --</option>
+                            </select>
+                            {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
+                              <input
+                                placeholder="Type product name"
+                                style={{ width: "100%" }}
+                                value={item.productName}
+                                onChange={e => updateIItem(idx, "productName", e.target.value)}
+                                required
+                              />
+                            )}
+                          </td>
+                          <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" value={item.quantity} onChange={e => updateIItem(idx, "quantity", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "right" }} type="number" value={item.unitPrice} onChange={e => updateIItem(idx, "unitPrice", Number(e.target.value))} required /></td>
+                          <td style={{ textAlign: "right", fontWeight: 700, color: "#1a3a6b", verticalAlign: "top", paddingTop: "14px" }}>₹{lineAmt.toLocaleString("en-IN")}</td>
+                          <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeIItem(idx)}>×</button></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" className="secondary" style={{ marginBottom: "16px", marginTop: "10px" }} onClick={addIItem}>+ Add Item</button>
 
-              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>
+              {/* Live Total Summary */}
+              {(() => {
+                const sub = iItems.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
+                const tax = Math.round(sub * 0.18);
+                const grand = sub + tax;
+                const paid = Number(iPaidAmount) || 0;
+                const balance = Math.max(0, grand - paid);
+                return (
+                  <div className="live-total-box">
+                    <div className="live-total-row"><span>Subtotal</span><span>₹{sub.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row"><span>GST 18%</span><span>₹{tax.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row grand"><span>Grand Total</span><span>₹{grand.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row"><span>Paid Amount</span><span>₹{paid.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row balance"><span>Balance Due</span><span>₹{balance.toLocaleString("en-IN")}</span></div>
+                  </div>
+                );
+              })()}
+
+              <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "16px" }}>
                 <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
                 <button className="primary">Create Invoice</button>
               </div>
