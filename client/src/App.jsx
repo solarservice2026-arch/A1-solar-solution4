@@ -60,7 +60,7 @@ function Header() {
   return (
     <header className="header">
       <Link className="brand" to="/" style={{ display: "flex", alignItems: "center", padding: "4px 0" }}>
-        <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "62px", width: "auto", objectFit: "contain" }} />
+        <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "88px", width: "auto", objectFit: "contain", maxHeight: "90px" }} />
       </Link>
       <nav className={open ? "nav open" : "nav"}>
         {nav.map(([label, to]) => (
@@ -114,7 +114,7 @@ function Footer() {
         <div>
           <div className="brand light" style={{ marginBottom: "16px" }}>
             <Link to="/" style={{ display: "inline-block" }}>
-              <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "72px", width: "auto", objectFit: "contain", background: "#ffffff", padding: "6px 14px", borderRadius: "8px" }} />
+              <img src="/logo.png" alt="A1 Solar Solution" style={{ height: "98px", width: "auto", objectFit: "contain", background: "#ffffff", padding: "8px 16px", borderRadius: "10px" }} />
             </Link>
           </div>
           <p>
