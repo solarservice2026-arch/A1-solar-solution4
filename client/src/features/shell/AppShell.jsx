@@ -5,9 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Package,
   Settings,
-  Sun,
   UserCircle,
   Users,
   X,
@@ -39,20 +37,8 @@ const items = [
   {
     to: "/app/products",
     label: "Products",
-    icon: Package,
-    permission: "products:view",
-  },
-  {
-    to: "/app/projects",
-    label: "Installations",
-    icon: Package,
-    permission: "projects:view",
-  },
-  {
-    to: "/app/tickets",
-    label: "Service tickets",
     icon: FileText,
-    permission: "tickets:view",
+    permission: "products:view",
   },
   {
     to: "/app/quotations",
@@ -78,12 +64,6 @@ const items = [
     label: "Roles & permissions",
     icon: Settings,
     permission: "roles:view",
-  },
-  {
-    to: "/app/settings",
-    label: "Settings",
-    icon: Settings,
-    permission: "settings:view",
   },
   {
     to: "/app/profile",
