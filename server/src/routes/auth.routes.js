@@ -146,8 +146,7 @@ usersRouter.get("/", requirePermission("users:view"), asyncHandler(async (req, r
     }
 
     if (!req.auth?.roles?.includes("super_admin")) {
-      filter = {
-        ...filter,
+      const scopeFilter = {
         $or: [
           { created_by: req.auth?.userId },
           { created_by_email: req.auth?.email },
@@ -155,6 +154,12 @@ usersRouter.get("/", requirePermission("users:view"), asyncHandler(async (req, r
           { created_by: null }
         ]
       };
+      
+      if (Object.keys(filter).length > 0) {
+        filter = { $and: [filter, scopeFilter] };
+      } else {
+        filter = scopeFilter;
+      }
     }
     const total = await db.collection("users").countDocuments(filter);
     const start = (query.page - 1) * query.pageSize;

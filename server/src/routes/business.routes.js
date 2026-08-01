@@ -78,8 +78,7 @@ customersRouter.get(
     }
 
     if (!req.auth?.roles?.includes("super_admin")) {
-      query = {
-        ...query,
+      const scopeFilter = {
         $or: [
           { created_by: req.auth?.userId },
           { created_by_email: req.auth?.email },
@@ -87,6 +86,12 @@ customersRouter.get(
           { created_by: null }
         ]
       };
+      
+      if (Object.keys(query).length > 0) {
+        query = { $and: [query, scopeFilter] };
+      } else {
+        query = scopeFilter;
+      }
     }
 
     const items = await mongo.collection("customers").find(query).sort({ created_at: -1 }).toArray();
