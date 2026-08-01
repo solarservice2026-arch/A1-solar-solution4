@@ -65,6 +65,22 @@ function DataPage({
   const [payuRow, setPayuRow] = useState(null);
   const [paying, setPaying] = useState(false);
 
+  const [availableProducts, setAvailableProducts] = useState([]);
+
+  useEffect(() => {
+    if (open && (title === "Quotations" || title === "Invoices")) {
+      const fetchProds = async () => {
+        try {
+          const res = await api("/products");
+          if (Array.isArray(res)) setAvailableProducts(res);
+        } catch (e) {
+          console.error("Failed to load products", e);
+        }
+      };
+      void fetchProds();
+    }
+  }, [open, title]);
+
   // ─── CUSTOM FORMS STATES ───
   // Quotation States
   const [qNumber, setQNumber] = useState("SEQ-0094");
@@ -297,7 +313,47 @@ function DataPage({
                 <tbody>
                   {qItems.map((item, idx) => (
                     <tr key={idx}>
-                      <td><input style={{ width: "100%" }} value={item.productName} onChange={e => updateQItem(idx, "productName", e.target.value)} required /></td>
+                      <td>
+                        <select
+                          style={{ width: "100%", marginBottom: "5px" }}
+                          value={item.productId || ""}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === "custom") {
+                              updateQItem(idx, "productId", "custom");
+                            } else {
+                              const found = availableProducts.find(p => p.id === val);
+                              if (found) {
+                                const next = [...qItems];
+                                next[idx] = {
+                                  ...next[idx],
+                                  productId: val,
+                                  productName: found.name,
+                                  description: `${found.category || ""} - ${found.name}`,
+                                  brand: found.brand || "",
+                                  unitPrice: found.selling_price || 0
+                                };
+                                setQItems(next);
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">-- Choose Product --</option>
+                          {availableProducts.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} ({p.brand}) - ₹{p.selling_price}</option>
+                          ))}
+                          <option value="custom">-- Custom Product (Type below) --</option>
+                        </select>
+                        {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
+                          <input
+                            placeholder="Type product name"
+                            style={{ width: "100%" }}
+                            value={item.productName}
+                            onChange={e => updateQItem(idx, "productName", e.target.value)}
+                            required
+                          />
+                        )}
+                      </td>
                       <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateQItem(idx, "description", e.target.value)} required /></td>
                       <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateQItem(idx, "brand", e.target.value)} required /></td>
                       <td><input style={{ width: "100%" }} value={item.quantity} onChange={e => updateQItem(idx, "quantity", e.target.value)} required /></td>
@@ -352,7 +408,47 @@ function DataPage({
                 <tbody>
                   {iItems.map((item, idx) => (
                     <tr key={idx}>
-                      <td><input style={{ width: "100%" }} value={item.productName} onChange={e => updateIItem(idx, "productName", e.target.value)} required /></td>
+                      <td>
+                        <select
+                          style={{ width: "100%", marginBottom: "5px" }}
+                          value={item.productId || ""}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === "custom") {
+                              updateIItem(idx, "productId", "custom");
+                            } else {
+                              const found = availableProducts.find(p => p.id === val);
+                              if (found) {
+                                const next = [...iItems];
+                                next[idx] = {
+                                  ...next[idx],
+                                  productId: val,
+                                  productName: found.name,
+                                  description: `${found.category || ""} - ${found.name}`,
+                                  brand: found.brand || "",
+                                  unitPrice: found.selling_price || 0
+                                };
+                                setIItems(next);
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">-- Choose Product --</option>
+                          {availableProducts.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} ({p.brand}) - ₹{p.selling_price}</option>
+                          ))}
+                          <option value="custom">-- Custom Product (Type below) --</option>
+                        </select>
+                        {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
+                          <input
+                            placeholder="Type product name"
+                            style={{ width: "100%" }}
+                            value={item.productName}
+                            onChange={e => updateIItem(idx, "productName", e.target.value)}
+                            required
+                          />
+                        )}
+                      </td>
                       <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
                       <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
                       <td><input style={{ width: "100%" }} type="number" value={item.quantity} onChange={e => updateIItem(idx, "quantity", Number(e.target.value))} required /></td>
