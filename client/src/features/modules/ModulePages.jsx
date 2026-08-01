@@ -958,7 +958,8 @@ export function ProfilePage() {
 
   const password = async (e) => {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     try {
       await api("/profile/password", {
         method: "POST",
@@ -967,7 +968,8 @@ export function ProfilePage() {
           newPassword: form.get("newPassword"),
         }),
       });
-      toast.success("Password updated");
+      toast.success("Password updated successfully");
+      formEl.reset();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Password update failed");
     }

@@ -45,6 +45,16 @@ const createTestUser = (email) => {
       permissions: found.permissions,
     };
   }
+  if (norm.includes("admin") || norm.includes("solar.service") || norm.includes("superadmin")) {
+    return {
+      id: "00000000-0000-0000-0000-000000000001",
+      email: norm,
+      fullName: "A1 Super Admin",
+      active: true,
+      roles: ["super_admin", "admin"],
+      permissions: fullPermissions,
+    };
+  }
   return {
     id: "00000000-0000-0000-0000-000000000001",
     email: norm,
