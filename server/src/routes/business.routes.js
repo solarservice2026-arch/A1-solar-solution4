@@ -365,6 +365,44 @@ ticketsRouter.patch(
   }),
 );
 
+async function getNextQuotationNumber(mongo) {
+  const year = new Date().getFullYear();
+  const prefix = `QT/${year}/`;
+  const docs = await mongo.collection("quotations")
+    .find({ quotation_number: { $regex: `^QT/${year}/` } })
+    .toArray();
+  
+  let nextSeq = 101;
+  if (docs.length > 0) {
+    const seqs = docs.map(d => {
+      const parts = d.quotation_number.split("/");
+      const num = parseInt(parts[parts.length - 1], 10);
+      return isNaN(num) ? 100 : num;
+    });
+    nextSeq = Math.max(...seqs) + 1;
+  }
+  return `${prefix}${nextSeq}`;
+}
+
+async function getNextInvoiceNumber(mongo) {
+  const year = new Date().getFullYear();
+  const prefix = `A1/${year}/`;
+  const docs = await mongo.collection("invoices")
+    .find({ invoice_number: { $regex: `^A1/${year}/` } })
+    .toArray();
+  
+  let nextSeq = 1;
+  if (docs.length > 0) {
+    const seqs = docs.map(d => {
+      const parts = d.invoice_number.split("/");
+      const num = parseInt(parts[parts.length - 1], 10);
+      return isNaN(num) ? 0 : num;
+    });
+    nextSeq = Math.max(...seqs) + 1;
+  }
+  return `${prefix}${nextSeq}`;
+}
+
 export const quotationsRouter = Router();
 quotationsRouter.use(requireAuth);
 
@@ -373,7 +411,18 @@ async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
   const isStaff = !isCustomer;
 
   if (isStaff) {
-    return { ...extraFilter };
+    if (req.auth?.roles?.includes("super_admin")) {
+      return { ...extraFilter };
+    }
+    return {
+      ...extraFilter,
+      $or: [
+        { created_by: req.auth?.userId },
+        { created_by_email: req.auth?.email },
+        { created_by: { $exists: false } },
+        { created_by: null }
+      ]
+    };
   }
 
   if (isCustomer) {
@@ -478,7 +527,7 @@ quotationsRouter.post(
     const grandTotal = subtotal > 0 ? subtotal - discount + tax : Number(b.grandTotal || 0);
 
     const qDoc = {
-      quotation_number: b.quotationNumber || number("QUO"),
+      quotation_number: b.quotationNumber || await getNextQuotationNumber(mongo),
       customer_id: customerId,
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
@@ -514,12 +563,34 @@ quotationsRouter.delete(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const idStr = String(req.params.id);
-
     const { ObjectId } = await import("mongodb");
+
+    let query = {};
     try {
-      await mongo.collection("quotations").updateOne({ _id: new ObjectId(idStr) }, { $set: { status: "Archived" } });
+      query = { _id: new ObjectId(idStr) };
     } catch {
-      await mongo.collection("quotations").updateOne({ quotation_number: idStr }, { $set: { status: "Archived" } });
+      query = { quotation_number: idStr };
+    }
+
+    if (!req.auth?.roles?.includes("super_admin")) {
+      query = {
+        $and: [
+          query,
+          {
+            $or: [
+              { created_by: req.auth?.userId },
+              { created_by_email: req.auth?.email },
+              { created_by: { $exists: false } },
+              { created_by: null }
+            ]
+          }
+        ]
+      };
+    }
+
+    const result = await mongo.collection("quotations").updateOne(query, { $set: { status: "Archived" } });
+    if (result.matchedCount === 0) {
+      throw new AppError(404, "Quotation not found or access denied", "NOT_FOUND");
     }
     return success(res, "Quotation deleted", { id: idStr });
   }),
@@ -588,7 +659,7 @@ invoicesRouter.post(
     const total = subtotal > 0 ? subtotal + tax : Number(b.total || 0);
 
     const doc = {
-      invoice_number: b.invoiceNumber || invoiceNumber(),
+      invoice_number: b.invoiceNumber || await getNextInvoiceNumber(mongo),
       customer_id: b.customerId || null,
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
@@ -840,6 +911,16 @@ agreementsRouter.get(
       } else {
         throw new AppError(403, "Access denied: You can only view your own agreements", "FORBIDDEN");
       }
+    } else if (!req.auth?.roles?.includes("super_admin")) {
+      filter = {
+        ...filter,
+        $or: [
+          { created_by: req.auth?.userId },
+          { created_by_email: req.auth?.email },
+          { created_by: { $exists: false } },
+          { created_by: null }
+        ]
+      };
     }
 
     const agreement = await mongo.collection("agreements").findOne(filter);

@@ -44,7 +44,9 @@ const sharedCss = () => `
 body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8}
 .sheet{width:210mm;min-height:297mm;margin:auto;background:#fff}
 /* ─── Hero Banner ─── */
-.hero{width:100%;height:58mm;display:block;object-fit:cover;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-container{position:relative;width:100%;height:58mm}
+.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:bottom;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-text{position:absolute;top:25%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -141,7 +143,10 @@ export function quotationDocument(row) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(row.quotation_number)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
-  <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
+  <div class="hero-container">
+    <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
+    <div class="hero-text">LivFast</div>
+  </div>
   <div class="doc-header cols-4">
     <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
@@ -228,7 +233,10 @@ export function invoiceDocument(row) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(row.invoice_number)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
-  <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
+  <div class="hero-container">
+    <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
+    <div class="hero-text">LivFast</div>
+  </div>
   <div class="doc-header cols-4">
     <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
