@@ -12,6 +12,13 @@ const inr = (value) =>
     Number(value || 0),
   );
 
+const parseQty = (val) => {
+  if (typeof val === "number") return val;
+  if (!val) return 0;
+  const match = String(val).match(/[0-9]+(?:\.[0-9]+)?/);
+  return match ? parseFloat(match[0]) : 0;
+};
+
 const amountWords = (value) => {
   const n = Math.round(Number(value || 0));
   if (!Number.isFinite(n) || n < 0) return "";
@@ -134,7 +141,7 @@ export function quotationDocument(row) {
       <td>${esc(product.brand ?? product.model ?? item.brand ?? item.model)}</td>
       <td style="text-align:right">${esc(item.quantity)}</td>
       <td style="text-align:right">${inr(item.unit_price)}</td>
-      <td style="text-align:right">${inr(Number(item.quantity || 0) * Number(item.unit_price || 0))}</td>
+      <td style="text-align:right">${inr(parseQty(item.quantity) * Number(item.unit_price || 0))}</td>
     </tr>`;
   }).join("") || `<tr><td colspan="7">No line items recorded</td></tr>`;
 
@@ -220,7 +227,7 @@ export function invoiceDocument(row) {
       <td>${esc(item.brand ?? product.brand ?? product.model)}</td>
       <td style="text-align:right">${esc(item.quantity)}</td>
       <td style="text-align:right">${inr(item.unit_price)}</td>
-      <td style="text-align:right">${inr(item.line_amount ?? Number(item.quantity || 0) * Number(item.unit_price || 0))}</td>
+      <td style="text-align:right">${inr(item.line_amount ?? parseQty(item.quantity) * Number(item.unit_price || 0))}</td>
     </tr>`;
   }).join("") || `<tr><td colspan="7">No line items recorded</td></tr>`;
 

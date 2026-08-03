@@ -403,6 +403,13 @@ async function getNextInvoiceNumber(mongo) {
   return `${prefix}${nextSeq}`;
 }
 
+function parseQty(val) {
+  if (typeof val === "number") return val;
+  if (!val) return 0;
+  const match = String(val).match(/[0-9]+(?:\.[0-9]+)?/);
+  return match ? parseFloat(match[0]) : 0;
+}
+
 export const quotationsRouter = Router();
 quotationsRouter.use(requireAuth);
 
@@ -519,7 +526,7 @@ quotationsRouter.post(
       brand: String(item.brand || ""),
       quantity: isNaN(Number(item.quantity)) ? String(item.quantity) : Number(item.quantity || 1),
       unit_price: Number(item.unitPrice || item.price || 0),
-      line_amount: Number((Number(item.quantity) || 1) * (item.unitPrice || item.price || 0)),
+      line_amount: Number((parseQty(item.quantity) || 0) * (item.unitPrice || item.price || 0)),
     }));
     const subtotal = normalized.reduce((sum, i) => sum + (Number(i.line_amount) || 0), 0);
     const discount = Number(b.discount || 0);
@@ -642,15 +649,15 @@ invoicesRouter.post(
     const items = Array.isArray(b.items) ? b.items : [];
 
     const normalized = items.map((item) => {
-      const quantity = Number(item.quantity || 1);
+      const parsed = parseQty(item.quantity) || 0;
       const unitPrice = Number(item.unitPrice || 0);
       return {
         product_name: String(item.productName || item.name || "Product"),
         description: String(item.description || ""),
         brand: String(item.brand || ""),
-        quantity,
+        quantity: isNaN(Number(item.quantity)) ? String(item.quantity) : Number(item.quantity || 1),
         unit_price: unitPrice,
-        line_amount: quantity * unitPrice,
+        line_amount: parsed * unitPrice,
       };
     });
 

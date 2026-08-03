@@ -12,6 +12,13 @@ import {
 const text = (v) => (v == null ? "—" : String(v));
 const money = (v) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
 
+const parseQty = (val) => {
+  if (typeof val === "number") return val;
+  if (!val) return 0;
+  const match = String(val).match(/[0-9]+(?:\.[0-9]+)?/);
+  return match ? parseFloat(match[0]) : 0;
+};
+
 const formObject = (form) => {
   const result = {};
   new FormData(form).forEach((value, key) => {
@@ -198,7 +205,7 @@ function DataPage({
     let body = {};
 
     if (title === "Quotations") {
-      const subtotal = qItems.reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
+      const subtotal = qItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
       const tax = Math.round(subtotal * 0.18);
       const selCust = availableCustomers.find(c => c.name === qCustName);
       body = {
@@ -222,7 +229,7 @@ function DataPage({
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Invoices") {
-      const subtotal = iItems.reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
+      const subtotal = iItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
       const tax = Math.round(subtotal * 0.18);
       const selCust = availableCustomers.find(c => c.name === iCustName);
       body = {
@@ -398,7 +405,7 @@ function DataPage({
                   </thead>
                   <tbody>
                     {qItems.map((item, idx) => {
-                      const lineAmt = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                      const lineAmt = (parseQty(item.quantity) || 0) * (Number(item.unitPrice) || 0);
                       return (
                         <tr key={idx}>
                           <td style={{ color: "#888", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>{idx + 1}</td>
@@ -459,7 +466,7 @@ function DataPage({
 
               {/* Live Total Summary */}
               {(() => {
-                const sub = qItems.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
+                const sub = qItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
                 const tax = Math.round(sub * 0.18);
                 const grand = sub + tax;
                 return (
@@ -548,7 +555,7 @@ function DataPage({
                   </thead>
                   <tbody>
                     {iItems.map((item, idx) => {
-                      const lineAmt = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                      const lineAmt = (parseQty(item.quantity) || 0) * (Number(item.unitPrice) || 0);
                       return (
                         <tr key={idx}>
                           <td style={{ color: "#888", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>{idx + 1}</td>
@@ -609,7 +616,7 @@ function DataPage({
 
               {/* Live Total Summary */}
               {(() => {
-                const sub = iItems.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
+                const sub = iItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
                 const tax = Math.round(sub * 0.18);
                 const grand = sub + tax;
                 const paid = Number(iPaidAmount) || 0;
