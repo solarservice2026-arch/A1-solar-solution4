@@ -51,8 +51,8 @@ const sharedCss = () => `
 body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8}
 .sheet{width:210mm;min-height:297mm;margin:auto;background:#fff}
 /* ─── Hero Banner ─── */
-.hero-container{position:relative;width:100%;height:58mm}
-.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:bottom;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-container{position:relative;width:100%;height:68mm}
+.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
