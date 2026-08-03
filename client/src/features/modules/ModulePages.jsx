@@ -27,8 +27,8 @@ const formObject = (form) => {
   return result;
 };
 
-const printRecord = async (title, row) => {
-  if (title === "Agreement" && (row.locked || row.payment_status !== "Paid")) {
+const printRecord = async (title, row, user) => {
+  if (title === "Agreement" && user?.roles?.includes("customer") && (row.locked || row.payment_status !== "Paid")) {
     return toast.error("PayU Payment required before viewing/downloading agreement.");
   }
   let recordData = row;
@@ -754,7 +754,7 @@ function DataPage({
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", color: "#059669", paddingTop: "8px", borderTop: "1px dashed #d1d5db", marginTop: "6px" }}>
                 <span>Total Amount Payable:</span>
-                <strong>₹{Number(payuRow.payment_amount || 1232000).toLocaleString("en-IN")}</strong>
+                <strong>₹{Number(payuRow.payment_amount || 1).toLocaleString("en-IN")}</strong>
               </div>
             </div>
 
@@ -844,7 +844,7 @@ function DataPage({
             </thead>
             <tbody>
               {rows.map((row) => {
-                const isAgreementLocked = title === "Agreements" && (row.locked || row.payment_status !== "Paid");
+                const isAgreementLocked = title === "Agreements" && user?.roles?.includes("customer") && (row.locked || row.payment_status !== "Paid");
                 return (
                   <tr key={row.id}>
                     {columns.map(([key, _, fmt]) => (
@@ -864,7 +864,10 @@ function DataPage({
                                 🔒 Pay via PayU
                               </button>
                             ) : (
-                              <button className="secondary" onClick={() => void printRecord(title.slice(0, -1), row)}>
+                              <button
+                                className="secondary"
+                                onClick={() => void printRecord(title.slice(0, -1), row, user)}
+                              >
                                 Print / PDF
                               </button>
                             )

@@ -793,7 +793,7 @@ agreementsRouter.post(
     const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "hMFjB7";
     const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "a1uB7QLzzynWz1leQbHGa61hKTBKdZq8";
     const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-    const amount = Number(agreement.payment_amount || 1).toFixed(2);
+    const amount = Number(1).toFixed(2);
     const productinfo = `Agreement ${agreement.agreement_number}`;
     const firstname = agreement.customer_name || "Customer";
     const email = agreement.customer_email || req.auth?.email || "customer@a1solar.com";
@@ -933,11 +933,18 @@ agreementsRouter.get(
     const agreement = await mongo.collection("agreements").findOne(filter);
     if (!agreement) throw new AppError(404, "Agreement not found", "NOT_FOUND");
 
-    if (req.auth?.roles?.includes("customer") && agreement.payment_status !== "Paid") {
-      throw new AppError(
-        402,
-        "Verified payment is required before viewing or downloading this agreement",
-        "PAYMENT_REQUIRED",
+    if (req.auth?.roles?.includes("customer")) {
+      if (agreement.payment_status !== "Paid") {
+        throw new AppError(
+          402,
+          "Verified payment is required before viewing or downloading this agreement",
+          "PAYMENT_REQUIRED",
+        );
+      }
+      // Reset payment status back to Unpaid so they must pay again next time!
+      await mongo.collection("agreements").updateOne(
+        { _id: agreement._id },
+        { $set: { payment_status: "Unpaid" } }
       );
     }
     const c = await mongo.collection("customers").findOne({ _id: agreement.customer_id });
@@ -1008,7 +1015,7 @@ agreementsRouter.post(
       quotation_number: b.quotationNumber || null,
       status: "Draft",
       payment_status: "Unpaid",
-      payment_amount: Number(b.paymentAmount || 1),
+      payment_amount: 1,
       consumer_address: b.consumerAddress || null,
       capacity_kw: Number(b.capacityKw || 3),
       terms_of_payment: b.termsOfPayment || "70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion.",
