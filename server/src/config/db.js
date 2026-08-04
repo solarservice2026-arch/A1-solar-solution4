@@ -111,6 +111,16 @@ export async function connectMongoDB() {
             }
             console.log("[MongoDB] Seeding completed successfully!");
           }
+
+          // Purge default dummy invoices from database
+          await db.collection("invoices").deleteMany({
+            $or: [
+              { invoice_number: { $regex: /FDBAC38/i } },
+              { invoice_number: { $regex: /^A1-FDBAC/i } },
+              { title: { $regex: /MOUNTING STRUCTURE/i } },
+              { total: 342480 }
+            ]
+          });
         }
       } catch (err) {
         console.error("[MongoDB] Seeding error:", err.message);
