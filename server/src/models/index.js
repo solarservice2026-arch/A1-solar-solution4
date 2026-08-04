@@ -214,6 +214,21 @@ const productSchema = new mongoose.Schema({
 productSchema.index({ ownerId: 1, createdAt: -1 });
 productSchema.index({ ownerId: 1, status: 1 });
 
+// 12. Counter Schema (for atomic sequence generation)
+const counterSchema = new mongoose.Schema({
+  _id: { type: String, required: true }, // e.g. "INV", "QUO", "AGR"
+  seq: { type: Number, default: 100 },
+}, { timestamps: false, versionKey: false });
+
+// 13. Company Settings Schema
+const companySettingsSchema = new mongoose.Schema({
+  _id: { type: String, required: true }, // always "primary"
+  company_name: { type: String, required: true },
+  prefix: { type: String, required: true },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+}, { timestamps: false, versionKey: false });
+
 export const Quotation = mongoose.models.Quotation || mongoose.model("Quotation", quotationSchema, "quotations");
 export const Invoice = mongoose.models.Invoice || mongoose.model("Invoice", invoiceSchema, "invoices");
 export const Agreement = mongoose.models.Agreement || mongoose.model("Agreement", agreementSchema, "agreements");
@@ -225,6 +240,8 @@ export const Customer = mongoose.models.Customer || mongoose.model("Customer", c
 export const Project = mongoose.models.Project || mongoose.model("Project", projectSchema, "projects");
 export const Ticket = mongoose.models.Ticket || mongoose.model("Ticket", ticketSchema, "service_tickets");
 export const Product = mongoose.models.Product || mongoose.model("Product", productSchema, "products");
+export const Counter = mongoose.models.Counter || mongoose.model("Counter", counterSchema, "counters");
+export const CompanySettings = mongoose.models.CompanySettings || mongoose.model("CompanySettings", companySettingsSchema, "company_settings");
 
 export const modelMap = {
   quotations: Quotation,
@@ -238,4 +255,6 @@ export const modelMap = {
   projects: Project,
   tickets: Ticket,
   products: Product,
+  counters: Counter,
+  company_settings: CompanySettings,
 };
