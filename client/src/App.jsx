@@ -504,13 +504,13 @@ export function App() {
           <Route element={<ProtectedRoute permission="settings:view" />}>
             <Route path="settings" element={<SettingsPage />} />
           </Route>
-          <Route element={<ProtectedRoute permission="users:view" />}>
+          <Route element={<ProtectedRoute permission="users:view" requireSuperAdmin />}>
             <Route path="staff" element={<StaffList />} />
             <Route path="staff/new" element={<StaffForm />} />
             <Route path="staff/:id" element={<StaffDetail />} />
             <Route path="staff/:id/edit" element={<StaffEdit />} />
           </Route>
-          <Route element={<ProtectedRoute permission="roles:view" />}>
+          <Route element={<ProtectedRoute permission="roles:view" requireSuperAdmin />}>
             <Route path="roles" element={<RolesPage />} />
             <Route path="roles/:id" element={<RoleDetail />} />
           </Route>
