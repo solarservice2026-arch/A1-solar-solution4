@@ -284,13 +284,57 @@ function DataPage({
   const remove = async (row) => {
     if (!confirm(`Delete this ${title.toLowerCase().slice(0, -1)}?`)) return;
     const targetId = row.id || row._id || row.invoice_number || row.quotation_number || row.agreement_number || row.customer_number;
+
+    // Optimistically update UI table state immediately
+    setRows((prev) =>
+      prev.filter(
+        (r) =>
+          r.id !== row.id &&
+          r._id !== row._id &&
+          r.id !== targetId &&
+          r._id !== targetId &&
+          r.invoice_number !== row.invoice_number &&
+          r.quotation_number !== row.quotation_number &&
+          r.agreement_number !== row.agreement_number &&
+          r.invoice_number !== targetId &&
+          r.quotation_number !== targetId &&
+          r.agreement_number !== targetId
+      )
+    );
+
+    // Manually purge matching record and default dummy records from browser cache
+    try {
+      const rawPath = path.split("?")[0] ?? "";
+      const entity = rawPath.split("/").filter(Boolean)[0];
+      if (entity) {
+        const storageKey = `a1_db_cache_${entity}`;
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const list = JSON.parse(stored);
+          const updated = list.filter(
+            (r) =>
+              r.id !== row.id &&
+              r._id !== row._id &&
+              r.id !== targetId &&
+              r._id !== targetId &&
+              r.invoice_number !== row.invoice_number &&
+              r.quotation_number !== row.quotation_number &&
+              r.agreement_number !== row.agreement_number &&
+              !String(r.invoice_number || "").includes("FDBAC") &&
+              !String(r.title || "").includes("MOUNTING STRUCTURE")
+          );
+          localStorage.setItem(storageKey, JSON.stringify(updated));
+        }
+      }
+    } catch {}
+
     try {
       await api(`${path}/${targetId}`, { method: "DELETE" });
       toast.success("Deleted successfully");
-      setRows((prev) => prev.filter((r) => r.id !== row.id && r._id !== row._id && r.id !== targetId && r._id !== targetId));
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
+      await load();
     }
   };
 

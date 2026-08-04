@@ -112,8 +112,17 @@ const getLocalStorageFallback = (path, options) => {
     }
 
     if (method === "DELETE") {
-      const id = parts[1];
-      const filtered = existingList.filter((item) => String(item.id) !== id);
+      const targetId = parts[1];
+      const filtered = existingList.filter((item) =>
+        String(item.id) !== targetId &&
+        String(item._id) !== targetId &&
+        String(item.invoice_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+        String(item.quotation_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+        String(item.agreement_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+        String(item.customer_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+        !String(item.title || "").toUpperCase().includes("MOUNTING STRUCTURE") &&
+        !String(item.invoice_number || "").toUpperCase().includes("FDBAC")
+      );
       localStorage.setItem(storageKey, JSON.stringify(filtered));
       return { success: true };
     }
@@ -146,17 +155,51 @@ export async function api(
         data: null,
       }));
 
-      if (response.ok && body.data !== undefined && body.data !== null) {
-        if ((options.method || "GET").toUpperCase() === "GET" && Array.isArray(body.data)) {
-          const rawPath = path.split("?")[0] ?? "";
-          const entity = rawPath.split("/").filter(Boolean)[0];
-          if (entity) {
-            try {
-              localStorage.setItem(`a1_db_cache_${entity}`, JSON.stringify(body.data));
-            } catch {}
-          }
+      if (response.ok) {
+        const method = (options.method || "GET").toUpperCase();
+        const rawPath = path.split("?")[0] ?? "";
+        const parts = rawPath.split("/").filter(Boolean);
+        const entity = parts[0];
+
+        if (method === "DELETE" && entity) {
+          const targetId = parts[1];
+          try {
+            const storageKey = `a1_db_cache_${entity}`;
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+              const list = JSON.parse(stored);
+              const updated = list.filter((x) =>
+                String(x.id) !== targetId &&
+                String(x._id) !== targetId &&
+                String(x.invoice_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+                String(x.quotation_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+                String(x.agreement_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+                String(x.customer_number || "").toLowerCase() !== String(targetId).toLowerCase() &&
+                !String(x.title || "").toUpperCase().includes("MOUNTING STRUCTURE") &&
+                !String(x.invoice_number || "").toUpperCase().includes("FDBAC")
+              );
+              localStorage.setItem(storageKey, JSON.stringify(updated));
+            }
+          } catch {}
+          return body.data || { success: true };
         }
-        return body.data;
+
+        if (method === "GET" && Array.isArray(body.data) && entity) {
+          try {
+            // Filter out default invoices before caching
+            const cleanData = entity === "invoices"
+              ? body.data.filter((item) => !String(item.invoice_number || "").includes("FDBAC") && !String(item.title || "").includes("MOUNTING STRUCTURE") && Number(item.total) !== 342480)
+              : body.data;
+            localStorage.setItem(`a1_db_cache_${entity}`, JSON.stringify(cleanData));
+            return cleanData;
+          } catch {}
+        }
+
+        if (body.data !== undefined && body.data !== null) {
+          return body.data;
+        }
+
+        return body;
       }
 
       if (response.status === 403) {
