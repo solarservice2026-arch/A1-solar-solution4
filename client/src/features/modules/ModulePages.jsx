@@ -86,6 +86,18 @@ function DataPage({
           }
           const custRes = await api("/customers");
           if (Array.isArray(custRes)) setAvailableCustomers(custRes);
+
+          // Fetch next auto-generated number
+          if (title === "Quotations") {
+            const numRes = await api("/next-number/QUO");
+            if (numRes?.nextNumber) setQNumber(numRes.nextNumber);
+          } else if (title === "Invoices") {
+            const numRes = await api("/next-number/INV");
+            if (numRes?.nextNumber) setINumber(numRes.nextNumber);
+          } else if (title === "Agreements") {
+            const numRes = await api("/next-number/AGR");
+            if (numRes?.nextNumber) setANumber(numRes.nextNumber);
+          }
         } catch (e) {
           console.error("Failed to load data", e);
         }
@@ -99,7 +111,7 @@ function DataPage({
 
   // ─── CUSTOM FORMS STATES ───
   // Quotation States
-  const [qNumber, setQNumber] = useState("SEQ-0094");
+  const [qNumber, setQNumber] = useState("");
   const [qDate, setQDate] = useState("2026-04-25");
   const [qCapacity, setQCapacity] = useState("3");
   const [qType, setQType] = useState("ON-GRID SOLAR POWER SYSTEM");
@@ -131,7 +143,7 @@ function DataPage({
   };
 
   // Invoice States
-  const [iNumber, setINumber] = useState("A1-F1DBAC3B");
+  const [iNumber, setINumber] = useState("");
   const [iTitle, setITitle] = useState("FOR 5KW MOUNTING STRUCTURE — OFF-GRID");
   const [iCustName, setICustName] = useState("Rohan Sharma");
   const [iCustMobile, setICustMobile] = useState("9876500001");
@@ -147,7 +159,7 @@ function DataPage({
   ]);
 
   // Agreement States
-  const [aNumber, setANumber] = useState("AGR-20260425-8A2F");
+  const [aNumber, setANumber] = useState("");
   const [aDate, setADate] = useState("2026-04-25");
   const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
   const [aCustMobile, setACustMobile] = useState("9955964771");
@@ -210,7 +222,6 @@ function DataPage({
       const tax = Math.round(subtotal * 0.18);
       const selCust = availableCustomers.find(c => c.name === qCustName);
       body = {
-        quotationNumber: qNumber,
         quotationDate: qDate,
         capacityKw: qCapacity,
         quotationType: qType,
@@ -234,7 +245,6 @@ function DataPage({
       const tax = Math.round(subtotal * 0.18);
       const selCust = availableCustomers.find(c => c.name === iCustName);
       body = {
-        invoiceNumber: iNumber,
         title: iTitle,
         customerName: iCustName,
         customerMobile: iCustMobile,
@@ -253,7 +263,6 @@ function DataPage({
     } else if (title === "Agreements") {
       const selCust = availableCustomers.find(c => c.name === aCustName);
       body = {
-        agreementNumber: aNumber,
         agreementDate: aDate,
         customerName: aCustName,
         customerMobile: aCustMobile,
@@ -389,7 +398,7 @@ function DataPage({
             <form className="card modal-form" style={{ maxWidth: "920px", width: "95%", maxHeight: "92vh", overflowY: "auto", padding: "28px" }} onSubmit={submit}>
               <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>Create Premium Quotation</h2>
               <div className="create-form-grid">
-                <label>Quote Number<input value={qNumber} onChange={e => setQNumber(e.target.value)} required /></label>
+                <label>Quote Number<input value={qNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Quotation Date<input type="date" value={qDate} onChange={e => setQDate(e.target.value)} required /></label>
                 <label>System Capacity (kW)<input type="number" value={qCapacity} onChange={e => setQCapacity(e.target.value)} required /></label>
                 <label>Quotation Type<input value={qType} onChange={e => setQType(e.target.value)} required /></label>
@@ -538,7 +547,7 @@ function DataPage({
             <form className="card modal-form" style={{ maxWidth: "920px", width: "95%", maxHeight: "92vh", overflowY: "auto", padding: "28px" }} onSubmit={submit}>
               <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>Create Invoice</h2>
               <div className="create-form-grid">
-                <label>Invoice Number<input value={iNumber} onChange={e => setINumber(e.target.value)} required /></label>
+                <label>Invoice Number<input value={iNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Invoice Title<input value={iTitle} onChange={e => setITitle(e.target.value)} required /></label>
                 <label>Invoice Date<input type="date" value={iDate} onChange={e => setIDate(e.target.value)} required /></label>
                 <label>Due Date<input type="date" value={iDueDate} onChange={e => setIDueDate(e.target.value)} required /></label>
@@ -692,7 +701,7 @@ function DataPage({
             <form className="card modal-form" style={{ maxWidth: "780px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
               <h2>Create Agreement</h2>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-                <label>Agreement Number<input value={aNumber} onChange={e => setANumber(e.target.value)} required /></label>
+                <label>Agreement Number<input value={aNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Agreement Date<input type="date" value={aDate} onChange={e => setADate(e.target.value)} required /></label>
                 <label>Consumer Name
                   {isCustomCustomer ? (
@@ -1132,13 +1141,121 @@ export function AgreementsPage() {
 }
 
 export function SettingsPage() {
+  const [companyName, setCompanyName] = useState("");
+  const [prefix, setPrefix] = useState("");
+  const [counters, setCounters] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Generate prefix preview from company name (client-side preview)
+  const previewPrefix = (name) => {
+    if (!name || typeof name !== "string") return "CO";
+    const words = name.trim().split(/\s+/).filter((w) => w.length > 0);
+    if (words.length === 0) return "CO";
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api("/company-settings");
+        if (res?.company_name) {
+          setCompanyName(res.company_name);
+          setPrefix(res.prefix);
+          setCounters(res.counters || {});
+        }
+      } catch (e) {
+        console.error("Failed to load settings", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await api("/company-settings", {
+        method: "PUT",
+        body: JSON.stringify({ companyName }),
+      });
+      if (res?.prefix) setPrefix(res.prefix);
+      toast.success("Company settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const typeLabels = { QUO: "Quotation", INV: "Invoice", AGR: "Agreement", CON: "Contract", EST: "Estimate", CUS: "Customer", SKU: "Product SKU" };
+
   return (
     <main className="app-page">
       <span className="kicker">SYSTEM</span>
-      <h1>Settings</h1>
-      <div className="card">
-        <h2>Company Information</h2>
-        <p>A1 Solar Solution — Premier Solar EPC & Installation Provider</p>
+      <h1>Company Settings</h1>
+      <div className="detail-grid">
+        <form className="card operational-form" onSubmit={handleSave}>
+          <h2>Company Information</h2>
+          <label>
+            Company Name
+            <input
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Enter company name"
+              required
+              disabled={loading}
+            />
+          </label>
+          <label>
+            Auto-Generated Prefix
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <input
+                value={companyName ? previewPrefix(companyName) : prefix}
+                readOnly
+                style={{ background: "#f0f4fb", cursor: "default", fontWeight: 700, fontSize: "16px", letterSpacing: "2px", maxWidth: "100px" }}
+              />
+              <span style={{ fontSize: "13px", color: "#6b7280" }}>
+                Preview: {previewPrefix(companyName)}-INV-0101
+              </span>
+            </div>
+          </label>
+          <button className="primary" disabled={saving || loading}>
+            {saving ? "Saving..." : "Save Company Settings"}
+          </button>
+        </form>
+
+        <div className="card">
+          <h2>Sequence Counters</h2>
+          <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "12px" }}>Current sequence numbers for each document type. Next record will use the value shown + 1.</p>
+          {loading ? (
+            <p>Loading...</p>
+          ) : Object.keys(counters).length === 0 ? (
+            <p style={{ color: "#9ca3af" }}>No sequences generated yet. Create your first record to initialize.</p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
+                  <th style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", textTransform: "uppercase", color: "#6b7280" }}>Type</th>
+                  <th style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", textTransform: "uppercase", color: "#6b7280" }}>Current #</th>
+                  <th style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", textTransform: "uppercase", color: "#6b7280" }}>Next Will Be</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(counters).map(([type, seq]) => (
+                  <tr key={type} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "8px 12px", fontWeight: 600 }}>{typeLabels[type] || type}</td>
+                    <td style={{ padding: "8px 12px", fontFamily: "monospace" }}>{prefix}-{type}-{String(seq).padStart(4, "0")}</td>
+                    <td style={{ padding: "8px 12px", fontFamily: "monospace", color: "#059669" }}>{prefix}-{type}-{String(Math.max(seq + 1, 101)).padStart(4, "0")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </main>
   );

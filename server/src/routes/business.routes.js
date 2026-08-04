@@ -12,6 +12,7 @@ import {
 } from "../middleware/auth.js";
 import { testAccountMap } from "../lib/provider.js";
 import { modelMap } from "../models/index.js";
+import { getNextNumber, peekNextNumber } from "../lib/sequenceCounter.js";
 
 const getMongoDb = async () => {
   if (!process.env.MONGODB_URI) throw new AppError(503, "MongoDB is not configured", "SERVICE_UNAVAILABLE");
@@ -22,8 +23,7 @@ const getMongoDb = async () => {
   throw new AppError(503, "Database connection failed", "SERVICE_UNAVAILABLE");
 };
 
-const number = (prefix) =>
-  `${prefix}-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+// Legacy number() helper removed — replaced by getNextNumber() from sequenceCounter.js
 
 /**
  * Enterprise Multi-Tenant Ownership Helper
@@ -202,7 +202,7 @@ customersRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      customer_number: number("CUS"),
+      customer_number: await getNextNumber(mongo, "CUS"),
       profile_id: userIdObj ? userIdObj.toString() : null,
       name: b.name,
       mobile: b.mobile,
@@ -274,7 +274,7 @@ productsRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      sku: b.sku || number("SKU"),
+      sku: b.sku || await getNextNumber(mongo, "SKU"),
       name: b.name,
       category: b.category,
       brand: b.brand || null,
@@ -388,37 +388,8 @@ ticketsRouter.patch(
 // ----------------------------------------------------
 // HELPER FUNCTIONS FOR QUOTATIONS & INVOICES
 // ----------------------------------------------------
-async function getNextQuotationNumber(mongo) {
-  const year = new Date().getFullYear();
-  const prefix = `QT/${year}/`;
-  const docs = await mongo.collection("quotations").find({ quotation_number: { $regex: `^QT/${year}/` } }).toArray();
-  let nextSeq = 101;
-  if (docs.length > 0) {
-    const seqs = docs.map(d => {
-      const parts = d.quotation_number.split("/");
-      const num = parseInt(parts[parts.length - 1], 10);
-      return isNaN(num) ? 100 : num;
-    });
-    nextSeq = Math.max(...seqs) + 1;
-  }
-  return `${prefix}${nextSeq}`;
-}
-
-async function getNextInvoiceNumber(mongo) {
-  const year = new Date().getFullYear();
-  const prefix = `A1/${year}/`;
-  const docs = await mongo.collection("invoices").find({ invoice_number: { $regex: `^A1/${year}/` } }).toArray();
-  let nextSeq = 1;
-  if (docs.length > 0) {
-    const seqs = docs.map(d => {
-      const parts = d.invoice_number.split("/");
-      const num = parseInt(parts[parts.length - 1], 10);
-      return isNaN(num) ? 0 : num;
-    });
-    nextSeq = Math.max(...seqs) + 1;
-  }
-  return `${prefix}${nextSeq}`;
-}
+// Legacy getNextQuotationNumber / getNextInvoiceNumber removed
+// — replaced by getNextNumber(mongo, "QUO") / getNextNumber(mongo, "INV")
 
 function parseQty(val) {
   if (typeof val === "number") return val;
@@ -510,7 +481,7 @@ quotationsRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      quotation_number: b.quotationNumber || await getNextQuotationNumber(mongo),
+      quotation_number: await getNextNumber(mongo, "QUO"),
       customer_id: customerId,
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
@@ -698,7 +669,7 @@ invoicesRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      invoice_number: b.invoiceNumber || await getNextInvoiceNumber(mongo),
+      invoice_number: await getNextNumber(mongo, "INV"),
       customer_id: b.customerId || null,
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
@@ -901,15 +872,13 @@ agreementsRouter.post(
     let customerMobile = b.customerMobile || null;
 
     const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
 
     const doc = {
       ownerId: userId,
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      agreement_number: b.agreementNumber || `AGR-${dateStr}-${rand}`,
+      agreement_number: await getNextNumber(mongo, "AGR"),
       customer_id: b.customerId || null,
       customer_name: customerName,
       customer_email: customerEmail,
@@ -1015,7 +984,7 @@ contractsRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      contract_number: b.contractNumber || number("CON"),
+      contract_number: await getNextNumber(mongo, "CON"),
       customer_id: b.customerId || null,
       customer_name: b.customerName || "Customer",
       title: b.title || "Solar Maintenance Contract",
@@ -1083,7 +1052,7 @@ estimatesRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      estimate_number: b.estimateNumber || number("EST"),
+      estimate_number: await getNextNumber(mongo, "EST"),
       customer_id: b.customerId || null,
       customer_name: b.customerName || "Customer",
       title: b.title || "Project Solar Estimate",
@@ -1290,3 +1259,26 @@ profileRouter.post(
     return success(res, "Password updated successfully", { success: true });
   })
 );
+
+// ----------------------------------------------------
+// 14. NEXT NUMBER ROUTER (Preview next sequence number)
+// ----------------------------------------------------
+export const nextNumberRouter = Router();
+nextNumberRouter.use(requireAuth);
+
+const VALID_TYPES = new Set(["QUO", "INV", "AGR", "CON", "EST", "CUS", "SKU"]);
+
+nextNumberRouter.get(
+  "/:type",
+  asyncHandler(async (req, res) => {
+    const type = String(req.params.type).toUpperCase();
+    if (!VALID_TYPES.has(type)) {
+      throw new AppError(400, `Invalid document type: ${type}. Valid types: ${[...VALID_TYPES].join(", ")}`, "VALIDATION_ERROR");
+    }
+
+    const mongo = await getMongoDb();
+    const nextNumber = await peekNextNumber(mongo, type);
+    return success(res, "Next number preview", { type, nextNumber });
+  }),
+);
+
