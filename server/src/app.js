@@ -11,9 +11,13 @@ import { connectMongoDB } from "./config/db.js";
 import { authRouter, rolesRouter, usersRouter } from "./routes/auth.routes.js";
 import {
   agreementsRouter,
+  attachmentsRouter,
+  contractsRouter,
   customersRouter,
   dashboardRouter,
+  estimatesRouter,
   invoicesRouter,
+  notesRouter,
   productsRouter,
   profileRouter,
   projectsRouter,
@@ -113,6 +117,10 @@ app.use("/api/v1/tickets", ticketsRouter);
 app.use("/api/v1/quotations", quotationsRouter);
 app.use("/api/v1/invoices", invoicesRouter);
 app.use("/api/v1/agreements", agreementsRouter);
+app.use("/api/v1/contracts", contractsRouter);
+app.use("/api/v1/estimates", estimatesRouter);
+app.use("/api/v1/attachments", attachmentsRouter);
+app.use("/api/v1/notes", notesRouter);
 app.use("/api/v1/profile", profileRouter);
 
 const ok = (res, message, data, meta = {}) =>

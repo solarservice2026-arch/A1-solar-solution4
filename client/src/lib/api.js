@@ -159,6 +159,10 @@ export async function api(
         return body.data;
       }
 
+      if (response.status === 403) {
+        throw new Error(body.message || "Access denied: You do not have permission to access this resource");
+      }
+
       if (attempt === 0 && transientStatuses.has(response.status)) {
         if (response.status === 401) token = await sessionToken(true);
         await new Promise((resolve) => window.setTimeout(resolve, 2000));
@@ -166,7 +170,10 @@ export async function api(
       }
 
       return getLocalStorageFallback(path, options);
-    } catch {
+    } catch (err) {
+      if (err.message && err.message.includes("Access denied")) {
+        throw err;
+      }
       return getLocalStorageFallback(path, options);
     }
   }
