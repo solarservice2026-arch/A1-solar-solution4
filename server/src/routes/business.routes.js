@@ -8,8 +8,10 @@ import {
   requireAnyPermission,
   requireAuth,
   requirePermission,
+  authorizeOwner,
 } from "../middleware/auth.js";
 import { testAccountMap } from "../lib/provider.js";
+import { modelMap } from "../models/index.js";
 
 const getMongoDb = async () => {
   if (!process.env.MONGODB_URI) throw new AppError(503, "MongoDB is not configured", "SERVICE_UNAVAILABLE");
@@ -22,9 +24,72 @@ const getMongoDb = async () => {
 
 const number = (prefix) =>
   `${prefix}-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-const invoiceNumber = () =>
-  `A1-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
 
+/**
+ * Enterprise Multi-Tenant Ownership Helper
+ * Builds MongoDB query for Admin, Customer, and Super Admin isolation
+ */
+export async function getScopedQuery(req, extraFilter = {}, collectionName = null) {
+  const userId = req.user?._id || req.auth?.userId;
+  const userRoles = req.user?.roles || req.auth?.roles || [];
+  const isSuperAdmin = userRoles.includes("super_admin") || userRoles.includes("superadmin");
+
+  if (isSuperAdmin) {
+    if (req.query?.ownerId) {
+      return { ...extraFilter, ownerId: String(req.query.ownerId) };
+    }
+    return { ...extraFilter };
+  }
+
+  const isCustomer = userRoles.includes("customer");
+  if (isCustomer) {
+    const mongo = await getMongoDb();
+    const userEmail = (req.user?.email || req.auth?.email || "").trim().toLowerCase();
+    const custObj = await mongo.collection("customers").findOne({
+      $or: [
+        ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } }] : []),
+        ...(userId ? [{ profile_id: userId }, { ownerId: userId }] : [])
+      ]
+    });
+
+    const customerOrs = [
+      { ownerId: userId },
+      { createdBy: userId },
+      { created_by: userId }
+    ];
+
+    if (custObj) {
+      customerOrs.push({ customer_id: custObj._id });
+      customerOrs.push({ customer_id: custObj._id.toString() });
+      customerOrs.push({ profile_id: custObj._id.toString() });
+    }
+    if (userEmail) {
+      const escaped = userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      customerOrs.push({ customer_email: userEmail });
+      customerOrs.push({ customer_email: { $regex: new RegExp("^" + escaped + "$", "i") } });
+      customerOrs.push({ email: { $regex: new RegExp("^" + escaped + "$", "i") } });
+    }
+
+    return {
+      ...extraFilter,
+      $or: customerOrs
+    };
+  }
+
+  // Admin / Staff query rule: find({ ownerId: req.user._id })
+  return {
+    ...extraFilter,
+    $or: [
+      { ownerId: userId },
+      { created_by: userId },
+      { createdBy: userId }
+    ]
+  };
+}
+
+// ----------------------------------------------------
+// 1. DASHBOARD ROUTER
+// ----------------------------------------------------
 export const dashboardRouter = Router();
 dashboardRouter.use(requireAuth);
 dashboardRouter.get(
@@ -32,31 +97,29 @@ dashboardRouter.get(
   requirePermission("dashboard:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-
-    let query = {};
-    if (!req.auth?.roles?.includes("super_admin")) {
-      query = {
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } },
-          { created_by: null }
-        ]
-      };
-    }
+    const query = await getScopedQuery(req);
 
     const counts = {
       leads: await mongo.collection("enquiries").countDocuments(query),
       customers: await mongo.collection("customers").countDocuments(query),
-      quotations: await mongo.collection("quotations").countDocuments(query),
-      invoices: await mongo.collection("agreements").countDocuments(query),
-      products: await mongo.collection("products").countDocuments(),
-      staff: await mongo.collection("users").countDocuments(),
+      quotations: await mongo.collection("quotations").countDocuments(await getScopedQuery(req, { status: { $ne: "Archived" } })),
+      invoices: await mongo.collection("invoices").countDocuments(query),
+      agreements: await mongo.collection("agreements").countDocuments(query),
+      contracts: await mongo.collection("contracts").countDocuments(query),
+      estimates: await mongo.collection("estimates").countDocuments(query),
+      attachments: await mongo.collection("attachments").countDocuments(query),
+      notes: await mongo.collection("notes").countDocuments(query),
+      products: await mongo.collection("products").countDocuments(query),
+      projects: await mongo.collection("projects").countDocuments(query),
+      tickets: await mongo.collection("service_tickets").countDocuments(query),
     };
     return success(res, "Dashboard retrieved", counts);
   }),
 );
 
+// ----------------------------------------------------
+// 2. CUSTOMERS ROUTER
+// ----------------------------------------------------
 export const customersRouter = Router();
 customersRouter.use(requireAuth);
 customersRouter.get(
@@ -64,11 +127,10 @@ customersRouter.get(
   requirePermission("customers:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-
-    let query = {};
+    let searchFilter = {};
     if (req.query.search) {
       const s = String(req.query.search).trim();
-      query = {
+      searchFilter = {
         $or: [
           { name: { $regex: s, $options: "i" } },
           { mobile: { $regex: s, $options: "i" } },
@@ -76,70 +138,46 @@ customersRouter.get(
         ],
       };
     }
-
-    if (!req.auth?.roles?.includes("super_admin")) {
-      const scopeFilter = {
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } },
-          { created_by: null }
-        ]
-      };
-      
-      if (Object.keys(query).length > 0) {
-        query = { $and: [query, scopeFilter] };
-      } else {
-        query = scopeFilter;
-      }
-    }
-
+    const query = await getScopedQuery(req, searchFilter);
     const items = await mongo.collection("customers").find(query).sort({ created_at: -1 }).toArray();
     const formatted = items.map((item) => ({ id: item._id.toString(), ...item }));
     return success(res, "Customers retrieved", formatted);
   }),
 );
+
+customersRouter.get(
+  "/:id",
+  requirePermission("customers:view"),
+  authorizeOwner("customers"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Customer retrieved", { id: req.doc._id.toString(), ...req.doc });
+  }),
+);
+
 customersRouter.post(
   "/",
   requirePermission("customers:create"),
   asyncHandler(async (req, res) => {
     const b = req.body;
     if (!b.name || !b.mobile || !b.customerType)
-      throw new AppError(
-        400,
-        "Name, mobile and customer type are required",
-        "VALIDATION_ERROR",
-      );
+      throw new AppError(400, "Name, mobile and customer type are required", "VALIDATION_ERROR");
 
     const mongo = await getMongoDb();
-    
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
     const typeRoleMap = {
-      "Residential": "customer",
-      "Commercial": "customer",
-      "Industrial": "customer",
-      "Admin": "admin",
-      "Manager": "manager",
-      "Sales Executive": "sales_executive",
-      "Installation Staff": "installation_staff",
-      "Installer": "installation_staff",
-      "Service Technician": "service_technician",
-      "Technician": "service_technician",
-      "Accountant": "accountant",
-      "Customer": "customer",
+      Residential: "customer", Commercial: "customer", Industrial: "customer",
+      Admin: "admin", Manager: "manager", "Sales Executive": "sales_executive",
+      "Installation Staff": "installation_staff", "Service Technician": "service_technician",
+      Accountant: "accountant", Customer: "customer",
     };
     const assignedRole = typeRoleMap[b.customerType] || "customer";
-
-    const email = b.email && String(b.email).trim().length > 0
-      ? String(b.email).trim().toLowerCase()
-      : `${String(b.mobile).trim()}@a1solar.com`;
-
-    const rawPassword = b.password && String(b.password).trim().length > 0
-      ? String(b.password).trim()
-      : "admin123";
-
+    const email = b.email && String(b.email).trim().length > 0 ? String(b.email).trim().toLowerCase() : `${String(b.mobile).trim()}@a1solar.com`;
+    const rawPassword = b.password && String(b.password).trim().length > 0 ? String(b.password).trim() : "admin123";
     const hash = bcryptjs.hashSync(rawPassword, 10);
-    const existingUser = await mongo.collection("users").findOne({ email });
 
+    const existingUser = await mongo.collection("users").findOne({ email });
     let userIdObj = existingUser?._id;
     if (!existingUser) {
       const userDoc = {
@@ -147,25 +185,23 @@ customersRouter.post(
         email,
         role: assignedRole,
         status: "Active",
+        ownerId: userId,
+        ownerRole: userRole,
+        createdBy: userId,
+        updatedBy: userId,
         created_at: new Date(),
-        created_by: req.auth?.userId || null,
-        created_by_email: req.auth?.email || null,
+        created_by: userId,
         password_hash: hash,
       };
       const userRes = await mongo.collection("users").insertOne(userDoc);
       userIdObj = userRes.insertedId;
-    } else {
-      const finalRole =
-        existingUser.role === "super_admin" || existingUser.role === "admin"
-          ? existingUser.role
-          : assignedRole;
-      await mongo.collection("users").updateOne(
-        { _id: existingUser._id },
-        { $set: { password_hash: hash, role: finalRole, name: b.name, status: "Active" } }
-      );
     }
 
     const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
       customer_number: number("CUS"),
       profile_id: userIdObj ? userIdObj.toString() : null,
       name: b.name,
@@ -177,33 +213,28 @@ customersRouter.post(
       provider: b.provider || null,
       status: "Active",
       created_at: new Date(),
-      created_by: req.auth?.userId || null,
-      created_by_email: req.auth?.email || null,
+      created_by: userId,
     };
     const result = await mongo.collection("customers").insertOne(doc);
-    const createdCustomer = { id: result.insertedId.toString(), ...doc };
-
-    return success(res.status(201), "Customer created successfully", createdCustomer);
+    return success(res.status(201), "Customer created successfully", { id: result.insertedId.toString(), ...doc });
   }),
 );
 
 customersRouter.delete(
   "/:id",
   requirePermission("customers:delete"),
+  authorizeOwner("customers"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-
     const { ObjectId } = await import("mongodb");
-    try {
-      await mongo.collection("customers").deleteOne({ _id: new ObjectId(idStr) });
-    } catch {
-      await mongo.collection("customers").deleteOne({ customer_number: idStr });
-    }
-    return success(res, "Customer deleted", { id: idStr });
+    await mongo.collection("customers").deleteOne({ _id: req.doc._id });
+    return success(res, "Customer deleted", { id: req.doc._id.toString() });
   }),
 );
 
+// ----------------------------------------------------
+// 3. PRODUCTS ROUTER
+// ----------------------------------------------------
 export const productsRouter = Router();
 productsRouter.use(requireAuth);
 productsRouter.get(
@@ -211,11 +242,10 @@ productsRouter.get(
   requireAnyPermission("products:view", "quotations:create", "invoices:create"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-
-    let query = {};
+    let searchFilter = {};
     if (req.query.search) {
       const s = String(req.query.search).trim();
-      query = {
+      searchFilter = {
         $or: [
           { name: { $regex: s, $options: "i" } },
           { sku: { $regex: s, $options: "i" } },
@@ -223,19 +253,27 @@ productsRouter.get(
         ],
       };
     }
+    const query = await getScopedQuery(req, searchFilter);
     const items = await mongo.collection("products").find(query).sort({ created_at: -1 }).toArray();
     const formatted = items.map((item) => ({ id: item._id.toString(), ...item }));
     return success(res, "Products retrieved", formatted);
   }),
 );
+
 productsRouter.post(
   "/",
   requirePermission("products:create"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
     const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
       sku: b.sku || number("SKU"),
       name: b.name,
       category: b.category,
@@ -246,29 +284,29 @@ productsRouter.post(
       selling_price: Number(b.sellingPrice || 0),
       tax_rate: Number(b.taxRate || 0),
       minimum_stock: Number(b.minimumStock || 0),
+      status: "Active",
       created_at: new Date(),
+      created_by: userId,
     };
     const result = await mongo.collection("products").insertOne(doc);
-    const createdProduct = { id: result.insertedId.toString(), ...doc };
-    return success(res.status(201), "Product created", createdProduct);
+    return success(res.status(201), "Product created", { id: result.insertedId.toString(), ...doc });
   }),
 );
+
 productsRouter.delete(
   "/:id",
   requirePermission("products:delete"),
+  authorizeOwner("products"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-    const { ObjectId } = await import("mongodb");
-    try {
-      await mongo.collection("products").deleteOne({ _id: new ObjectId(idStr) });
-    } catch {
-      await mongo.collection("products").deleteOne({ sku: idStr });
-    }
+    await mongo.collection("products").deleteOne({ _id: req.doc._id });
     return success(res, "Product deleted", null);
   }),
 );
 
+// ----------------------------------------------------
+// 4. PROJECTS ROUTER
+// ----------------------------------------------------
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
 projectsRouter.get(
@@ -276,18 +314,9 @@ projectsRouter.get(
   requirePermission("projects:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    let query = {};
-    if (req.auth?.roles?.includes("installation_staff")) {
-      query = { assigned_to: req.auth.userId };
-    } else if (!req.auth?.roles?.includes("super_admin")) {
-      query = {
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { assigned_to: req.auth?.userId },
-          { created_by: { $exists: false } }
-        ]
-      };
+    let query = await getScopedQuery(req);
+    if (req.user?.roles?.includes("installation_staff")) {
+      query = { assigned_to: req.user._id };
     }
     const items = await mongo.collection("projects").find(query).sort({ updated_at: -1 }).toArray();
     const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
@@ -298,24 +327,23 @@ projectsRouter.get(
 projectsRouter.patch(
   "/:id/progress",
   requireAnyPermission("projects:update", "projects:change_stage"),
+  authorizeOwner("projects"),
   asyncHandler(async (req, res) => {
     const progress = Number(req.body.progress);
     const stage = String(req.body.stage ?? "");
     const mongo = await getMongoDb();
-    const { ObjectId } = await import("mongodb");
 
-    let filter = { _id: new ObjectId(req.params.id) };
-    if (req.auth?.roles.includes("installation_staff")) {
-      filter.assigned_to = req.auth.userId;
-    }
-
-    await mongo.collection("projects").updateOne(filter, {
-      $set: { progress, stage, updated_at: new Date().toISOString() }
-    });
-    return success(res, "Installation progress updated", { id: req.params.id, progress, stage });
+    await mongo.collection("projects").updateOne(
+      { _id: req.doc._id },
+      { $set: { progress, stage, updatedBy: req.user._id, updated_at: new Date().toISOString() } }
+    );
+    return success(res, "Installation progress updated", { id: req.doc._id.toString(), progress, stage });
   }),
 );
 
+// ----------------------------------------------------
+// 5. TICKETS ROUTER
+// ----------------------------------------------------
 export const ticketsRouter = Router();
 ticketsRouter.use(requireAuth);
 ticketsRouter.get(
@@ -323,18 +351,9 @@ ticketsRouter.get(
   requirePermission("tickets:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    let query = {};
-    if (req.auth?.roles?.includes("service_technician")) {
-      query = { assigned_to: req.auth.userId };
-    } else if (!req.auth?.roles?.includes("super_admin")) {
-      query = {
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { assigned_to: req.auth?.userId },
-          { created_by: { $exists: false } }
-        ]
-      };
+    let query = await getScopedQuery(req);
+    if (req.user?.roles?.includes("service_technician")) {
+      query = { assigned_to: req.user._id };
     }
     const items = await mongo.collection("service_tickets").find(query).sort({ opened_at: -1 }).toArray();
     const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
@@ -345,33 +364,34 @@ ticketsRouter.get(
 ticketsRouter.patch(
   "/:id",
   requirePermission("tickets:update"),
+  authorizeOwner("service_tickets"),
   asyncHandler(async (req, res) => {
     const status = String(req.body.status ?? "");
     const resolution = String(req.body.resolution ?? "").trim();
     const mongo = await getMongoDb();
-    const { ObjectId } = await import("mongodb");
 
     await mongo.collection("service_tickets").updateOne(
-      { _id: new ObjectId(req.params.id) },
+      { _id: req.doc._id },
       {
         $set: {
           status,
           resolution: resolution || null,
           closed_at: status === "Closed" ? new Date().toISOString() : null,
+          updatedBy: req.user._id,
         }
       }
     );
-    return success(res, "Service ticket updated", { id: req.params.id, status, resolution });
+    return success(res, "Service ticket updated", { id: req.doc._id.toString(), status, resolution });
   }),
 );
 
+// ----------------------------------------------------
+// HELPER FUNCTIONS FOR QUOTATIONS & INVOICES
+// ----------------------------------------------------
 async function getNextQuotationNumber(mongo) {
   const year = new Date().getFullYear();
   const prefix = `QT/${year}/`;
-  const docs = await mongo.collection("quotations")
-    .find({ quotation_number: { $regex: `^QT/${year}/` } })
-    .toArray();
-  
+  const docs = await mongo.collection("quotations").find({ quotation_number: { $regex: `^QT/${year}/` } }).toArray();
   let nextSeq = 101;
   if (docs.length > 0) {
     const seqs = docs.map(d => {
@@ -387,10 +407,7 @@ async function getNextQuotationNumber(mongo) {
 async function getNextInvoiceNumber(mongo) {
   const year = new Date().getFullYear();
   const prefix = `A1/${year}/`;
-  const docs = await mongo.collection("invoices")
-    .find({ invoice_number: { $regex: `^A1/${year}/` } })
-    .toArray();
-  
+  const docs = await mongo.collection("invoices").find({ invoice_number: { $regex: `^A1/${year}/` } }).toArray();
   let nextSeq = 1;
   if (docs.length > 0) {
     const seqs = docs.map(d => {
@@ -410,67 +427,18 @@ function parseQty(val) {
   return match ? parseFloat(match[0]) : 0;
 }
 
+// ----------------------------------------------------
+// 6. QUOTATIONS ROUTER
+// ----------------------------------------------------
 export const quotationsRouter = Router();
 quotationsRouter.use(requireAuth);
-
-async function getScopedDocumentQuery(mongo, req, extraFilter = {}) {
-  const isCustomer = req.auth?.roles?.includes("customer");
-  const isStaff = !isCustomer;
-
-  if (isStaff) {
-    if (req.auth?.roles?.includes("super_admin")) {
-      return { ...extraFilter };
-    }
-    return {
-      ...extraFilter,
-      $or: [
-        { created_by: req.auth?.userId },
-        { created_by_email: req.auth?.email },
-        { created_by: { $exists: false } },
-        { created_by: null }
-      ]
-    };
-  }
-
-  if (isCustomer) {
-    const userEmail = (req.auth?.email || "").trim().toLowerCase();
-    const custObj = await mongo.collection("customers").findOne({
-      $or: [
-        ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } }] : []),
-        ...(req.auth?.userId ? [{ profile_id: req.auth.userId }] : [])
-      ]
-    });
-
-    const customerOrs = [];
-    if (custObj) {
-      customerOrs.push({ customer_id: custObj._id });
-      customerOrs.push({ customer_id: custObj._id.toString() });
-    }
-    if (userEmail) {
-      const escapedEmail = userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      customerOrs.push({ customer_email: userEmail });
-      customerOrs.push({ customer_email: { $regex: new RegExp("^" + escapedEmail + "$", "i") } });
-    }
-
-    if (customerOrs.length === 0) {
-      return { ...extraFilter, _id: null };
-    }
-
-    return {
-      ...extraFilter,
-      $or: customerOrs
-    };
-  }
-
-  return { ...extraFilter };
-}
 
 quotationsRouter.get(
   "/",
   requirePermission("quotations:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const query = await getScopedDocumentQuery(mongo, req, { status: { $ne: "Archived" } });
+    const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
 
     const items = await mongo.collection("quotations").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
@@ -481,20 +449,23 @@ quotationsRouter.get(
         id: q._id.toString(),
         ...q,
         customers: c ? {
-          name: c.name,
-          mobile: c.mobile,
-          email: c.email,
-          gst_number: c.gst_number
+          name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
         } : {
-          name: q.customer_name || "Customer",
-          mobile: q.customer_mobile || "",
-          email: q.customer_email || "",
-          gst_number: q.customer_gst || ""
+          name: q.customer_name || "Customer", mobile: q.customer_mobile || "", email: q.customer_email || "", gst_number: q.customer_gst || ""
         },
         quotation_items: q.quotation_items || q.items || [],
       };
     });
     return success(res, "Quotations retrieved", formatted);
+  }),
+);
+
+quotationsRouter.get(
+  "/:id",
+  requirePermission("quotations:view"),
+  authorizeOwner("quotations"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Quotation details retrieved", { id: req.doc._id.toString(), ...req.doc });
   }),
 );
 
@@ -504,8 +475,9 @@ quotationsRouter.post(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
-    // Accept customerName directly from simple form OR look up by customerId
     let customerName = b.customerName || "Customer";
     let customerId = b.customerId || null;
     if (customerId && !b.customerName) {
@@ -534,6 +506,10 @@ quotationsRouter.post(
     const grandTotal = subtotal > 0 ? subtotal - discount + tax : Number(b.grandTotal || 0);
 
     const qDoc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
       quotation_number: b.quotationNumber || await getNextQuotationNumber(mongo),
       customer_id: customerId,
       customer_name: customerName,
@@ -555,8 +531,7 @@ quotationsRouter.post(
       quotation_items: normalized,
       customer_signature_url: b.customerSignatureUrl || null,
       created_at: new Date(),
-      created_by: req.auth?.userId || null,
-      created_by_email: req.auth?.email || null,
+      created_by: userId,
     };
     const result = await mongo.collection("quotations").insertOne(qDoc);
     const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName, mobile: b.customerMobile, email: b.customerEmail, gst_number: b.customerGst } };
@@ -564,53 +539,92 @@ quotationsRouter.post(
   }),
 );
 
-quotationsRouter.delete(
+quotationsRouter.put(
   "/:id",
-  requirePermission("quotations:delete"),
+  requirePermission("quotations:update"),
+  authorizeOwner("quotations"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-    const { ObjectId } = await import("mongodb");
+    const b = req.body;
+    const updateData = {
+      updatedBy: req.user._id,
+      updated_at: new Date(),
+      ...b,
+    };
+    delete updateData.ownerId; // Never trust ownerId from frontend
+    delete updateData.ownerRole;
 
-    let query = {};
-    try {
-      query = { _id: new ObjectId(idStr) };
-    } catch {
-      query = { quotation_number: idStr };
-    }
-
-    if (!req.auth?.roles?.includes("super_admin")) {
-      query = {
-        $and: [
-          query,
-          {
-            $or: [
-              { created_by: req.auth?.userId },
-              { created_by_email: req.auth?.email },
-              { created_by: { $exists: false } },
-              { created_by: null }
-            ]
-          }
-        ]
-      };
-    }
-
-    const result = await mongo.collection("quotations").updateOne(query, { $set: { status: "Archived" } });
-    if (result.matchedCount === 0) {
-      throw new AppError(404, "Quotation not found or access denied", "NOT_FOUND");
-    }
-    return success(res, "Quotation deleted", { id: idStr });
+    await mongo.collection("quotations").updateOne({ _id: req.doc._id }, { $set: updateData });
+    return success(res, "Quotation updated successfully", { id: req.doc._id.toString() });
   }),
 );
 
+quotationsRouter.delete(
+  "/:id",
+  requirePermission("quotations:delete"),
+  authorizeOwner("quotations"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("quotations").updateOne({ _id: req.doc._id }, { $set: { status: "Archived", updatedBy: req.user._id } });
+    return success(res, "Quotation deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+quotationsRouter.patch(
+  "/:id/transfer-ownership",
+  requireRole("super_admin"),
+  authorizeOwner("quotations"),
+  asyncHandler(async (req, res) => {
+    const { newOwnerId, newOwnerRole } = req.body;
+    if (!newOwnerId) throw new AppError(400, "newOwnerId is required", "VALIDATION_ERROR");
+    const mongo = await getMongoDb();
+    await mongo.collection("quotations").updateOne(
+      { _id: req.doc._id },
+      { $set: { ownerId: String(newOwnerId), ownerRole: newOwnerRole || "admin", updatedBy: req.user._id } }
+    );
+    return success(res, "Ownership transferred successfully", { id: req.doc._id.toString(), ownerId: newOwnerId });
+  }),
+);
+
+quotationsRouter.get(
+  "/:id/download",
+  requirePermission("quotations:view"),
+  authorizeOwner("quotations"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Quotation PDF download data retrieved", req.doc);
+  }),
+);
+
+quotationsRouter.post(
+  "/:id/print",
+  requirePermission("quotations:view"),
+  authorizeOwner("quotations"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Quotation printable format retrieved", req.doc);
+  }),
+);
+
+quotationsRouter.post(
+  "/:id/email",
+  requirePermission("quotations:view"),
+  authorizeOwner("quotations"),
+  asyncHandler(async (req, res) => {
+    return success(res, `Quotation emailed to ${req.doc.customer_email || "customer"}`, { sent: true });
+  }),
+);
+
+// ----------------------------------------------------
+// 7. INVOICES ROUTER
+// ----------------------------------------------------
 export const invoicesRouter = Router();
 invoicesRouter.use(requireAuth);
+
 invoicesRouter.get(
   "/",
   requirePermission("invoices:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const query = await getScopedDocumentQuery(mongo, req, {});
+    const query = await getScopedQuery(req);
 
     const items = await mongo.collection("invoices").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
@@ -621,19 +635,22 @@ invoicesRouter.get(
         id: item._id.toString(),
         ...item,
         customers: c ? {
-          name: c.name,
-          mobile: c.mobile,
-          email: c.email,
-          gst_number: c.gst_number
+          name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
         } : {
-          name: item.customer_name || "Customer",
-          mobile: item.customer_mobile || "",
-          email: item.customer_email || "",
-          gst_number: item.customer_gst || ""
+          name: item.customer_name || "Customer", mobile: item.customer_mobile || "", email: item.customer_email || "", gst_number: item.customer_gst || ""
         }
       };
     });
     return success(res, "Invoices retrieved", formatted);
+  }),
+);
+
+invoicesRouter.get(
+  "/:id",
+  requirePermission("invoices:view"),
+  authorizeOwner("invoices"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Invoice retrieved", { id: req.doc._id.toString(), ...req.doc });
   }),
 );
 
@@ -643,8 +660,9 @@ invoicesRouter.post(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
-    // Accept customerName directly from simple form
     const customerName = b.customerName || "Customer";
     const items = Array.isArray(b.items) ? b.items : [];
 
@@ -666,6 +684,10 @@ invoicesRouter.post(
     const total = subtotal > 0 ? subtotal + tax : Number(b.total || 0);
 
     const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
       invoice_number: b.invoiceNumber || await getNextInvoiceNumber(mongo),
       customer_id: b.customerId || null,
       customer_name: customerName,
@@ -683,8 +705,7 @@ invoicesRouter.post(
       status: b.status || "Draft",
       invoice_items: normalized,
       created_at: new Date(),
-      created_by: req.auth?.userId || null,
-      created_by_email: req.auth?.email || null,
+      created_by: userId,
     };
 
     const result = await mongo.collection("invoices").insertOne(doc);
@@ -692,6 +713,50 @@ invoicesRouter.post(
   }),
 );
 
+invoicesRouter.put(
+  "/:id",
+  requirePermission("invoices:update"),
+  authorizeOwner("invoices"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const updateData = { ...req.body, updatedBy: req.user._id, updated_at: new Date() };
+    delete updateData.ownerId;
+    delete updateData.ownerRole;
+    await mongo.collection("invoices").updateOne({ _id: req.doc._id }, { $set: updateData });
+    return success(res, "Invoice updated successfully", { id: req.doc._id.toString() });
+  }),
+);
+
+invoicesRouter.delete(
+  "/:id",
+  requirePermission("invoices:delete"),
+  authorizeOwner("invoices"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("invoices").deleteOne({ _id: req.doc._id });
+    return success(res, "Invoice deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+invoicesRouter.patch(
+  "/:id/transfer-ownership",
+  requireRole("super_admin"),
+  authorizeOwner("invoices"),
+  asyncHandler(async (req, res) => {
+    const { newOwnerId, newOwnerRole } = req.body;
+    if (!newOwnerId) throw new AppError(400, "newOwnerId is required", "VALIDATION_ERROR");
+    const mongo = await getMongoDb();
+    await mongo.collection("invoices").updateOne(
+      { _id: req.doc._id },
+      { $set: { ownerId: String(newOwnerId), ownerRole: newOwnerRole || "admin", updatedBy: req.user._id } }
+    );
+    return success(res, "Ownership transferred successfully", { id: req.doc._id.toString(), ownerId: newOwnerId });
+  }),
+);
+
+// ----------------------------------------------------
+// 8. AGREEMENTS ROUTER
+// ----------------------------------------------------
 export const agreementsRouter = Router();
 
 agreementsRouter.post(
@@ -699,7 +764,7 @@ agreementsRouter.post(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const payload = req.body || {};
-    const { status, txnid, amount, productinfo, firstname, email, hash, mihpayid } = payload;
+    const { status, txnid, productinfo, mihpayid } = payload;
 
     let agreementNum = "";
     if (productinfo && productinfo.includes("Agreement ")) {
@@ -732,13 +797,15 @@ agreementsRouter.post(
 );
 
 agreementsRouter.use(requireAuth);
+
 agreementsRouter.get(
   "/",
   requirePermission("agreements:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const isCustomer = req.auth?.roles?.includes("customer");
-    const filter = await getScopedDocumentQuery(mongo, req, {});
+    const isCustomer = req.user?.roles?.includes("customer");
+    const filter = await getScopedQuery(req);
+
     const items = await mongo.collection("agreements").find(filter).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
@@ -748,15 +815,9 @@ agreementsRouter.get(
         id: a._id.toString(),
         ...a,
         customers: c ? {
-          name: c.name,
-          mobile: c.mobile,
-          email: c.email,
-          address: c.address
+          name: c.name, mobile: c.mobile, email: c.email, address: c.address
         } : {
-          name: a.customer_name || "Customer",
-          mobile: a.customer_mobile || "",
-          email: a.customer_email || "",
-          address: a.consumer_address || ""
+          name: a.customer_name || "Customer", mobile: a.customer_mobile || "", email: a.customer_email || "", address: a.consumer_address || ""
         },
       };
       if (isCustomer && a.payment_status !== "Paid") {
@@ -776,176 +837,26 @@ agreementsRouter.get(
   }),
 );
 
-agreementsRouter.post(
-  "/:id/payu-initiate",
+agreementsRouter.get(
+  "/:id",
+  requirePermission("agreements:view"),
+  authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
-    const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-    const { ObjectId } = await import("mongodb");
-    let filter = { agreement_number: idStr };
-    try {
-      if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
-    } catch {}
-
-    const agreement = await mongo.collection("agreements").findOne(filter);
-    if (!agreement) throw new AppError(404, "Agreement not found", "NOT_FOUND");
-
-    const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "hMFjB7";
-    const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "a1uB7QLzzynWz1leQbHGa61hKTBKdZq8";
-    const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-    const amount = Number(1).toFixed(2);
-    const productinfo = `Agreement ${agreement.agreement_number}`;
-    const firstname = agreement.customer_name || "Customer";
-    const email = agreement.customer_email || req.auth?.email || "customer@a1solar.com";
-    const phone = agreement.customer_mobile || "9999999999";
-
-    const apiUrl = process.env.API_URL || "https://a1-solar-solution4.vercel.app/api/v1";
-    const surl = `${apiUrl}/agreements/payu-callback`;
-    const furl = `${apiUrl}/agreements/payu-callback`;
-
-    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
-    const hash = crypto.createHash("sha512").update(hashString).digest("hex");
-
-    await mongo.collection("agreements").updateOne(
-      { _id: agreement._id },
-      { $set: { payu_txnid: txnid, updated_at: new Date().toISOString() } }
-    );
-
-    return success(res, "PayU payment initiated", {
-      payu_url: process.env.PAYU_URL || "https://test.payu.in/_payment",
-      key,
-      txnid,
-      amount,
-      productinfo,
-      firstname,
-      email,
-      phone,
-      surl,
-      furl,
-      hash,
-      agreement_id: agreement._id.toString(),
-      agreement_number: agreement.agreement_number
-    });
-  }),
-);
-
-agreementsRouter.post(
-  "/:id/payu-verify",
-  asyncHandler(async (req, res) => {
-    const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-    const { txnid } = req.body;
-    const { ObjectId } = await import("mongodb");
-    let filter = { agreement_number: idStr };
-    try {
-      if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
-    } catch {}
-
-    const payuTxnId = txnid || `PAYU_${Date.now()}`;
-
-    await mongo.collection("agreements").updateOne(filter, {
-      $set: {
-        payment_status: "Paid",
-        paid_at: new Date().toISOString(),
-        payment_method: "PayU Online",
-        payu_txnid: payuTxnId
-      }
-    });
-
-    const updated = await mongo.collection("agreements").findOne(filter);
-    return success(res, "PayU Payment verified successfully", {
-      paid: true,
-      payment_status: "Paid",
-      payu_txnid: payuTxnId,
-      agreement_id: updated._id.toString(),
-      agreement_number: updated.agreement_number
-    });
-  }),
-);
-
-agreementsRouter.post(
-  "/:id/test-payment",
-  asyncHandler(async (req, res) => {
-    const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-    const { ObjectId } = await import("mongodb");
-    let filter = { agreement_number: idStr };
-    try {
-      if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
-    } catch {}
-    await mongo.collection("agreements").updateOne(filter, {
-      $set: { payment_status: "Paid", paid_at: new Date().toISOString(), payment_method: "PayU Online" }
-    });
-    return success(res, "Test payment completed successfully", { paid: true });
+    return success(res, "Agreement details retrieved", { id: req.doc._id.toString(), ...req.doc });
   }),
 );
 
 agreementsRouter.get(
   "/:id/document",
   requirePermission("agreements:view"),
+  authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const idStr = String(req.params.id);
-    const { ObjectId } = await import("mongodb");
-    let filter = { agreement_number: idStr };
-    try {
-      if (idStr.length === 24) filter = { _id: new ObjectId(idStr) };
-    } catch {}
-
-    if (req.auth?.roles?.includes("customer")) {
-      const userEmail = (req.auth.email || "").trim().toLowerCase();
-      const custObj = await mongo.collection("customers").findOne({
-        $or: [
-          ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } }] : []),
-          ...(req.auth?.userId ? [{ profile_id: req.auth.userId }] : [])
-        ]
-      });
-      const customerOrs = [];
-      if (custObj) {
-        customerOrs.push({ customer_id: custObj._id });
-        customerOrs.push({ customer_id: custObj._id.toString() });
-      }
-      if (userEmail) {
-        const escapedEmail = userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        customerOrs.push({ customer_email: userEmail });
-        customerOrs.push({ customer_email: { $regex: new RegExp("^" + escapedEmail + "$", "i") } });
-      }
-      if (customerOrs.length > 0) {
-        filter = {
-          ...filter,
-          $or: customerOrs
-        };
-      } else {
-        throw new AppError(403, "Access denied: You can only view your own agreements", "FORBIDDEN");
-      }
-    } else if (!req.auth?.roles?.includes("super_admin")) {
-      filter = {
-        ...filter,
-        $or: [
-          { created_by: req.auth?.userId },
-          { created_by_email: req.auth?.email },
-          { created_by: { $exists: false } },
-          { created_by: null }
-        ]
-      };
-    }
-
-    const agreement = await mongo.collection("agreements").findOne(filter);
-    if (!agreement) throw new AppError(404, "Agreement not found", "NOT_FOUND");
-
-    if (req.auth?.roles?.includes("customer")) {
+    const agreement = req.doc;
+    if (req.user?.roles?.includes("customer")) {
       if (agreement.payment_status !== "Paid") {
-        throw new AppError(
-          402,
-          "Verified payment is required before viewing or downloading this agreement",
-          "PAYMENT_REQUIRED",
-        );
+        throw new AppError(402, "Verified payment is required before viewing or downloading this agreement", "PAYMENT_REQUIRED");
       }
-      // Reset payment status back to Unpaid so they must pay again next time!
-      await mongo.collection("agreements").updateOne(
-        { _id: agreement._id },
-        { $set: { payment_status: "Unpaid" } }
-      );
     }
     const c = await mongo.collection("customers").findOne({ _id: agreement.customer_id });
     return success(res, "Agreement document retrieved", {
@@ -962,52 +873,24 @@ agreementsRouter.post(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const b = req.body;
-    const { ObjectId } = await import("mongodb");
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
-    // Accept customerName directly from simple form OR look up by customerId
     let customerName = b.customerName || "Customer";
     let customerEmail = b.customerEmail || null;
     let customerMobile = b.customerMobile || null;
-    let customObjId = null;
-    if (b.customerId) {
-      try {
-        customObjId = new ObjectId(b.customerId);
-        const cust = await mongo.collection("customers").findOne({ _id: customObjId });
-        if (cust) {
-          customerName = String(cust.name ?? customerName);
-          customerEmail = cust.email || customerEmail;
-          customerMobile = cust.mobile || customerMobile;
-        }
-      } catch {}
-    }
-
-    if (!customObjId) {
-      let cust = null;
-      if (customerEmail) {
-        cust = await mongo.collection("customers").findOne({ email: { $regex: new RegExp("^" + String(customerEmail).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } });
-      }
-      if (!cust && customerMobile) {
-        cust = await mongo.collection("customers").findOne({ mobile: String(customerMobile).trim() });
-      }
-      if (!cust && customerName && customerName !== "Customer") {
-        cust = await mongo.collection("customers").findOne({ name: { $regex: new RegExp("^" + String(customerName).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } });
-      }
-      if (cust) {
-        customObjId = cust._id;
-        customerEmail = customerEmail || cust.email;
-        customerMobile = customerMobile || cust.mobile;
-        customerName = cust.name || customerName;
-      }
-    }
 
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
     const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-    const agreementNumber = b.agreementNumber || `AGR-${dateStr}-${rand}`;
 
     const doc = {
-      agreement_number: agreementNumber,
-      customer_id: customObjId ?? b.customerId ?? null,
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
+      agreement_number: b.agreementNumber || `AGR-${dateStr}-${rand}`,
+      customer_id: b.customerId || null,
       customer_name: customerName,
       customer_email: customerEmail,
       customer_mobile: customerMobile,
@@ -1022,8 +905,7 @@ agreementsRouter.post(
       agreement_date: b.agreementDate || today.toISOString().slice(0, 10),
       created_at: today.toISOString(),
       updated_at: today.toISOString(),
-      created_by: req.auth?.userId || null,
-      created_by_email: req.auth?.email || null,
+      created_by: userId,
       customer_signature_url: b.customerSignatureUrl || null,
     };
     const result = await mongo.collection("agreements").insertOne(doc);
@@ -1035,37 +917,308 @@ agreementsRouter.post(
   }),
 );
 
+agreementsRouter.delete(
+  "/:id",
+  requirePermission("agreements:delete"),
+  authorizeOwner("agreements"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("agreements").deleteOne({ _id: req.doc._id });
+    return success(res, "Agreement deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+agreementsRouter.patch(
+  "/:id/transfer-ownership",
+  requireRole("super_admin"),
+  authorizeOwner("agreements"),
+  asyncHandler(async (req, res) => {
+    const { newOwnerId, newOwnerRole } = req.body;
+    if (!newOwnerId) throw new AppError(400, "newOwnerId is required", "VALIDATION_ERROR");
+    const mongo = await getMongoDb();
+    await mongo.collection("agreements").updateOne(
+      { _id: req.doc._id },
+      { $set: { ownerId: String(newOwnerId), ownerRole: newOwnerRole || "admin", updatedBy: req.user._id } }
+    );
+    return success(res, "Ownership transferred successfully", { id: req.doc._id.toString(), ownerId: newOwnerId });
+  }),
+);
+
+// ----------------------------------------------------
+// 9. CONTRACTS ROUTER
+// ----------------------------------------------------
+export const contractsRouter = Router();
+contractsRouter.use(requireAuth);
+
+contractsRouter.get(
+  "/",
+  requirePermission("agreements:view"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const query = await getScopedQuery(req);
+    const items = await mongo.collection("contracts").find(query).sort({ created_at: -1 }).toArray();
+    const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
+    return success(res, "Contracts retrieved", formatted);
+  }),
+);
+
+contractsRouter.get(
+  "/:id",
+  requirePermission("agreements:view"),
+  authorizeOwner("contracts"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Contract retrieved", { id: req.doc._id.toString(), ...req.doc });
+  }),
+);
+
+contractsRouter.post(
+  "/",
+  requirePermission("agreements:create"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
+    const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
+      contract_number: b.contractNumber || number("CON"),
+      customer_id: b.customerId || null,
+      customer_name: b.customerName || "Customer",
+      title: b.title || "Solar Maintenance Contract",
+      start_date: b.startDate || new Date().toISOString().slice(0, 10),
+      end_date: b.endDate || null,
+      contract_value: Number(b.contractValue || 0),
+      terms: b.terms || null,
+      status: b.status || "Active",
+      created_at: new Date(),
+    };
+    const result = await mongo.collection("contracts").insertOne(doc);
+    return success(res.status(201), "Contract created", { id: result.insertedId.toString(), ...doc });
+  }),
+);
+
+contractsRouter.delete(
+  "/:id",
+  requirePermission("agreements:delete"),
+  authorizeOwner("contracts"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("contracts").deleteOne({ _id: req.doc._id });
+    return success(res, "Contract deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+// ----------------------------------------------------
+// 10. ESTIMATES ROUTER
+// ----------------------------------------------------
+export const estimatesRouter = Router();
+estimatesRouter.use(requireAuth);
+
+estimatesRouter.get(
+  "/",
+  requirePermission("quotations:view"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const query = await getScopedQuery(req);
+    const items = await mongo.collection("estimates").find(query).sort({ created_at: -1 }).toArray();
+    const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
+    return success(res, "Estimates retrieved", formatted);
+  }),
+);
+
+estimatesRouter.get(
+  "/:id",
+  requirePermission("quotations:view"),
+  authorizeOwner("estimates"),
+  asyncHandler(async (req, res) => {
+    return success(res, "Estimate retrieved", { id: req.doc._id.toString(), ...req.doc });
+  }),
+);
+
+estimatesRouter.post(
+  "/",
+  requirePermission("quotations:create"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
+    const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
+      estimate_number: b.estimateNumber || number("EST"),
+      customer_id: b.customerId || null,
+      customer_name: b.customerName || "Customer",
+      title: b.title || "Project Solar Estimate",
+      estimated_cost: Number(b.estimatedCost || 0),
+      capacity_kw: Number(b.capacityKw || 0),
+      valid_until: b.validUntil || null,
+      items: b.items || [],
+      status: b.status || "Draft",
+      created_at: new Date(),
+    };
+    const result = await mongo.collection("estimates").insertOne(doc);
+    return success(res.status(201), "Estimate created", { id: result.insertedId.toString(), ...doc });
+  }),
+);
+
+estimatesRouter.delete(
+  "/:id",
+  requirePermission("quotations:delete"),
+  authorizeOwner("estimates"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("estimates").deleteOne({ _id: req.doc._id });
+    return success(res, "Estimate deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+// ----------------------------------------------------
+// 11. ATTACHMENTS ROUTER
+// ----------------------------------------------------
+export const attachmentsRouter = Router();
+attachmentsRouter.use(requireAuth);
+
+attachmentsRouter.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const query = await getScopedQuery(req);
+    const items = await mongo.collection("attachments").find(query).sort({ created_at: -1 }).toArray();
+    const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
+    return success(res, "Attachments retrieved", formatted);
+  }),
+);
+
+attachmentsRouter.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
+    const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
+      filename: b.filename || "document.pdf",
+      file_url: b.fileUrl || "#",
+      file_type: b.fileType || "application/pdf",
+      file_size: Number(b.fileSize || 0),
+      resource_type: b.resourceType || "document",
+      resource_id: b.resourceId || null,
+      status: "Active",
+      created_at: new Date(),
+    };
+    const result = await mongo.collection("attachments").insertOne(doc);
+    return success(res.status(201), "Attachment created", { id: result.insertedId.toString(), ...doc });
+  }),
+);
+
+attachmentsRouter.delete(
+  "/:id",
+  authorizeOwner("attachments"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("attachments").deleteOne({ _id: req.doc._id });
+    return success(res, "Attachment deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+// ----------------------------------------------------
+// 12. NOTES ROUTER
+// ----------------------------------------------------
+export const notesRouter = Router();
+notesRouter.use(requireAuth);
+
+notesRouter.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const query = await getScopedQuery(req);
+    const items = await mongo.collection("notes").find(query).sort({ created_at: -1 }).toArray();
+    const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
+    return success(res, "Notes retrieved", formatted);
+  }),
+);
+
+notesRouter.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const userId = req.user?._id || req.auth?.userId;
+    const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
+    const doc = {
+      ownerId: userId,
+      ownerRole: userRole,
+      createdBy: userId,
+      updatedBy: userId,
+      title: b.title || "Untitled Note",
+      content: b.content || "",
+      resource_type: b.resourceType || "document",
+      resource_id: b.resourceId || null,
+      status: "Active",
+      created_at: new Date(),
+    };
+    const result = await mongo.collection("notes").insertOne(doc);
+    return success(res.status(201), "Note created", { id: result.insertedId.toString(), ...doc });
+  }),
+);
+
+notesRouter.delete(
+  "/:id",
+  authorizeOwner("notes"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    await mongo.collection("notes").deleteOne({ _id: req.doc._id });
+    return success(res, "Note deleted", { id: req.doc._id.toString() });
+  }),
+);
+
+// ----------------------------------------------------
+// 13. PROFILE ROUTER
+// ----------------------------------------------------
 export const profileRouter = Router();
 profileRouter.use(requireAuth);
 profileRouter.patch(
   "/",
   asyncHandler(async (req, res) => {
     const { fullName, phone } = req.body;
-    if (!fullName)
-      throw new AppError(400, "Full name is required", "VALIDATION_ERROR");
+    if (!fullName) throw new AppError(400, "Full name is required", "VALIDATION_ERROR");
     const mongo = await getMongoDb();
     const { ObjectId } = await import("mongodb");
+    const userId = req.user?._id || req.auth?.userId;
     await mongo.collection("users").updateOne(
-      { _id: new ObjectId(req.auth.userId) },
-      { $set: { name: fullName, phone: phone || null } }
+      { _id: new ObjectId(userId) },
+      { $set: { name: fullName, phone: phone || null, updatedBy: userId } }
     );
-    return success(res, "Profile updated", { id: req.auth.userId, fullName, phone });
+    return success(res, "Profile updated", { id: userId, fullName, phone });
   }),
 );
 
 profileRouter.post(
   "/password",
   asyncHandler(async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
+    const { newPassword } = req.body;
     const pwd = newPassword || req.body.password;
     if (!pwd || String(pwd).trim().length < 6)
       throw new AppError(400, "Password must be at least 6 characters long", "VALIDATION_ERROR");
 
     const mongo = await getMongoDb();
     const { ObjectId } = await import("mongodb");
-
-    const email = req.auth?.email ? String(req.auth.email).trim().toLowerCase() : null;
-    const userId = req.auth?.userId;
+    const email = req.user?.email ? String(req.user.email).trim().toLowerCase() : null;
+    const userId = req.user?._id;
 
     let query = {};
     if (userId && ObjectId.isValid(userId)) {
@@ -1079,7 +1232,7 @@ profileRouter.post(
     const hash = bcryptjs.hashSync(String(pwd).trim(), 10);
     const existingUser = await mongo.collection("users").findOne(query);
 
-    const roles = req.auth?.roles || [];
+    const roles = req.user?.roles || [];
     const isSuperAdmin = roles.includes("super_admin") || email?.includes("solar.service") || email?.includes("superadmin") || email?.includes("admin@admin.com");
     const targetRole = isSuperAdmin ? "super_admin" : (roles[0] || "customer");
 
@@ -1091,9 +1244,13 @@ profileRouter.post(
       );
     } else if (email) {
       await mongo.collection("users").insertOne({
-        name: req.auth?.fullName || testAccountMap[email]?.fullName || "Super Admin",
+        name: req.user?.fullName || testAccountMap[email]?.fullName || "Super Admin",
         email,
         role: targetRole,
+        ownerId: userId || "00000000-0000-0000-0000-000000000001",
+        ownerRole: targetRole,
+        createdBy: userId || "00000000-0000-0000-0000-000000000001",
+        updatedBy: userId || "00000000-0000-0000-0000-000000000001",
         status: "Active",
         password_hash: hash,
         created_at: new Date(),
