@@ -35,6 +35,18 @@ axiosClient.interceptors.response.use(
   },
 );
 
+// ── ONE-TIME PURGE: Clear all cached business data from localStorage ──
+// Remove this block after first successful page load
+try {
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("a1_db_cache_")) keysToRemove.push(key);
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
+  if (keysToRemove.length > 0) console.log("[Cache] Purged localStorage cache:", keysToRemove);
+} catch {}
+
 const transientStatuses = new Set([401, 500, 502, 503, 504]);
 
 const sessionToken = async (_refresh = false) => {
