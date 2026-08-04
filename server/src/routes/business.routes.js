@@ -575,8 +575,8 @@ quotationsRouter.delete(
         filter = { $or: [{ quotation_number: idParam }, { _id: req.doc._id }] };
       }
     } catch {}
-    await mongo.collection("quotations").deleteOne(filter);
-    return success(res, "Quotation deleted permanently", { id: req.doc._id.toString() });
+    const result = await mongo.collection("quotations").deleteMany(filter);
+    return success(res, "Quotation deleted permanently", { id: idParam, deletedCount: result.deletedCount });
   }),
 );
 
@@ -753,8 +753,8 @@ invoicesRouter.delete(
         filter = { $or: [{ invoice_number: idParam }, { _id: req.doc._id }] };
       }
     } catch {}
-    await mongo.collection("invoices").deleteOne(filter);
-    return success(res, "Invoice deleted permanently", { id: req.doc._id.toString() });
+    const result = await mongo.collection("invoices").deleteMany(filter);
+    return success(res, "Invoice deleted permanently", { id: idParam, deletedCount: result.deletedCount });
   }),
 );
 
@@ -953,8 +953,8 @@ agreementsRouter.delete(
         filter = { $or: [{ agreement_number: idParam }, { _id: req.doc._id }] };
       }
     } catch {}
-    await mongo.collection("agreements").deleteOne(filter);
-    return success(res, "Agreement deleted permanently", { id: req.doc._id.toString() });
+    const result = await mongo.collection("agreements").deleteMany(filter);
+    return success(res, "Agreement deleted permanently", { id: idParam, deletedCount: result.deletedCount });
   }),
 );
 

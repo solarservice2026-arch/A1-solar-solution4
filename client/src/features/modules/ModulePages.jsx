@@ -283,7 +283,11 @@ function DataPage({
 
   const remove = async (row) => {
     if (!confirm(`Delete this ${title.toLowerCase().slice(0, -1)}?`)) return;
-    const targetId = row.id || row._id || row.invoice_number || row.quotation_number || row.agreement_number || row.customer_number;
+    const targetId = (row.id && String(row.id).length === 24)
+      ? row.id
+      : (row._id && String(row._id).length === 24)
+        ? row._id
+        : (row.id || row._id || row.agreement_number || row.invoice_number || row.quotation_number || row.customer_number);
 
     // Optimistically update UI table state immediately
     setRows((prev) =>
@@ -293,16 +297,16 @@ function DataPage({
           r._id !== row._id &&
           r.id !== targetId &&
           r._id !== targetId &&
-          r.invoice_number !== row.invoice_number &&
-          r.quotation_number !== row.quotation_number &&
-          r.agreement_number !== row.agreement_number &&
-          r.invoice_number !== targetId &&
-          r.quotation_number !== targetId &&
-          r.agreement_number !== targetId
+          (row.agreement_number ? r.agreement_number !== row.agreement_number : true) &&
+          (row.invoice_number ? r.invoice_number !== row.invoice_number : true) &&
+          (row.quotation_number ? r.quotation_number !== row.quotation_number : true) &&
+          (r.agreement_number ? r.agreement_number !== targetId : true) &&
+          (r.invoice_number ? r.invoice_number !== targetId : true) &&
+          (r.quotation_number ? r.quotation_number !== targetId : true)
       )
     );
 
-    // Manually purge matching record and default dummy records from browser cache
+    // Manually purge matching record and duplicate custom numbers from browser cache
     try {
       const rawPath = path.split("?")[0] ?? "";
       const entity = rawPath.split("/").filter(Boolean)[0];
@@ -317,9 +321,9 @@ function DataPage({
               r._id !== row._id &&
               r.id !== targetId &&
               r._id !== targetId &&
-              r.invoice_number !== row.invoice_number &&
-              r.quotation_number !== row.quotation_number &&
-              r.agreement_number !== row.agreement_number &&
+              (row.agreement_number ? r.agreement_number !== row.agreement_number : true) &&
+              (row.invoice_number ? r.invoice_number !== row.invoice_number : true) &&
+              (row.quotation_number ? r.quotation_number !== row.quotation_number : true) &&
               !String(r.invoice_number || "").includes("FDBAC") &&
               !String(r.title || "").includes("MOUNTING STRUCTURE")
           );
