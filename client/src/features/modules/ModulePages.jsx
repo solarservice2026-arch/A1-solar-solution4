@@ -179,6 +179,7 @@ function DataPage({
   const canDelete = Boolean(
     deletePermission &&
     (user?.roles?.includes("super_admin") ||
+      user?.roles?.includes("admin") ||
       user?.permissions?.includes(deletePermission)),
   );
 
@@ -282,9 +283,11 @@ function DataPage({
 
   const remove = async (row) => {
     if (!confirm(`Delete this ${title.toLowerCase().slice(0, -1)}?`)) return;
+    const targetId = row.id || row._id || row.invoice_number || row.quotation_number || row.agreement_number || row.customer_number;
     try {
-      await api(`${path}/${row.id}`, { method: "DELETE" });
+      await api(`${path}/${targetId}`, { method: "DELETE" });
       toast.success("Deleted successfully");
+      setRows((prev) => prev.filter((r) => r.id !== row.id && r._id !== row._id && r.id !== targetId && r._id !== targetId));
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
