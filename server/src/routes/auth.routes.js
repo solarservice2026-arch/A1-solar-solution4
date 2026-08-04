@@ -4,7 +4,7 @@ import bcryptjs from "bcryptjs";
 import mongoose from "mongoose";
 import { paginationSchema, staffSchema } from "../validation/index.js";
 import { asyncHandler, AppError, success } from "../lib/http.js";
-import { requireAuth, requirePermission } from "../middleware/auth.js";
+import { requireAuth, requirePermission, requireRole } from "../middleware/auth.js";
 import { testAccountMap, fullPermissions } from "../lib/provider.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "a1-solar-secret-key-2026-safe";
@@ -74,8 +74,10 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
         }
 
         const permissions = [];
-        if (userRoles.includes("super_admin") || userRoles.includes("admin")) {
+        if (userRoles.includes("super_admin")) {
           permissions.push(...fullPermissions);
+        } else if (userRoles.includes("admin")) {
+          permissions.push(...fullPermissions.filter(p => !p.startsWith("users:") && !p.startsWith("roles:")));
         } else if (userRoles.includes("installation_staff")) {
           permissions.push("dashboard:view", "projects:view", "projects:update", "quotations:view", "agreements:view", "invoices:view");
         } else if (userRoles.includes("service_technician")) {
@@ -134,6 +136,7 @@ authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
+usersRouter.use(requireRole("super_admin"));
 
 usersRouter.get("/", requirePermission("users:view"), asyncHandler(async (req, res) => {
   const query = paginationSchema.parse({ page: req.query.page, pageSize: req.query.limit, search: req.query.search });
@@ -467,6 +470,7 @@ usersRouter.get("/:id/permissions", requirePermission("users:view"), asyncHandle
 
 export const rolesRouter = Router();
 rolesRouter.use(requireAuth);
+rolesRouter.use(requireRole("super_admin"));
 
 rolesRouter.get("/", requirePermission("roles:view"), asyncHandler(async (_req, res) => {
   if (mongoose.connection.readyState === 1 && mongoose.connection.db) {

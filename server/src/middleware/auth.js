@@ -26,20 +26,46 @@ export async function requireAuth(req, _res, next) {
   return next();
 }
 
-export const requireRole = (...roles) => (req, _res, next) =>
-  req.auth?.roles.includes("super_admin") || req.auth?.roles.includes("admin") || roles.some((role) => req.auth?.roles.includes(role))
-    ? next()
-    : next(new AppError(403, "Role is not authorized", "FORBIDDEN"));
+export const requireRole = (...roles) => (req, _res, next) => {
+  const userRoles = req.user?.roles || req.auth?.roles || [];
+  const isSuperAdmin = userRoles.includes("super_admin") || userRoles.includes("superadmin");
 
-export const requirePermission = (permission) => (req, _res, next) =>
-  req.auth?.roles.includes("super_admin") || req.auth?.roles.includes("admin") || req.auth?.permissions.includes(permission)
-    ? next()
-    : next(new AppError(403, "Permission denied", "FORBIDDEN"));
+  if (isSuperAdmin || roles.some((role) => userRoles.includes(role))) {
+    return next();
+  }
+  return next(new AppError(403, "Role is not authorized", "FORBIDDEN"));
+};
 
-export const requireAnyPermission = (...permissions) => (req, _res, next) =>
-  req.auth?.roles.includes("super_admin") || req.auth?.roles.includes("admin") || permissions.some((key) => req.auth?.permissions.includes(key))
-    ? next()
-    : next(new AppError(403, "Permission denied", "FORBIDDEN"));
+export const requirePermission = (permission) => (req, _res, next) => {
+  const userRoles = req.user?.roles || req.auth?.roles || [];
+  const isSuperAdmin = userRoles.includes("super_admin") || userRoles.includes("superadmin");
+
+  if (isSuperAdmin) return next();
+
+  // ONLY Super Admin can access staff/users and roles/permissions
+  if (permission.startsWith("users:") || permission.startsWith("roles:")) {
+    return next(new AppError(403, "Forbidden: Only Super Admin has access to staff and roles management", "FORBIDDEN"));
+  }
+
+  const userPerms = req.user?.permissions || req.auth?.permissions || [];
+  if (userRoles.includes("admin") || userPerms.includes(permission)) {
+    return next();
+  }
+  return next(new AppError(403, "Permission denied", "FORBIDDEN"));
+};
+
+export const requireAnyPermission = (...permissions) => (req, _res, next) => {
+  const userRoles = req.user?.roles || req.auth?.roles || [];
+  const isSuperAdmin = userRoles.includes("super_admin") || userRoles.includes("superadmin");
+
+  if (isSuperAdmin) return next();
+
+  const userPerms = req.user?.permissions || req.auth?.permissions || [];
+  if (userRoles.includes("admin") || permissions.some((key) => userPerms.includes(key))) {
+    return next();
+  }
+  return next(new AppError(403, "Permission denied", "FORBIDDEN"));
+};
 
 /**
  * Reusable Middleware: authorizeOwner(Model)
