@@ -18,7 +18,12 @@ export function ProtectedRoute({ permission, requireSuperAdmin }) {
 
   const isSuperAdmin = user.roles?.includes("super_admin") || user.roles?.includes("superadmin");
 
-  if ((requireSuperAdmin || permission === "users:view" || permission === "roles:view") && !isSuperAdmin) {
+  // Roles & permissions page disabled on frontend UI for all users
+  if (permission === "roles:view" || location.pathname.startsWith("/app/roles")) {
+    return <Navigate to="/forbidden" replace />;
+  }
+
+  if ((requireSuperAdmin || permission === "users:view") && !isSuperAdmin) {
     return <Navigate to="/forbidden" replace />;
   }
 

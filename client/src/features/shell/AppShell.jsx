@@ -61,12 +61,6 @@ const items = [
   },
   { to: "/app/staff", label: "Staff", icon: Users, permission: "users:view" },
   {
-    to: "/app/roles",
-    label: "Roles & permissions",
-    icon: Settings,
-    permission: "roles:view",
-  },
-  {
     to: "/app/profile",
     label: "Profile & password",
     icon: UserCircle,
@@ -90,8 +84,13 @@ export function AppShell() {
     if (!user) return false;
     const isSuperAdmin = user.roles?.includes("super_admin") || user.roles?.includes("superadmin");
 
-    // ONLY Super Admin can access or view Staff and Roles & permissions
-    if (to === "/app/staff" || to === "/app/roles" || permission === "users:view" || permission === "roles:view") {
+    // Roles & permissions button removed from frontend UI completely
+    if (to === "/app/roles" || permission === "roles:view") {
+      return false;
+    }
+
+    // ONLY Super Admin can access or view Staff
+    if (to === "/app/staff" || permission === "users:view") {
       return isSuperAdmin;
     }
 
