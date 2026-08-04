@@ -565,8 +565,18 @@ quotationsRouter.delete(
   authorizeOwner("quotations"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    await mongo.collection("quotations").updateOne({ _id: req.doc._id }, { $set: { status: "Archived", updatedBy: req.user._id } });
-    return success(res, "Quotation deleted", { id: req.doc._id.toString() });
+    const { ObjectId } = await import("mongodb");
+    const idParam = String(req.params.id);
+    let filter = { _id: req.doc._id };
+    try {
+      if (ObjectId.isValid(idParam) && idParam.length === 24) {
+        filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: req.doc._id }] };
+      } else {
+        filter = { $or: [{ quotation_number: idParam }, { _id: req.doc._id }] };
+      }
+    } catch {}
+    await mongo.collection("quotations").deleteOne(filter);
+    return success(res, "Quotation deleted permanently", { id: req.doc._id.toString() });
   }),
 );
 
@@ -733,8 +743,18 @@ invoicesRouter.delete(
   authorizeOwner("invoices"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    await mongo.collection("invoices").deleteOne({ _id: req.doc._id });
-    return success(res, "Invoice deleted", { id: req.doc._id.toString() });
+    const { ObjectId } = await import("mongodb");
+    const idParam = String(req.params.id);
+    let filter = { _id: req.doc._id };
+    try {
+      if (ObjectId.isValid(idParam) && idParam.length === 24) {
+        filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: req.doc._id }] };
+      } else {
+        filter = { $or: [{ invoice_number: idParam }, { _id: req.doc._id }] };
+      }
+    } catch {}
+    await mongo.collection("invoices").deleteOne(filter);
+    return success(res, "Invoice deleted permanently", { id: req.doc._id.toString() });
   }),
 );
 
@@ -923,8 +943,18 @@ agreementsRouter.delete(
   authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    await mongo.collection("agreements").deleteOne({ _id: req.doc._id });
-    return success(res, "Agreement deleted", { id: req.doc._id.toString() });
+    const { ObjectId } = await import("mongodb");
+    const idParam = String(req.params.id);
+    let filter = { _id: req.doc._id };
+    try {
+      if (ObjectId.isValid(idParam) && idParam.length === 24) {
+        filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: req.doc._id }] };
+      } else {
+        filter = { $or: [{ agreement_number: idParam }, { _id: req.doc._id }] };
+      }
+    } catch {}
+    await mongo.collection("agreements").deleteOne(filter);
+    return success(res, "Agreement deleted permanently", { id: req.doc._id.toString() });
   }),
 );
 
