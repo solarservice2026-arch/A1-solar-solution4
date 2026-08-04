@@ -88,7 +88,14 @@ export function AppShell() {
 
   const allowed = (permission, to) => {
     if (!user) return false;
-    if (user.roles?.includes("super_admin") || user.roles?.includes("admin")) {
+    const isSuperAdmin = user.roles?.includes("super_admin") || user.roles?.includes("superadmin");
+
+    // ONLY Super Admin can access or view Staff and Roles & permissions
+    if (to === "/app/staff" || to === "/app/roles" || permission === "users:view" || permission === "roles:view") {
+      return isSuperAdmin;
+    }
+
+    if (isSuperAdmin || user.roles?.includes("admin")) {
       return true;
     }
     if (user.roles?.includes("installation_staff")) {

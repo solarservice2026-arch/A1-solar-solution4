@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider.jsx";
 
-export function ProtectedRoute({ permission }) {
+export function ProtectedRoute({ permission, requireSuperAdmin }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -15,9 +15,16 @@ export function ProtectedRoute({ permission }) {
 
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (!user.active) return <Navigate to="/forbidden" replace />;
+
+  const isSuperAdmin = user.roles?.includes("super_admin") || user.roles?.includes("superadmin");
+
+  if ((requireSuperAdmin || permission === "users:view" || permission === "roles:view") && !isSuperAdmin) {
+    return <Navigate to="/forbidden" replace />;
+  }
+
   if (
     permission &&
-    !user.roles?.includes("super_admin") &&
+    !isSuperAdmin &&
     !user.roles?.includes("admin") &&
     !user.permissions?.includes(permission)
   )
