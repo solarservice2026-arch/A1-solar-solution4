@@ -23,7 +23,9 @@ import {
   projectsRouter,
   quotationsRouter,
   ticketsRouter,
+  nextNumberRouter,
 } from "./routes/business.routes.js";
+import { companySettingsRouter } from "./routes/companySettings.routes.js";
 import mongoose from "mongoose";
 
 export const app = express();
@@ -122,6 +124,8 @@ app.use("/api/v1/estimates", estimatesRouter);
 app.use("/api/v1/attachments", attachmentsRouter);
 app.use("/api/v1/notes", notesRouter);
 app.use("/api/v1/profile", profileRouter);
+app.use("/api/v1/company-settings", companySettingsRouter);
+app.use("/api/v1/next-number", nextNumberRouter);
 
 const ok = (res, message, data, meta = {}) =>
   res.json({ success: true, message, data, meta });
@@ -145,13 +149,22 @@ app.get("/api/v1/health", async (_req, res) => {
   });
 });
 
-app.get("/api/v1/public/settings", (_req, res) =>
-  ok(res, "Public settings", {
-    companyName: process.env.COMPANY_NAME ?? "A1 Solar Solution",
+app.get("/api/v1/public/settings", async (_req, res) => {
+  let companyName = process.env.COMPANY_NAME ?? "Ayush Infotech";
+  try {
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      const settings = await mongoose.connection.db
+        .collection("company_settings")
+        .findOne({ _id: "primary" });
+      if (settings?.company_name) companyName = settings.company_name;
+    }
+  } catch {}
+  return ok(res, "Public settings", {
+    companyName,
     currency: "INR",
     locale: "en-IN",
-  }),
-);
+  });
+});
 
 app.post("/api/v1/public/enquiries", async (req, res, next) => {
   try {
