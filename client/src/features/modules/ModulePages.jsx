@@ -221,7 +221,6 @@ function DataPage({
 
     if (title === "Quotations") {
       const subtotal = qItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
-      const tax = Math.round(subtotal * 0.18);
       const selCust = availableCustomers.find(c => c.name === qCustName);
       body = {
         quotationDate: qDate,
@@ -234,17 +233,16 @@ function DataPage({
         consumerAddress: qAddress,
         validUntil: qValid,
         items: qItems,
-        tax,
+        tax: 0,
         subtotal,
         discount: 0,
-        grandTotal: subtotal + tax,
+        grandTotal: subtotal,
         status: "Draft",
         customerSignatureUrl: qCustomerSignature,
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Invoices") {
       const subtotal = iItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
-      const tax = Math.round(subtotal * 0.18);
       const selCust = availableCustomers.find(c => c.name === iCustName);
       body = {
         title: iTitle,
@@ -258,8 +256,9 @@ function DataPage({
         paidAmount: iPaidAmount,
         status: iStatus,
         items: iItems,
-        tax,
-        total: subtotal + tax,
+        tax: 0,
+        subtotal,
+        total: subtotal,
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Agreements") {
@@ -528,14 +527,16 @@ function DataPage({
 
               {/* Live Total Summary */}
               {(() => {
-                const sub = qItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
-                const tax = Math.round(sub * 0.18);
-                const grand = sub + tax;
+                const total = qItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
                 return (
                   <div className="live-total-box">
-                    <div className="live-total-row"><span>Subtotal</span><span>₹{sub.toLocaleString("en-IN")}</span></div>
-                    <div className="live-total-row"><span>GST 18%</span><span>₹{tax.toLocaleString("en-IN")}</span></div>
-                    <div className="live-total-row grand"><span>Grand Total</span><span>₹{grand.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row grand" style={{ flexDirection: "column", alignItems: "stretch", gap: "2px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Total Amount</span>
+                        <span>₹{total.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div style={{ textAlign: "right", fontSize: "11px", fontWeight: "normal", opacity: 0.85 }}>(Including GST)</div>
+                    </div>
                   </div>
                 );
               })()}
@@ -678,16 +679,18 @@ function DataPage({
 
               {/* Live Total Summary */}
               {(() => {
-                const sub = iItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
-                const tax = Math.round(sub * 0.18);
-                const grand = sub + tax;
+                const total = iItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
                 const paid = Number(iPaidAmount) || 0;
-                const balance = Math.max(0, grand - paid);
+                const balance = Math.max(0, total - paid);
                 return (
                   <div className="live-total-box">
-                    <div className="live-total-row"><span>Subtotal</span><span>₹{sub.toLocaleString("en-IN")}</span></div>
-                    <div className="live-total-row"><span>GST 18%</span><span>₹{tax.toLocaleString("en-IN")}</span></div>
-                    <div className="live-total-row grand"><span>Grand Total</span><span>₹{grand.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row grand" style={{ flexDirection: "column", alignItems: "stretch", gap: "2px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Total Amount</span>
+                        <span>₹{total.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div style={{ textAlign: "right", fontSize: "11px", fontWeight: "normal", opacity: 0.85 }}>(Including GST)</div>
+                    </div>
                     <div className="live-total-row"><span>Paid Amount</span><span>₹{paid.toLocaleString("en-IN")}</span></div>
                     <div className="live-total-row balance"><span>Balance Due</span><span>₹{balance.toLocaleString("en-IN")}</span></div>
                   </div>
