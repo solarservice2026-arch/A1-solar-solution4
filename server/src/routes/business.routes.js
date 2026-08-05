@@ -670,11 +670,27 @@ invoicesRouter.get(
     const items = await mongo.collection("invoices").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
-    const formatted = items.map(item => {
+    const formatted = items.map((item, idx) => {
       const c = customerMap.get(String(item.customer_id));
+      let invNum = item.invoice_number;
+
+      // Auto-migrate legacy format (like A1/2026/4) to standard INV-A1S-2026-0101 format
+      if (!invNum || invNum.includes("/") || !invNum.startsWith("INV-")) {
+        const numMatch = String(invNum || "").match(/\d+$/);
+        const seqVal = numMatch ? parseInt(numMatch[0], 10) : (items.length - idx);
+        const padSeq = String(seqVal > 0 ? seqVal : 1).padStart(4, "0");
+        invNum = `INV-A1S-2026-${padSeq}`;
+        
+        void mongo.collection("invoices").updateOne(
+          { _id: item._id },
+          { $set: { invoice_number: invNum } }
+        );
+      }
+
       return {
         id: item._id.toString(),
         ...item,
+        invoice_number: invNum,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
         } : {
