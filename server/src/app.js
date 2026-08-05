@@ -1,4 +1,3 @@
-import "../../scripts/restore_image_node.mjs";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import compression from "compression";
