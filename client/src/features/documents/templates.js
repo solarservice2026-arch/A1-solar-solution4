@@ -162,9 +162,6 @@ export function quotationDocument(row) {
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
     <div class="meta">Date<b>${esc(row.quotation_date)}</b></div>
     <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
-  </div>`;c-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
-    <div class="meta">Date<b>${esc(row.quotation_date)}</b></div>
-    <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
   </div>
   <section class="party">
     <div><b>A1 SOLAR SOLUTION</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>VISHNUPUR KAIJU PATEHPUR VAISHALI BIHA</div>
