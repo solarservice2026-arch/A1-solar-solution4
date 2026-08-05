@@ -51,9 +51,11 @@ const sharedCss = () => `
 body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8}
 .sheet{width:210mm;min-height:297mm;margin:auto;background:#fff}
 /* ─── Hero Banner ─── */
-.hero-container{position:relative;width:100%;height:68mm}
+.hero-container{position:relative;width:100%;height:68mm;overflow:hidden}
 .hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px}
+/* Clean overlay to ensure no top-right logo is shown on banner */
+.hero-container::after{content:"";position:absolute;top:0;right:0;width:25%;height:45%;background:linear-gradient(135deg, #74b9eb 0%, #8dc5fc 100%);print-color-adjust:exact;-webkit-print-color-adjust:exact;pointer-events:none}
+.hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -61,7 +63,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .mini-brand{font-weight:900;color:#163d52;font-size:13px;line-height:1.3;text-transform:uppercase}
 .logo-brand{display:block;height:18mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Agreement logo header ─── */
-.agr-logo-header{display:flex;align-items:center;justify-content:center;padding:4mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:3mm}
+.agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:4mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:3mm}
 .agr-logo-header img{height:16mm;width:auto;object-fit:contain;background:transparent;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .doc-title{text-align:center}
 .doc-title h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.06em;color:#1a3a6b}
@@ -126,7 +128,8 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 // ─── QUOTATION ────────────────────────────────────────────────────────────────
 export function quotationDocument(row) {
   const customer = row.customers ?? {};
-  const items = Array.isArray(row.quotation_items) ? row.quotation_items : [];
+  const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
+  const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const header = `${origin}/document-assets/solar-document-header.png`;
   const signature = `${origin}/document-assets/vendor-authorized-signature.png`;
@@ -138,7 +141,7 @@ export function quotationDocument(row) {
       <td>${i + 1}</td>
       <td><b>${esc(product.name ?? item.product_name ?? item.description)}</b></td>
       <td>${esc(item.description)}</td>
-      <td>${esc(product.brand ?? product.model ?? item.brand ?? item.model)}</td>
+      <td>${esc(item.brand ?? product.brand ?? product.model ?? item.brand_model)}</td>
       <td style="text-align:right">${esc(item.quantity)}</td>
       <td style="text-align:right">${inr(item.unit_price)}</td>
       <td style="text-align:right">${inr(parseQty(item.quantity) * Number(item.unit_price || 0))}</td>
@@ -152,11 +155,14 @@ export function quotationDocument(row) {
 <main class="sheet">
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
-    <div class="hero-text">LivFast</div>
+    <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
   <div class="doc-header cols-4">
     <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
+    <div class="meta">Date<b>${esc(row.quotation_date)}</b></div>
+    <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
+  </div>`;c-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
     <div class="meta">Date<b>${esc(row.quotation_date)}</b></div>
     <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
   </div>
@@ -217,7 +223,8 @@ export function quotationDocument(row) {
 // ─── INVOICE ─────────────────────────────────────────────────────────────────
 export function invoiceDocument(row) {
   const customer = row.customers ?? {};
-  const items = Array.isArray(row.invoice_items) ? row.invoice_items : [];
+  const items = Array.isArray(row.invoice_items) ? row.invoice_items : (row.items || []);
+  const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const itemRows = items.map((item, i) => {
     const product = item.products ?? {};
     return `<tr>
@@ -242,7 +249,7 @@ export function invoiceDocument(row) {
 <main class="sheet">
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
-    <div class="hero-text">LivFast</div>
+    <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
   <div class="doc-header cols-4">
     <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">

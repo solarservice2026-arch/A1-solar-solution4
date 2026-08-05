@@ -535,12 +535,13 @@ quotationsRouter.post(
     const tax = Number(b.tax || 0);
     const grandTotal = subtotal > 0 ? subtotal - discount + tax : Number(b.grandTotal || 0);
 
+    const firstBrand = normalized[0]?.brand || b.brand || b.brandName || null;
     const qDoc = {
       ownerId: userId,
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      quotation_number: await getNextNumber(mongo, "QUO"),
+      quotation_number: await getNextNumber(mongo, "QOT", firstBrand),
       customer_id: customerId,
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
@@ -723,12 +724,13 @@ invoicesRouter.post(
     const tax = Number(b.tax || 0);
     const total = subtotal > 0 ? subtotal + tax : Number(b.total || 0);
 
+    const firstBrand = normalized[0]?.brand || b.brand || b.brandName || null;
     const doc = {
       ownerId: userId,
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      invoice_number: await getNextNumber(mongo, "INV"),
+      invoice_number: await getNextNumber(mongo, "INV", firstBrand),
       customer_id: b.customerId || null,
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
@@ -932,12 +934,13 @@ agreementsRouter.post(
 
     const today = new Date();
 
+    const firstBrand = b.brand || b.brandName || null;
     const doc = {
       ownerId: userId,
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
-      agreement_number: await getNextNumber(mongo, "AGR"),
+      agreement_number: await getNextNumber(mongo, "AGR", firstBrand),
       customer_id: b.customerId || null,
       customer_name: customerName,
       customer_email: customerEmail,
@@ -1325,7 +1328,7 @@ profileRouter.post(
 export const nextNumberRouter = Router();
 nextNumberRouter.use(requireAuth);
 
-const VALID_TYPES = new Set(["QUO", "INV", "AGR", "CON", "EST", "CUS", "PRJ", "TKT", "SKU"]);
+const VALID_TYPES = new Set(["QOT", "QUO", "INV", "AGR", "CON", "EST", "CUS", "PRJ", "TKT", "SKU"]);
 
 nextNumberRouter.get(
   "/:type",
@@ -1336,7 +1339,8 @@ nextNumberRouter.get(
     }
 
     const mongo = await getMongoDb();
-    const nextNumber = await peekNextNumber(mongo, type);
+    const brand = req.query.brand || req.query.brandName || null;
+    const nextNumber = await peekNextNumber(mongo, type, brand);
     return success(res, "Next number preview", { type, nextNumber });
   }),
 );

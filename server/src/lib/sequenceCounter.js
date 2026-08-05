@@ -81,28 +81,78 @@ export async function getCompanyPrefix(mongo) {
 }
 
 /**
- * Atomically generates the next sequential number for a given document type.
- *
- * Uses MongoDB findOneAndUpdate with $inc and upsert for atomicity.
- * The counter starts at seq=100 so the first $inc yields 101 → "0101".
- * Never reuses deleted numbers, and guarantees uniqueness across concurrent requests.
- *
- * @param {object} mongo - The MongoDB database instance (mongoose.connection.db)
- * @param {string} type  - Document type code: "INV", "QUO", "AGR", "CUS", "PRJ", "TKT", "CON", "EST", "SKU"
- * @returns {string} Formatted number like "AI-INV-0101"
+ * Smartly segregates brand/company name into a 2-letter uppercase prefix.
+ * Examples:
+ *   "LivFast" / "Liv Fast"  → "LF"
+ *   "Anchor" / "anchor"    → "AN"
+ *   "Tata Power"           → "TP"
+ *   "A1 Select"            → "AS"
+ *   "Havells"              → "HA"
+ *   "" / null              → defaultPrefix (e.g. "AI")
  */
-export async function getNextNumber(mongo, type) {
-  const prefix = await getCompanyPrefix(mongo);
+export function getBrandPrefix(brandName, defaultPrefix = "AI") {
+  if (!brandName || typeof brandName !== "string") return defaultPrefix;
+  const cleaned = brandName.trim();
+  if (!cleaned) return defaultPrefix;
+
+  // Split by whitespace or non-alphanumeric characters
+  const words = cleaned.split(/[\s_\-]+/).filter((w) => w.length > 0);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+
+  // Single word: check for CamelCase / PascalCase like "LivFast" -> 'L', 'F'
+  const capitals = cleaned.match(/[A-Z]/g);
+  if (capitals && capitals.length >= 2) {
+    return (capitals[0] + capitals[1]).toUpperCase();
+  }
+
+  // Otherwise, take first two letters
+  const letters = cleaned.replace(/[^a-zA-Z0-9]/g, "");
+  if (letters.length >= 2) {
+    return letters.slice(0, 2).toUpperCase();
+  }
+  if (letters.length === 1) {
+    return (letters[0] + "X").toUpperCase();
+  }
+  return defaultPrefix;
+}
+
+/**
+ * Atomically generates the next sequential number for a given document type and optional brand.
+ *
+ * Standard Format: [BRAND_PREFIX]-[DOC_TYPE]-[YEAR]-[0101]
+ * Examples:
+ *   Quotation: LF-QOT-2026-0101
+ *   Invoice:   LF-INV-2026-0101
+ *   Agreement: LF-AGR-2026-0101
+ *   Customer:  AI-CUS-2026-0101
+ *   Project:   AI-PRJ-2026-0101
+ *   Ticket:    AI-TKT-2026-0101
+ *
+ * @param {object} mongo     - The MongoDB database instance (mongoose.connection.db)
+ * @param {string} type      - Document type code: "QOT", "QUO", "INV", "AGR", "CUS", "PRJ", "TKT", "CON", "EST", "SKU"
+ * @param {string} brandName - Optional brand or product name (e.g. "LivFast")
+ * @returns {string} Formatted number like "LF-QOT-2026-0101"
+ */
+export async function getNextNumber(mongo, type, brandName = null) {
+  const companyPrefix = await getCompanyPrefix(mongo);
+  const prefix = brandName ? getBrandPrefix(brandName, companyPrefix) : companyPrefix;
+
+  let normalizedType = String(type).toUpperCase();
+  if (normalizedType === "QUO") normalizedType = "QOT";
+
+  const year = new Date().getFullYear();
 
   // Ensure counter document exists starting at seq: 100 before $inc
   await mongo.collection("counters").updateOne(
-    { _id: type },
-    { $setOnInsert: { _id: type, seq: 100 } },
+    { _id: normalizedType },
+    { $setOnInsert: { _id: normalizedType, seq: 100 } },
     { upsert: true }
   );
 
   const result = await mongo.collection("counters").findOneAndUpdate(
-    { _id: type },
+    { _id: normalizedType },
     { $inc: { seq: 1 } },
     { returnDocument: "after" }
   );
@@ -112,7 +162,7 @@ export async function getNextNumber(mongo, type) {
 
   if (!seq || seq < 101) {
     const corrected = await mongo.collection("counters").findOneAndUpdate(
-      { _id: type, seq: { $lt: 101 } },
+      { _id: normalizedType, seq: { $lt: 101 } },
       { $set: { seq: 101 } },
       { returnDocument: "after" }
     );
@@ -120,19 +170,25 @@ export async function getNextNumber(mongo, type) {
     seq = correctedDoc?.seq ?? 101;
   }
 
-  return `${prefix}-${type}-${padSequence(seq)}`;
+  return `${prefix}-${normalizedType}-${year}-${padSequence(seq)}`;
 }
 
 /**
  * Previews the next number that would be generated, WITHOUT consuming it.
  * This is used by the frontend to show the expected number in forms.
  */
-export async function peekNextNumber(mongo, type) {
-  const prefix = await getCompanyPrefix(mongo);
+export async function peekNextNumber(mongo, type, brandName = null) {
+  const companyPrefix = await getCompanyPrefix(mongo);
+  const prefix = brandName ? getBrandPrefix(brandName, companyPrefix) : companyPrefix;
 
-  const counter = await mongo.collection("counters").findOne({ _id: type });
+  let normalizedType = String(type).toUpperCase();
+  if (normalizedType === "QUO") normalizedType = "QOT";
+
+  const year = new Date().getFullYear();
+
+  const counter = await mongo.collection("counters").findOne({ _id: normalizedType });
   const currentSeq = counter?.seq ?? 100;
   const nextSeq = currentSeq < 100 ? 101 : currentSeq + 1;
 
-  return `${prefix}-${type}-${padSequence(nextSeq)}`;
+  return `${prefix}-${normalizedType}-${year}-${padSequence(nextSeq)}`;
 }
