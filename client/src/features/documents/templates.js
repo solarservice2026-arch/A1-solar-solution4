@@ -53,8 +53,6 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 /* ─── Hero Banner ─── */
 .hero-container{position:relative;width:100%;height:68mm;overflow:hidden}
 .hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-/* Clean overlay to ensure no top-right logo is shown on banner */
-.hero-container::after{content:"";position:absolute;top:0;right:0;width:25%;height:45%;background:linear-gradient(135deg, #74b9eb 0%, #8dc5fc 100%);print-color-adjust:exact;-webkit-print-color-adjust:exact;pointer-events:none}
 .hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
