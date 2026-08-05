@@ -8,6 +8,7 @@ import {
   requireAnyPermission,
   requireAuth,
   requirePermission,
+  requireRole,
   authorizeOwner,
 } from "../middleware/auth.js";
 import { testAccountMap } from "../lib/provider.js";
