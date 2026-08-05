@@ -180,7 +180,7 @@ export function quotationDocument(row) {
     <div class="total-box">
       <div class="total-line"><span>Grand Total :</span><span>${inr(grandTotal)}/-</span></div>
       <div class="words-line"><span>In Words :</span><span>${esc(amountWords(grandTotal))}</span></div>
-      <div class="gst">(Subtotal: ${inr(row.subtotal)} | Discount: ${inr(row.discount)} | Tax: ${inr(row.tax)}) (Including GST)</div>
+      <div class="gst">${row.tax ? `(Subtotal: ${inr(row.subtotal)} | Tax: ${inr(row.tax)}) ` : ""}(Including GST)</div>
     </div>
   </section>
 
