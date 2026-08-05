@@ -111,26 +111,7 @@ export async function connectMongoDB() {
             }
             console.log("[MongoDB] Seeding completed successfully!");
           }
-
-          // ╔════════════════════════════════════════════════════════╗
-          // ║  ONE-TIME PURGE: Delete ALL business data from DB     ║
-          // ║  Remove this block after first successful startup     ║
-          // ╚════════════════════════════════════════════════════════╝
-          const collectionsToWipe = [
-            "quotations", "invoices", "agreements",
-            "contracts", "estimates", "attachments", "notes",
-            "customers", "products", "projects", "tickets",
-          ];
-          for (const col of collectionsToWipe) {
-            try {
-              const result = await db.collection(col).deleteMany({});
-              if (result.deletedCount > 0) {
-                console.log(`[MongoDB] Purged ${result.deletedCount} documents from '${col}'`);
-              }
-            } catch {}
           }
-          console.log("[MongoDB] All business data purged successfully.");
-        }
       } catch (err) {
         console.error("[MongoDB] Seeding error:", err.message);
       }
