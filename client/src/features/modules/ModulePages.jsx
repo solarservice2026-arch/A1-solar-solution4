@@ -89,13 +89,15 @@ function DataPage({
 
           // Fetch next auto-generated number
           if (title === "Quotations") {
-            const numRes = await api("/next-number/QUO");
+            const firstBrand = qItems[0]?.brand || "LivFast";
+            const numRes = await api(`/next-number/QOT?brand=${encodeURIComponent(firstBrand)}`);
             if (numRes?.nextNumber) setQNumber(numRes.nextNumber);
           } else if (title === "Invoices") {
-            const numRes = await api("/next-number/INV");
+            const firstBrand = iItems[0]?.brand || "LivFast";
+            const numRes = await api(`/next-number/INV?brand=${encodeURIComponent(firstBrand)}`);
             if (numRes?.nextNumber) setINumber(numRes.nextNumber);
           } else if (title === "Agreements") {
-            const numRes = await api("/next-number/AGR");
+            const numRes = await api(`/next-number/AGR?brand=LivFast`);
             if (numRes?.nextNumber) setANumber(numRes.nextNumber);
           }
         } catch (e) {
@@ -1192,6 +1194,7 @@ export function SettingsPage() {
   };
 
   const typeLabels = {
+    QOT: "Quotation",
     QUO: "Quotation",
     INV: "Invoice",
     AGR: "Agreement",
