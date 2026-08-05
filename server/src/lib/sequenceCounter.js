@@ -81,78 +81,75 @@ export async function getCompanyPrefix(mongo) {
 }
 
 /**
- * Smartly segregates brand/company name into a 2-letter uppercase prefix.
+ * Smartly segregates brand/company name into a 2-or-3 letter uppercase prefix.
  * Examples:
- *   "LivFast" / "Liv Fast"  → "LF"
- *   "Anchor" / "anchor"    → "AN"
- *   "Tata Power"           → "TP"
- *   "A1 Select"            → "AS"
- *   "Havells"              → "HA"
- *   "" / null              → defaultPrefix (e.g. "AI")
+ *   "A1 Solution" / "A1 Solar Solution" → "A1S"
+ *   "LivFast" / "Liv Fast"              → "LF"
+ *   "Anchor" / "anchor"                → "AN"
+ *   "Tata Power"                       → "TP"
+ *   "" / null                          → "A1S"
  */
-export function getBrandPrefix(brandName, defaultPrefix = "AI") {
+export function getBrandPrefix(brandName, defaultPrefix = "A1S") {
   if (!brandName || typeof brandName !== "string") return defaultPrefix;
   const cleaned = brandName.trim();
   if (!cleaned) return defaultPrefix;
 
-  // Split by whitespace or non-alphanumeric characters
   const words = cleaned.split(/[\s_\-]+/).filter((w) => w.length > 0);
   if (words.length >= 2) {
+    if (words[0].length === 2 && /\d/.test(words[0])) {
+      // e.g. "A1 Solution" or "A1 Solar Solution" -> "A1" + "S" = "A1S"
+      return (words[0] + words[1][0]).toUpperCase();
+    }
     return (words[0][0] + words[1][0]).toUpperCase();
   }
 
-  // Single word: check for CamelCase / PascalCase like "LivFast" -> 'L', 'F'
   const capitals = cleaned.match(/[A-Z]/g);
   if (capitals && capitals.length >= 2) {
     return (capitals[0] + capitals[1]).toUpperCase();
   }
 
-  // Otherwise, take first two letters
   const letters = cleaned.replace(/[^a-zA-Z0-9]/g, "");
   if (letters.length >= 2) {
-    return letters.slice(0, 2).toUpperCase();
-  }
-  if (letters.length === 1) {
-    return (letters[0] + "X").toUpperCase();
+    return letters.slice(0, 3).toUpperCase();
   }
   return defaultPrefix;
 }
 
 /**
  * Atomically generates the next sequential number for a given document type and optional brand.
+ * 
+ * Uses year-scoped counter keys in MongoDB (_id: `${normalizedType}_${year}`) so sequence
+ * automatically resets to 0101 every new year!
  *
- * Standard Format: [BRAND_PREFIX]-[DOC_TYPE]-[YEAR]-[0101]
- * Examples:
- *   Quotation: LF-QOT-2026-0101
- *   Invoice:   LF-INV-2026-0101
- *   Agreement: LF-AGR-2026-0101
- *   Customer:  AI-CUS-2026-0101
- *   Project:   AI-PRJ-2026-0101
- *   Ticket:    AI-TKT-2026-0101
+ * Standard Formats:
+ *   Invoice:   INV-A1S-2026-0101
+ *   Quotation: QOT-LF-2026-0101
+ *   Agreement: AGR-A1S-2026-0101
  *
  * @param {object} mongo     - The MongoDB database instance (mongoose.connection.db)
  * @param {string} type      - Document type code: "QOT", "QUO", "INV", "AGR", "CUS", "PRJ", "TKT", "CON", "EST", "SKU"
- * @param {string} brandName - Optional brand or product name (e.g. "LivFast")
- * @returns {string} Formatted number like "LF-QOT-2026-0101"
+ * @param {string} brandName - Optional brand or product name (e.g. "A1 Solution", "LivFast")
+ * @returns {string} Formatted number like "INV-A1S-2026-0101"
  */
 export async function getNextNumber(mongo, type, brandName = null) {
   const companyPrefix = await getCompanyPrefix(mongo);
-  const prefix = brandName ? getBrandPrefix(brandName, companyPrefix) : companyPrefix;
+  const brandPref = brandName ? getBrandPrefix(brandName, "A1S") : "A1S";
 
   let normalizedType = String(type).toUpperCase();
   if (normalizedType === "QUO") normalizedType = "QOT";
 
   const year = new Date().getFullYear();
+  const counterKey = `${normalizedType}_${year}`;
 
   // Ensure counter document exists starting at seq: 100 before $inc
   await mongo.collection("counters").updateOne(
-    { _id: normalizedType },
-    { $setOnInsert: { _id: normalizedType, seq: 100 } },
+    { _id: counterKey },
+    { $setOnInsert: { _id: counterKey, seq: 100 } },
     { upsert: true }
   );
 
   const result = await mongo.collection("counters").findOneAndUpdate(
-    { _id: normalizedType },
+    { _id: counterKey },
     { $inc: { seq: 1 } },
     { returnDocument: "after" }
   );
@@ -162,7 +159,7 @@ export async function getNextNumber(mongo, type, brandName = null) {
 
   if (!seq || seq < 101) {
     const corrected = await mongo.collection("counters").findOneAndUpdate(
-      { _id: normalizedType, seq: { $lt: 101 } },
+      { _id: counterKey, seq: { $lt: 101 } },
       { $set: { seq: 101 } },
       { returnDocument: "after" }
     );
@@ -170,7 +167,17 @@ export async function getNextNumber(mongo, type, brandName = null) {
     seq = correctedDoc?.seq ?? 101;
   }
 
-  return `${prefix}-${normalizedType}-${year}-${padSequence(seq)}`;
+  const paddedSeq = padSequence(seq);
+
+  if (normalizedType === "INV") {
+    return `INV-${brandPref}-${year}-${paddedSeq}`;
+  } else if (normalizedType === "QOT") {
+    return `QOT-${brandPref}-${year}-${paddedSeq}`;
+  } else if (normalizedType === "AGR") {
+    return `AGR-${brandPref}-${year}-${paddedSeq}`;
+  }
+
+  return `${brandPref}-${normalizedType}-${year}-${paddedSeq}`;
 }
 
 /**
@@ -179,16 +186,26 @@ export async function getNextNumber(mongo, type, brandName = null) {
  */
 export async function peekNextNumber(mongo, type, brandName = null) {
   const companyPrefix = await getCompanyPrefix(mongo);
-  const prefix = brandName ? getBrandPrefix(brandName, companyPrefix) : companyPrefix;
+  const brandPref = brandName ? getBrandPrefix(brandName, "A1S") : "A1S";
 
   let normalizedType = String(type).toUpperCase();
   if (normalizedType === "QUO") normalizedType = "QOT";
 
   const year = new Date().getFullYear();
+  const counterKey = `${normalizedType}_${year}`;
 
-  const counter = await mongo.collection("counters").findOne({ _id: normalizedType });
+  const counter = await mongo.collection("counters").findOne({ _id: counterKey });
   const currentSeq = counter?.seq ?? 100;
   const nextSeq = currentSeq < 100 ? 101 : currentSeq + 1;
+  const paddedSeq = padSequence(nextSeq);
 
-  return `${prefix}-${normalizedType}-${year}-${padSequence(nextSeq)}`;
+  if (normalizedType === "INV") {
+    return `INV-${brandPref}-${year}-${paddedSeq}`;
+  } else if (normalizedType === "QOT") {
+    return `QOT-${brandPref}-${year}-${paddedSeq}`;
+  } else if (normalizedType === "AGR") {
+    return `AGR-${brandPref}-${year}-${paddedSeq}`;
+  }
+
+  return `${brandPref}-${normalizedType}-${year}-${paddedSeq}`;
 }
