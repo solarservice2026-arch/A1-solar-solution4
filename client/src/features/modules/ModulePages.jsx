@@ -93,7 +93,7 @@ function DataPage({
             const numRes = await api(`/next-number/QOT?brand=${encodeURIComponent(firstBrand)}`);
             if (numRes?.nextNumber) setQNumber(numRes.nextNumber);
           } else if (title === "Invoices") {
-            const firstBrand = iItems[0]?.brand || "LivFast";
+            const firstBrand = iItems[0]?.brand || "A1 Solution";
             const numRes = await api(`/next-number/INV?brand=${encodeURIComponent(firstBrand)}`);
             if (numRes?.nextNumber) setINumber(numRes.nextNumber);
           } else if (title === "Agreements") {
