@@ -165,7 +165,7 @@ function DataPage({
   const [aCustMobile, setACustMobile] = useState("9955964771");
   const [aCustEmail, setACustEmail] = useState("");
   const [aAddress, setAAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
-  const [aQuotationNumber, setAQuotationNumber] = useState("SEQ-0094");
+  const [aQuotationNumber, setAQuotationNumber] = useState("AI-QUO-0101");
   const [aCapacity, setACapacity] = useState("3");
   const [aAmount, setAAmount] = useState("244000");
   const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
@@ -1149,9 +1149,9 @@ export function SettingsPage() {
 
   // Generate prefix preview from company name (client-side preview)
   const previewPrefix = (name) => {
-    if (!name || typeof name !== "string") return "CO";
+    if (!name || typeof name !== "string") return "AI";
     const words = name.trim().split(/\s+/).filter((w) => w.length > 0);
-    if (words.length === 0) return "CO";
+    if (words.length === 0) return "AI";
     if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
     return (words[0][0] + words[1][0]).toUpperCase();
   };
@@ -1191,7 +1191,17 @@ export function SettingsPage() {
     }
   };
 
-  const typeLabels = { QUO: "Quotation", INV: "Invoice", AGR: "Agreement", CON: "Contract", EST: "Estimate", CUS: "Customer", SKU: "Product SKU" };
+  const typeLabels = {
+    QUO: "Quotation",
+    INV: "Invoice",
+    AGR: "Agreement",
+    CUS: "Customer",
+    PRJ: "Project",
+    TKT: "Ticket",
+    CON: "Contract",
+    EST: "Estimate",
+    SKU: "Product SKU",
+  };
 
   return (
     <main className="app-page">

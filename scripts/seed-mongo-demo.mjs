@@ -268,22 +268,16 @@ await db.collection("agreements").insertMany([
   },
 ]);
 
-// 7. Enquiries Collection
-console.log("Seeding enquiries collection...");
-await db.collection("enquiries").deleteMany({});
-await db.collection("enquiries").insertMany([
-  {
-    name: "Amit Verma",
-    email: "amit.verma@example.test",
-    phone: "9988776655",
-    city: "Patna",
-    monthly_bill: "₹3,000 - ₹5,000",
-    type: "Residential Solar System",
-    message: "Interested in installing a 5kW solar panel system under PM Surya Ghar Yojana.",
-    status: "New",
-    created_at: new Date(),
-  },
-]);
+// 8. Company Settings Collection
+console.log("Seeding company_settings collection...");
+await db.collection("company_settings").deleteOne({ _id: "primary" });
+await db.collection("company_settings").insertOne({
+  _id: "primary",
+  company_name: "Ayush Infotech",
+  prefix: "AI",
+  created_at: new Date(),
+  updated_at: new Date(),
+});
 
 console.log("\n==============================================");
 console.log("SUCCESS: MongoDB Atlas collections & demo data seeded!");

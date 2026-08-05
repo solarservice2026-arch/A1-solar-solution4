@@ -324,6 +324,36 @@ projectsRouter.get(
   }),
 );
 
+projectsRouter.post(
+  "/",
+  requireAnyPermission("projects:create", "projects:update"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const project_number = b.project_number || (await getNextNumber(mongo, "PRJ"));
+    const doc = {
+      ownerId: req.user._id,
+      ownerRole: req.user.roles?.[0] || "admin",
+      createdBy: req.user._id,
+      updatedBy: req.user._id,
+      project_number,
+      customer_id: b.customer_id || b.customerId || null,
+      customer_name: b.customer_name || b.customerName || null,
+      capacity_kw: Number(b.capacity_kw || b.capacityKw || 0),
+      stage: b.stage || "Confirmed",
+      progress: Number(b.progress || 0),
+      project_value: Number(b.project_value || b.projectValue || 0),
+      start_date: b.start_date || new Date().toISOString().slice(0, 10),
+      expected_completion_date: b.expected_completion_date || null,
+      assigned_to: b.assigned_to || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const result = await mongo.collection("projects").insertOne(doc);
+    return success(res.status(201), "Project created successfully", { id: result.insertedId.toString(), ...doc });
+  }),
+);
+
 projectsRouter.patch(
   "/:id/progress",
   requireAnyPermission("projects:update", "projects:change_stage"),
@@ -358,6 +388,35 @@ ticketsRouter.get(
     const items = await mongo.collection("service_tickets").find(query).sort({ opened_at: -1 }).toArray();
     const formatted = items.map(item => ({ id: item._id.toString(), ...item }));
     return success(res, "Service tickets retrieved", formatted);
+  }),
+);
+
+ticketsRouter.post(
+  "/",
+  requireAnyPermission("tickets:create", "tickets:update"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const ticket_number = b.ticket_number || (await getNextNumber(mongo, "TKT"));
+    const doc = {
+      ownerId: req.user._id,
+      ownerRole: req.user.roles?.[0] || "admin",
+      createdBy: req.user._id,
+      updatedBy: req.user._id,
+      ticket_number,
+      customer_id: b.customer_id || b.customerId || null,
+      subject: b.subject || "Service Request",
+      description: b.description || "",
+      priority: b.priority || "Medium",
+      status: b.status || "Open",
+      assigned_to: b.assigned_to || null,
+      opened_at: new Date().toISOString(),
+      closed_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const result = await mongo.collection("service_tickets").insertOne(doc);
+    return success(res.status(201), "Service ticket created successfully", { id: result.insertedId.toString(), ...doc });
   }),
 );
 
@@ -1266,7 +1325,7 @@ profileRouter.post(
 export const nextNumberRouter = Router();
 nextNumberRouter.use(requireAuth);
 
-const VALID_TYPES = new Set(["QUO", "INV", "AGR", "CON", "EST", "CUS", "SKU"]);
+const VALID_TYPES = new Set(["QUO", "INV", "AGR", "CON", "EST", "CUS", "PRJ", "TKT", "SKU"]);
 
 nextNumberRouter.get(
   "/:type",

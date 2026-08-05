@@ -413,7 +413,7 @@ export function agreementDocument(row) {
         <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9;width:25%">Agreement #</th>
         <td style="border:1px solid #333;padding:5px;width:25%">${esc(row.agreement_number)}</td>
         <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9;width:25%">Quotation #</th>
-        <td style="border:1px solid #333;padding:5px;width:25%">${esc(row.quotation_number || "DEMO-QUO-BUSINESS")}</td>
+        <td style="border:1px solid #333;padding:5px;width:25%">${esc(row.quotation_number || "AI-QUO-0101")}</td>
       </tr>
       <tr>
         <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9">System Capacity</th>
