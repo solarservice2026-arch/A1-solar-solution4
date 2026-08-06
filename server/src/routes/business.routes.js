@@ -607,6 +607,7 @@ quotationsRouter.post(
     const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName, mobile: b.customerMobile, email: b.customerEmail, gst_number: b.customerGst } };
     return success(res.status(201), "Quotation created", createdQuotation);
   }),
+);
 
 quotationsRouter.put(
   "/:id",
