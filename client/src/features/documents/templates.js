@@ -146,7 +146,11 @@ export function quotationDocument(row) {
     </tr>`;
   }).join("") || `<tr><td colspan="7">No line items recorded</td></tr>`;
 
-  const grandTotal = Number(row.grand_total || 0);
+  const bankAccHolder = row.account_holder || row.payment_details?.account_holder || "A1 SOLAR SOLUTION";
+  const bankName = row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
+  const bankBranch = row.bank_branch || row.payment_details?.branch || "TAJPUR";
+  const bankAccNo = row.account_no || row.payment_details?.account_no || "9335002100003167";
+  const bankIfsc = row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(row.quotation_number)}</title>
 <style>${sharedCss()}</style></head><body>
@@ -176,6 +180,20 @@ export function quotationDocument(row) {
       <div class="total-line"><span>Grand Total :</span><span>${inr(grandTotal)}/-</span></div>
       <div class="words-line"><span>In Words :</span><span>${esc(amountWords(grandTotal))}</span></div>
       <div class="gst">${row.tax ? `(Subtotal: ${inr(row.subtotal)} | Tax: ${inr(row.tax)}) ` : ""}(Including GST)</div>
+    </div>
+  </section>
+  <section class="bottom">
+    <div class="payment">
+      <h2>PAYMENT DETAILS</h2>
+      ACCOUNT HOLDER: ${esc(bankAccHolder)}<br>
+      ${esc(bankName)}<br>
+      BRANCH: ${esc(bankBranch)}<br>
+      A/C NO: ${esc(bankAccNo)}<br>
+      IFSC CODE: ${esc(bankIfsc)}
+    </div>
+    <div class="vsig">
+      <img src="${esc(signature)}" alt="Proprietor signature">
+      <b>A1 SOLAR SOLUTION<br>PROPRIETOR</b>
     </div>
   </section>
 
