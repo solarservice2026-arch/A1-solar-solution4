@@ -473,12 +473,21 @@ quotationsRouter.get(
 
     const items = await mongo.collection("quotations").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
+    const users = await mongo.collection("users").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
     const formatted = items.map((q) => {
       const c = customerMap.get(String(q.customer_id));
+      const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by));
       return {
         id: q._id.toString(),
         ...q,
+        company_name: q.company_name || q.companyName || owner?.company_name || null,
+        company_address: q.company_address || q.companyAddress || owner?.company_address || null,
+        company_logo_url: q.company_logo_url || q.companyLogoUrl || owner?.company_logo_url || null,
+        company_signature_url: q.company_signature_url || q.companySignatureUrl || owner?.company_signature_url || null,
+        bank_details: q.bank_details || q.bankDetails || owner?.bank_details || null,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
         } : {
@@ -496,7 +505,20 @@ quotationsRouter.get(
   requirePermission("quotations:view"),
   authorizeOwner("quotations"),
   asyncHandler(async (req, res) => {
-    return success(res, "Quotation details retrieved", { id: req.doc._id.toString(), ...req.doc });
+    const mongo = await getMongoDb();
+    const q = req.doc;
+    const users = await mongo.collection("users").find().toArray();
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by));
+    return success(res, "Quotation retrieved", {
+      id: q._id.toString(),
+      ...q,
+      company_name: q.company_name || q.companyName || owner?.company_name || null,
+      company_address: q.company_address || q.companyAddress || owner?.company_address || null,
+      company_logo_url: q.company_logo_url || q.companyLogoUrl || owner?.company_logo_url || null,
+      company_signature_url: q.company_signature_url || q.companySignatureUrl || owner?.company_signature_url || null,
+      bank_details: q.bank_details || q.bankDetails || owner?.bank_details || null,
+    });
   }),
 );
 
@@ -508,6 +530,17 @@ quotationsRouter.post(
     const b = req.body;
     const userId = req.user?._id || req.auth?.userId;
     const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
+    let ownerUser = null;
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (userId && ObjectId.isValid(userId)) {
+        ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(userId) });
+      }
+    } catch {}
+    if (!ownerUser && req.auth?.email) {
+      ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
+    }
 
     let customerName = b.customerName || "Customer";
     let customerId = b.customerId || null;
@@ -542,6 +575,11 @@ quotationsRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
+      company_name: b.companyName || ownerUser?.company_name || null,
+      company_address: b.companyAddress || ownerUser?.company_address || null,
+      company_logo_url: b.companyLogoUrl || ownerUser?.company_logo_url || null,
+      company_signature_url: b.companySignatureUrl || ownerUser?.company_signature_url || null,
+      bank_details: b.bankDetails || ownerUser?.bank_details || null,
       quotation_number: await getNextNumber(mongo, "QOT", firstBrand),
       customer_id: customerId,
       customer_name: customerName,
@@ -569,7 +607,6 @@ quotationsRouter.post(
     const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName, mobile: b.customerMobile, email: b.customerEmail, gst_number: b.customerGst } };
     return success(res.status(201), "Quotation created", createdQuotation);
   }),
-);
 
 quotationsRouter.put(
   "/:id",
@@ -670,9 +707,13 @@ invoicesRouter.get(
 
     const items = await mongo.collection("invoices").find(query).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
+    const users = await mongo.collection("users").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
     const formatted = items.map((item, idx) => {
       const c = customerMap.get(String(item.customer_id));
+      const owner = userMap.get(String(item.ownerId || item.createdBy || item.created_by));
       let invNum = item.invoice_number;
 
       // Auto-migrate legacy format (like A1/2026/4) to standard INV-A1S-2026-0101 format
@@ -691,6 +732,11 @@ invoicesRouter.get(
       return {
         id: item._id.toString(),
         ...item,
+        company_name: item.company_name || item.companyName || owner?.company_name || null,
+        company_address: item.company_address || item.companyAddress || owner?.company_address || null,
+        company_logo_url: item.company_logo_url || item.companyLogoUrl || owner?.company_logo_url || null,
+        company_signature_url: item.company_signature_url || item.companySignatureUrl || owner?.company_signature_url || null,
+        bank_details: item.bank_details || item.bankDetails || owner?.bank_details || null,
         invoice_number: invNum,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
@@ -708,7 +754,20 @@ invoicesRouter.get(
   requirePermission("invoices:view"),
   authorizeOwner("invoices"),
   asyncHandler(async (req, res) => {
-    return success(res, "Invoice retrieved", { id: req.doc._id.toString(), ...req.doc });
+    const mongo = await getMongoDb();
+    const inv = req.doc;
+    const users = await mongo.collection("users").find().toArray();
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const owner = userMap.get(String(inv.ownerId || inv.createdBy || inv.created_by));
+    return success(res, "Invoice retrieved", {
+      id: inv._id.toString(),
+      ...inv,
+      company_name: inv.company_name || inv.companyName || owner?.company_name || null,
+      company_address: inv.company_address || inv.companyAddress || owner?.company_address || null,
+      company_logo_url: inv.company_logo_url || inv.companyLogoUrl || owner?.company_logo_url || null,
+      company_signature_url: inv.company_signature_url || inv.companySignatureUrl || owner?.company_signature_url || null,
+      bank_details: inv.bank_details || inv.bankDetails || owner?.bank_details || null,
+    });
   }),
 );
 
@@ -720,6 +779,17 @@ invoicesRouter.post(
     const b = req.body;
     const userId = req.user?._id || req.auth?.userId;
     const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
+
+    let ownerUser = null;
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (userId && ObjectId.isValid(userId)) {
+        ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(userId) });
+      }
+    } catch {}
+    if (!ownerUser && req.auth?.email) {
+      ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
+    }
 
     const customerName = b.customerName || "Customer";
     const items = Array.isArray(b.items) ? b.items : [];
@@ -747,6 +817,11 @@ invoicesRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
+      company_name: b.companyName || ownerUser?.company_name || null,
+      company_address: b.companyAddress || ownerUser?.company_address || null,
+      company_logo_url: b.companyLogoUrl || ownerUser?.company_logo_url || null,
+      company_signature_url: b.companySignatureUrl || ownerUser?.company_signature_url || null,
+      bank_details: b.bankDetails || ownerUser?.bank_details || null,
       invoice_number: await getNextNumber(mongo, "INV", firstBrand),
       customer_id: b.customerId || null,
       customer_name: customerName,
@@ -877,12 +952,21 @@ agreementsRouter.get(
 
     const items = await mongo.collection("agreements").find(filter).sort({ created_at: -1 }).toArray();
     const customers = await mongo.collection("customers").find().toArray();
+    const users = await mongo.collection("users").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
     const formatted = items.map((a) => {
       const c = customerMap.get(String(a.customer_id));
+      const owner = userMap.get(String(a.ownerId || a.createdBy || a.created_by));
       const base = {
         id: a._id.toString(),
         ...a,
+        company_name: a.company_name || a.companyName || owner?.company_name || null,
+        company_address: a.company_address || a.companyAddress || owner?.company_address || null,
+        company_logo_url: a.company_logo_url || a.companyLogoUrl || owner?.company_logo_url || null,
+        company_signature_url: a.company_signature_url || a.companySignatureUrl || owner?.company_signature_url || null,
+        bank_details: a.bank_details || a.bankDetails || owner?.bank_details || null,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, address: c.address
         } : {
@@ -911,7 +995,20 @@ agreementsRouter.get(
   requirePermission("agreements:view"),
   authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
-    return success(res, "Agreement details retrieved", { id: req.doc._id.toString(), ...req.doc });
+    const mongo = await getMongoDb();
+    const agreement = req.doc;
+    const users = await mongo.collection("users").find().toArray();
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const owner = userMap.get(String(agreement.ownerId || agreement.createdBy || agreement.created_by));
+    return success(res, "Agreement details retrieved", {
+      id: agreement._id.toString(),
+      ...agreement,
+      company_name: agreement.company_name || agreement.companyName || owner?.company_name || null,
+      company_address: agreement.company_address || agreement.companyAddress || owner?.company_address || null,
+      company_logo_url: agreement.company_logo_url || agreement.companyLogoUrl || owner?.company_logo_url || null,
+      company_signature_url: agreement.company_signature_url || agreement.companySignatureUrl || owner?.company_signature_url || null,
+      bank_details: agreement.bank_details || agreement.bankDetails || owner?.bank_details || null,
+    });
   }),
 );
 
@@ -928,9 +1025,17 @@ agreementsRouter.get(
       }
     }
     const c = await mongo.collection("customers").findOne({ _id: agreement.customer_id });
+    const users = await mongo.collection("users").find().toArray();
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const owner = userMap.get(String(agreement.ownerId || agreement.createdBy || agreement.created_by));
     return success(res, "Agreement document retrieved", {
       id: agreement._id.toString(),
       ...agreement,
+      company_name: agreement.company_name || agreement.companyName || owner?.company_name || null,
+      company_address: agreement.company_address || agreement.companyAddress || owner?.company_address || null,
+      company_logo_url: agreement.company_logo_url || agreement.companyLogoUrl || owner?.company_logo_url || null,
+      company_signature_url: agreement.company_signature_url || agreement.companySignatureUrl || owner?.company_signature_url || null,
+      bank_details: agreement.bank_details || agreement.bankDetails || owner?.bank_details || null,
       customers: c ? { name: c.name, mobile: c.mobile } : { name: agreement.customer_name || "Customer" },
     });
   }),
@@ -945,6 +1050,17 @@ agreementsRouter.post(
     const userId = req.user?._id || req.auth?.userId;
     const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
+    let ownerUser = null;
+    try {
+      const { ObjectId } = await import("mongodb");
+      if (userId && ObjectId.isValid(userId)) {
+        ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(userId) });
+      }
+    } catch {}
+    if (!ownerUser && req.auth?.email) {
+      ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
+    }
+
     let customerName = b.customerName || "Customer";
     let customerEmail = b.customerEmail || null;
     let customerMobile = b.customerMobile || null;
@@ -957,6 +1073,11 @@ agreementsRouter.post(
       ownerRole: userRole,
       createdBy: userId,
       updatedBy: userId,
+      company_name: b.companyName || ownerUser?.company_name || null,
+      company_address: b.companyAddress || ownerUser?.company_address || null,
+      company_logo_url: b.companyLogoUrl || ownerUser?.company_logo_url || null,
+      company_signature_url: b.companySignatureUrl || ownerUser?.company_signature_url || null,
+      bank_details: b.bankDetails || ownerUser?.bank_details || null,
       agreement_number: await getNextNumber(mongo, "AGR", firstBrand),
       customer_id: b.customerId || null,
       customer_name: customerName,

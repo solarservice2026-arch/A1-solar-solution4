@@ -107,6 +107,11 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
             email: normalizedEmail,
             full_name: userDoc.name || testUser?.fullName || "A1 Super Admin",
             active: userDoc.status !== "Disabled",
+            company_name: userDoc.company_name || null,
+            company_address: userDoc.company_address || null,
+            company_logo_url: userDoc.company_logo_url || null,
+            company_signature_url: userDoc.company_signature_url || null,
+            bank_details: userDoc.bank_details || null,
           },
           roles: userRoles,
           permissions,
@@ -120,12 +125,29 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
 
 authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
   if (req.auth) {
+    const mongo = await getMongoDb();
+    const { ObjectId } = await import("mongodb");
+    let userDoc = null;
+    try {
+      if (req.auth.userId && ObjectId.isValid(req.auth.userId)) {
+        userDoc = await mongo.collection("users").findOne({ _id: new ObjectId(req.auth.userId) });
+      }
+    } catch {}
+    if (!userDoc && req.auth.email) {
+      userDoc = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
+    }
+
     return success(res, "Current user retrieved", {
       user: {
         id: req.auth.userId,
         email: req.auth.email,
-        full_name: req.auth.email.split("@")[0] || "User",
+        full_name: userDoc?.name || req.auth.email.split("@")[0] || "User",
         active: req.auth.active,
+        company_name: userDoc?.company_name || null,
+        company_address: userDoc?.company_address || null,
+        company_logo_url: userDoc?.company_logo_url || null,
+        company_signature_url: userDoc?.company_signature_url || null,
+        bank_details: userDoc?.bank_details || null,
       },
       roles: req.auth.roles,
       permissions: req.auth.permissions,
