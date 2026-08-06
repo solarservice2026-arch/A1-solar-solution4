@@ -328,148 +328,147 @@ export function agreementDocument(row) {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const stamp = `${origin}/document-assets/agreement-stamp-paper.png`;
   const vendorSign = `${origin}/document-assets/vendor-authorized-signature.png`;
-  const logoUrl = `${origin}${logo}`;
 
-  const rawDate = String(merged.agreement_date ?? row.created_at ?? new Date().toISOString());
+  const rawDate = String(merged.agreement_date || row.agreement_date || row.created_at || new Date().toISOString());
   const parsedDate = new Date(rawDate);
-  const address = esc(merged.consumer_address || customer.address || "N/A");
-  const displayDate = Number.isNaN(parsedDate.getTime())
-    ? esc(rawDate.slice(0, 10))
-    : parsedDate.toLocaleDateString("en-CA");
+  const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+  const dayStr = !Number.isNaN(parsedDate.getTime()) ? String(parsedDate.getDate()) : "25";
+  const monthStr = !Number.isNaN(parsedDate.getTime()) ? monthNames[parsedDate.getMonth()] : "APRIL";
+  const yearStr = !Number.isNaN(parsedDate.getTime()) ? String(parsedDate.getFullYear()) : "2026";
+  const formattedExecDate = `<b>${dayStr}</b> (Day) - <b>${monthStr}</b> (Month) - <b>${yearStr}</b> (Year)`;
+  const displayDate = !Number.isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    : "25 Apr 2026";
+
+  const custName = customer.name || row.customer_name || row.customerName || merged.consumer_name || "ARJUN CHAUDHARY";
+  const custAddress = merged.consumer_address || row.installation_address || customer.address || "NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503";
 
   const customerSigHtml = row.customer_signature_url
     ? `<img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(String(row.customer_signature_url))}" alt="Customer signature">`
     : ``;
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Agreement ${esc(row.agreement_number)}</title>
-<style>${sharedCss()}</style></head><body>
+<style>
+${sharedCss()}
+.agr-box-grid{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:5mm}
+.agr-sig-card{border:1px solid #333;padding:4mm;font-size:10.5px;min-height:48mm;display:flex;flex-direction:column;justify-content:space-between}
+</style></head><body>
 <main class="sheet">
 
 <!-- PAGE 1 -->
 <div class="page">
-  <div class="agr-logo-header"><img src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'"></div>
-  <div class="agreement-body" style="padding:6mm 14mm">
-    <div style="position:relative;text-align:center;margin-bottom:4mm">
+  <div class="agreement-body" style="padding:10mm 14mm;font-size:10.5px;line-height:1.4">
+    <div style="text-align:center;margin-bottom:4mm">
       <img class="stamp" src="${esc(stamp)}" alt="Revenue stamp" style="max-height:22mm;object-fit:contain;margin:0 auto" onerror="this.style.display='none'">
-      <div style="position:absolute;right:0;top:0;font-weight:700;font-size:11px">Annexure 2</div>
     </div>
     
-    <p style="text-align:center;font-size:12px;font-weight:700;line-height:1.4;margin:4mm 0">
+    <div style="text-align:center;font-weight:700;font-size:12px;margin:2mm 0">Annexure 2</div>
+    <p style="text-align:center;font-size:12px;font-weight:700;line-height:1.4;margin:2mm 0">
       Agreement between Consumer &amp; Vendor for installation of grid connected rooftop solar (RTS) project<br>
-      under PM – Surya Ghar: Muft Bijli Yojana
+      under PM – Surya Ghar: Muft Bijali Yojana
     </p>
     
-    <p>This agreement is executed on <b>${esc(displayDate)}</b> for design, supply, installation, commissioning and 5-year comprehensive maintenance of RTS project/system along with warranty under PM Surya Ghar: Muft Bijli Yojana.</p>
+    <p style="margin:4mm 0">This agreement is executed on ${formattedExecDate} for design, supply, installation, commissioning and 5-year comprehensive maintenance of RTS project/system along with warranty under PM Surya Ghar: Muft Bijli Yojana</p>
     
     <p style="text-align:center;margin:3mm 0"><b>Between</b></p>
     
-    <p><b>${esc(customer.name || "Consumer")}</b> having address <b>${address}</b> (herein referred to as First Party i.e. Consumer / purchaser / owner of system).</p>
+    <p style="margin:2mm 0"><b>${esc(custName)}</b> (Name of Consumer) having<br><b>${esc(custAddress)}</b> (herein referred to as first Party i.e. Consumer / purchaser / owner of system).</p>
     
     <p style="text-align:center;margin:3mm 0"><b>And</b></p>
     
-    <p><b>A1 SOLAR SOLUTION</b>, the Vendor / contractor / System Integrator (hereinafter referred to as Second Party).</p>
+    <p style="margin:2mm 0"><b>A1 SOLAR SOLUTIONS</b> (Name of Vendor) having registered office at VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR (hereinafter referred to as second Party i.e. Vendor / contractor / System Integrator).</p>
     
-    <p><b>Whereas</b> the First Party wishes to install a Grid Connected Rooftop Solar Plant under PM Surya Ghar: Muft Bijli Yojana and the Second Party has verified feasibility and is willing to design, supply, install, test, commission and maintain the system.</p>
+    <p style="margin:3mm 0"><b>Whereas</b><br>First Party wishes to install a Grid Connected Rooftop Solar Plant on the rooftop of the residential building of the Consumer under PM Surya Ghar: Muft Bijli Yojana.</p>
     
-    <p><b>The First Party undertakes to:</b></p>
-    <ol style="padding-left:18px;margin:2mm 0">
-      <li>Submit required National Portal, net-metering and inspection applications and documents.</li>
-      <li>Provide secure storage of delivered RTS material until system handover.</li>
-      <li>Provide safe rooftop access during installation, testing, operation and maintenance.</li>
-      <li>Provide electricity and water required during installation and panel cleaning.</li>
-      <li>Report malfunction during warranty and pay amounts according to the mutually agreed schedule.</li>
-    </ol>
+    <p style="margin:3mm 0"><b>And whereas</b><br>Second Party has verified availability of appropriate roof and found it feasible to install a Grid Connected Roof Top Solar plant and that the second party is willing to design, supply, install, test, commission and carry out Operation &amp; Maintenance of the Rooftop Solar plant for 5 year period.</p>
     
-    <p style="font-weight:700;margin-top:5mm;margin-bottom:2mm">Approved Products / System Components</p>
-    <table style="width:100%;border-collapse:collapse;border:1px solid #333;font-size:10.5px">
-      <thead>
-        <tr style="background:#f5f5f5">
-          <th style="border:1px solid #333;padding:5px;text-align:left;width:35px">#</th>
-          <th style="border:1px solid #333;padding:5px;text-align:left">Product Name</th>
-          <th style="border:1px solid #333;padding:5px;text-align:left">Brand / Model</th>
-          <th style="border:1px solid #333;padding:5px;text-align:left;width:90px">Quantity</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="4" style="border:1px solid #333;padding:8px">Products are recorded in the linked quotation.</td>
-        </tr>
-      </tbody>
-    </table>
+    <p style="margin:3mm 0">On this day, the First Party and Second Party agree to the following:</p>
+    
+    <p style="margin:2mm 0"><b>The First Party hereby undertakes to perform the following activities:</b></p>
+    <ul style="padding-left:18px;margin:2mm 0;list-style-type:disc">
+      <li style="margin:1.5mm 0">Submission of online application at National Portal for installation of RTS project/system, Submission of application for net-metering and system inspection and upload of the relevant documents on the National Portal of the scheme</li>
+      <li style="margin:1.5mm 0">Provide secure storage of the material of the RTS plant delivered at the premises till handover of the system</li>
+      <li style="margin:1.5mm 0">Provide access to the Roof Top during installation of the plant, operation &amp; maintenance, testing of the plant and equipment and for meter reading from solar meter, inverter etc.</li>
+      <li style="margin:1.5mm 0">Provide electricity during plant installation and water for cleaning of the panels</li>
+      <li style="margin:1.5mm 0">Report any malfunctioning of the plant to the Vendor during the warranty period</li>
+      <li style="margin:1.5mm 0">Pay the amount as per the payment schedule as mutually agreed with the vendor, including any additional amount to the second party for any additional work / customization required depending upon the building condition</li>
+    </ul>
+    
+    <p style="margin:2mm 0"><b>The Second Party hereby undertakes to perform the following activities:</b></p>
   </div>
 </div>
 
 <!-- PAGE 2 -->
 <div class="page">
-  <div class="agr-logo-header"><img src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'"></div>
-  <div class="agreement-body" style="padding:6mm 14mm">
-    <p style="margin-bottom:4mm">The Vendor must follow all standards and safety guidelines prescribed under State regulations, DISCOM/SERC/MNRE requirements and applicable technical standards.</p>
+  <div class="agreement-body" style="padding:10mm 14mm;font-size:10.5px;line-height:1.4">
+    <p style="margin-bottom:4mm">The Vendor must follow all the standards and safety guidelines prescribed under state regulations and technical standards prescribed by MNRE for RTS projects, failing which the vendor is liable for blacklisting from participation in the govt. project/scheme and other penal actions in accordance with the law. The responsibility of supply, installation and commissioning of the rooftop solar project/system in complete compliance with MNRE scheme guidelines lies with the Vendor.</p>
     
-    <p class="clause"><b>Site Survey:</b> Site visit, feasibility study, roof-strength and shadow-free-area assessment. Additional customization required by site conditions shall be separately estimated with applicable tax.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Site Survey:</b> Site visit, survey and development of detailed project report for installation of RTS system. This also includes feasibility study of roof, strength of roof and shadow free area. If any additional work or customization is involved for the plant installation as per site condition and requirement of the consumer building, the Vendor shall prepare an estimate and can raise separate invoice including GST in addition to the amount towards standard plant cost. The consumer shall pay the amount for such additional work directly to the Vendor.</p>
     
-    <p class="clause"><b>Design &amp; Engineering:</b> Plant design, drawings and component selection shall follow standards prescribed by DISCOM/SERC/MNRE for performance and safety.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Design &amp; Engineering:</b> Design of plant along with drawings and selection of components as per standard provided by the DISCOM/SERC/MNRE for best performance and safety of the plant.</p>
     
-    <p class="clause"><b>Module and Inverter:</b> Modules and inverters shall conform to relevant MNRE, BIS/IS/IEC and quality-control requirements.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Module and Inverter:</b> The solar modules, including the solar cells, should be manufactured in India. Both the solar modules and inverters shall conform to the relevant standards and specifications prescribed by MNRE. Any other requirement, viz. star labelling (solar modules), quality control orders and standards &amp; labelling (inverters) etc., shall also be complied.</p>
     
-    <p class="clause"><b>Procurement &amp; Supply:</b> Complete system shall comply with applicable standards and subsidy-release requirements.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Procurement &amp; Supply:</b> Procurement of complete system as per BIS/IS/IEC standard (whatever applicable) &amp; safety guidelines for installation of rooftop solar plants. The supplied materials should comply with all MNRE standards for release of subsidy.</p>
     
-    <p class="clause"><b>Installation &amp; Civil Work:</b> Civil, structure and electrical work within the approved scope shall follow relevant safety standards.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Installation &amp; Civil work:</b> Complete civil work, structure work and electrical work (including drawings) following all the safety and relevant BIS standards.</p>
     
-    <p class="clause"><b>Documentation:</b> Technical catalogues, warranty certificates, BIS certificates, serial numbers, layout, electrical SLD, structure drawings and other required reports shall be provided.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Documentation (Technical Catalogues/Warranty Certificates/BIS certificates/other test reports etc):</b> All such documents shall be provided to the consumer for online uploading and submission of technical specifications, IEC/BIS report, Sr. Nos, Warranty card of Solar Panel &amp; Inverter, Layout &amp; Electrical SLD, Structure Design and Drawing, Cable and other detailed documents.</p>
     
-    <p class="clause"><b>Project Completion Report:</b> Vendor shall assist the Consumer in completion and uploading of signed project documents.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Project completion report (PCR):</b> Assisting the consumer in filling and uploading of signed documents (Consumer &amp; Vendor) on the national portal.</p>
     
-    <p class="clause"><b>Warranty:</b> Complete system warranty and individual manufacturer warranty documents shall be supplied. Applicable support will be provided for warranty claims.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Warranty:</b> System warranty certificates should be provided to the consumer. The complete system should be warranted for 5 years from the date of commissioning by DISCOM. Individual component warranty documents provided by the manufacturer shall be provided to the consumer and all possible assistance should be extended to the consumer for claiming the warranty from the manufacturer.</p>
     
-    <p class="clause"><b>Net Meter &amp; Grid Connectivity:</b> Supply/procurement, testing and approval responsibilities shall follow the finalized project scope and DISCOM requirements.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>NET meter &amp; Grid Connectivity:</b> Net meter supply/procurement, testing and approvals shall be in the scope of vendor. Grid connection of the plant shall be in the scope of the vendor.</p>
     
-    <p class="clause"><b>Operation &amp; Maintenance:</b> Vendor shall provide agreed maintenance support and the Consumer shall ensure reasonable access and routine cleaning conditions.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Testing and Commissioning:</b> The vendor shall be present at the time of testing and commissioning by the DISCOM.</p>
+    
+    <p class="clause" style="margin:2.5mm 0"><b>Operation &amp; Maintenance:</b> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</p>
+
+    <p class="clause" style="margin:2.5mm 0"><b>Insurance:</b> Any insurance cost pertaining to material transfer/storage before commissioning of the system shall be in the scope of the vendor.</p>
+
+    <p class="clause" style="margin:2.5mm 0"><b>Applicable Standard:</b> The system must meet the technical standards and specifications notified by MNRE. The vendor is solely responsible to supply component and service which meets the technical standards and specification prescribed by MNRE and State DISCOMs.</p>
+
+    <p class="clause" style="margin:2.5mm 0"><b>Project/system cost &amp; payment terms:</b> The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</p>
   </div>
 </div>
 
 <!-- PAGE 3 -->
 <div class="page">
-  <div class="agr-logo-header"><img src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'"></div>
-  <div class="agreement-body" style="padding:6mm 14mm">
-    <p class="clause"><b>Dispute:</b> Any dispute between Consumer and Vendor relating to supply, installation, maintenance or payment shall be settled mutually or according to applicable law. MNRE/DISCOM shall not be a party to such private dispute.</p>
+  <div class="agreement-body" style="padding:10mm 14mm;font-size:10.5px;line-height:1.4">
+    <p class="clause" style="margin:2.5mm 0"><b>Dispute:</b> In-case of any dispute between consumer and vendor (in supply/installation/maintenance of system or payment terms), both parties must settle the same mutually or as per law. MNRE/DISCOM shall not be liable for, and would not be a party to such private dispute.</p>
     
-    <p class="clause"><b>Subsidy / Project Related Documents:</b> Vendor shall provide relevant documents and assist with National Portal submission for subsidy processing.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Subsidy / Project Related Documents:</b> Vendor must provide all the documents to consumer and help in uploading the same to National Portal for smooth release of subsidy.</p>
     
-    <p class="clause"><b>Performance of Plant:</b> Plant performance shall meet applicable commissioning requirements and the finalized technical specification.</p>
+    <p class="clause" style="margin:2.5mm 0"><b>Performance of Plant:</b> The Performance Ratio (PR) of Plant must be 75% at the time of commissioning of the project by DISCOM or its authorised agency. Vendor must provide (returnable basis) radiation sensor with valid calibration certificate of any NABL / International laboratory at the time of commissioning/testing of the plant. Vendor must maintain the PR of the plant till warranty of project i.e. 5 years from the date of commissioning.</p>
     
-    <p class="clause"><b>Mutually Agreed Terms of Payment:</b> ${esc(merged.terms_of_payment || row.terms_of_payment || "dgf")}</p>
+    <p class="clause" style="margin:3mm 0"><b>19. Mutually Agreed Terms of Payment:</b><br>The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</p>
     
-    <table style="width:100%;border-collapse:collapse;border:1px solid #333;font-size:10.5px;margin:6mm 0">
-      <tr>
-        <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9;width:25%">Agreement #</th>
-        <td style="border:1px solid #333;padding:5px;width:25%">${esc(row.agreement_number)}</td>
-        <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9;width:25%">Quotation #</th>
-        <td style="border:1px solid #333;padding:5px;width:25%">${esc(row.quotation_number || "AI-QUO-0101")}</td>
-      </tr>
-      <tr>
-        <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9">System Capacity</th>
-        <td style="border:1px solid #333;padding:5px">${esc(row.capacity_kw || merged.capacity_kw || "25")} kW</td>
-        <th style="border:1px solid #333;padding:5px;text-align:left;background:#f9f9f9">Project Value</th>
-        <td style="border:1px solid #333;padding:5px">${inr(row.payment_amount || row.project_value || 1232000)}</td>
-      </tr>
-    </table>
-    
-    <div class="party-grid" style="margin-top:12mm">
-      <div class="sig-box">
-        <b>First Party (Consumer)</b>
-        <p style="margin:2mm 0">Name: ${esc(customer.name || "Meera Enterprises")}<br>Address: ${address}</p>
-        ${customerSigHtml}
-        <div class="a-line" style="margin-top:18mm;border-top:1px solid #333;padding-top:2mm">Consumer Signature<br>Date: ${esc(displayDate)}</div>
+    <div class="agr-box-grid">
+      <div class="agr-sig-card">
+        <div>
+          <b>First Party (Consumer)</b><br>
+          Name: <b>${esc(custName)}</b><br>
+          Address: <b>${esc(custAddress)}</b><br>
+          Signature:
+          ${customerSigHtml}
+        </div>
+        <div style="margin-top:6mm">Date: <b>${esc(displayDate)}</b></div>
       </div>
-      <div class="sig-box">
-        <b>Second Party (Vendor)</b>
-        <p style="margin:2mm 0">Name: A1 SOLAR SOLUTION<br>Authorized Vendor</p>
-        <img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(vendorSign)}" alt="Vendor signature" onerror="this.style.display='none'">
-        <div class="a-line" style="margin-top:4mm;border-top:1px solid #333;padding-top:2mm">Vendor Signature<br>Date: ${esc(displayDate)}</div>
+
+      <div class="agr-sig-card">
+        <div>
+          <b>Second Party (Vendor)</b><br>
+          Name: <b>A1 SOLAR SOLUTIONS</b><br>
+          Address: <b>VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR</b><br>
+          Signature:<br>
+          <img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(vendorSign)}" alt="Vendor signature" onerror="this.style.display='none'">
+        </div>
+        <div style="margin-top:2mm">Date: <b>${esc(displayDate)}</b></div>
       </div>
     </div>
     
-    <p class="disclaimer" style="margin-top:12mm;border-top:1px solid #aaa;padding-top:2mm;font-size:9px"><b>Disclaimer:</b> This agreement is between Vendor and Consumer. Any dispute related to the same shall not involve any third party including MNRE and Distribution Utilities.</p>
+    <p style="margin-top:10mm;font-size:9px;font-style:italic">Disclaimer: This agreement is between vendor and consumer and any dispute related to the same shall not involve any third party including MNRE and Distribution Utilities.</p>
   </div>
 </div>
 
