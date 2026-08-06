@@ -277,8 +277,12 @@ function DataPage({
         customerSignatureUrl: aCustomerSignature,
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
-    } else {
-      body = formObject(e.currentTarget);
+    if (user?.company_name || user?.companyName) {
+      body.companyName = user.company_name || user.companyName;
+      body.companyAddress = user.company_address || user.companyAddress;
+      body.companyLogoUrl = user.company_logo_url || user.companyLogoUrl;
+      body.companySignatureUrl = user.company_signature_url || user.companySignatureUrl;
+      body.bankDetails = user.bank_details || user.bankDetails;
     }
 
     try {

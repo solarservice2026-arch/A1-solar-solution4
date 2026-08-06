@@ -213,6 +213,11 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
             status: input.active ? "Active" : "Disabled",
             password_hash: passwordHash,
             phone: input.phone || existing.phone || null,
+            ...(input.companyName ? { company_name: input.companyName } : {}),
+            ...(input.companyAddress ? { company_address: input.companyAddress } : {}),
+            ...(input.companyLogoUrl ? { company_logo_url: input.companyLogoUrl } : {}),
+            ...(input.companySignatureUrl ? { company_signature_url: input.companySignatureUrl } : {}),
+            ...(input.bankDetails ? { bank_details: input.bankDetails } : {}),
           }
         }
       );
@@ -228,6 +233,11 @@ usersRouter.post("/", requirePermission("users:create"), asyncHandler(async (req
       created_at: new Date(),
       password_hash: passwordHash,
       phone: input.phone || null,
+      company_name: input.companyName || null,
+      company_address: input.companyAddress || null,
+      company_logo_url: input.companyLogoUrl || null,
+      company_signature_url: input.companySignatureUrl || null,
+      bank_details: input.bankDetails || null,
     };
     const result = await db.collection("users").insertOne(userDoc);
     const userId = result.insertedId.toString();

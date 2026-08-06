@@ -111,15 +111,56 @@ export function StaffForm() {
   const { user } = useAuth();
   const [roles, setRoles] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("admin");
+  const [companyLogoUrl, setCompanyLogoUrl] = useState(null);
+  const [companySignatureUrl, setCompanySignatureUrl] = useState(null);
 
   useEffect(() => {
-    void api("/roles").then(setRoles).catch(e => toast.error(e instanceof Error ? e.message : "Unable to load roles"));
-  }, []);
+    void api("/roles").then((fetchedRoles) => {
+      setRoles(fetchedRoles);
+      const allowedRoles = fetchedRoles.filter(role => user?.roles?.includes("super_admin") ? role.name !== "super_admin" : !["super_admin", "admin"].includes(role.name));
+      if (allowedRoles.length > 0) {
+        setSelectedRole(allowedRoles[0].name);
+      }
+    }).catch(e => toast.error(e instanceof Error ? e.message : "Unable to load roles"));
+  }, [user]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setCompanyLogoUrl(String(ev.target?.result || ""));
+    reader.readAsDataURL(file);
+  };
+
+  const handleSignatureUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setCompanySignatureUrl(String(ev.target?.result || ""));
+    reader.readAsDataURL(file);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
     const form = new FormData(e.currentTarget);
+    const role = String(form.get("role") || selectedRole);
+
+    const accountHolder = String(form.get("accountHolder") || "").trim();
+    const bankName = String(form.get("bankName") || "").trim();
+    const bankBranch = String(form.get("bankBranch") || "").trim();
+    const accountNo = String(form.get("accountNo") || "").trim();
+    const ifscCode = String(form.get("ifscCode") || "").trim();
+
+    const bankDetails = (role === "admin" && (accountHolder || bankName || accountNo)) ? {
+      accountHolder: accountHolder || "A1 SOLAR SOLUTION",
+      bankName: bankName || "PUNJAB NATIONAL BANK",
+      branch: bankBranch || "TAJPUR",
+      accountNo: accountNo || "9335002100003167",
+      ifscCode: ifscCode || "PUNB0933500",
+    } : undefined;
+
     try {
       await api("/staff", {
         method: "POST",
@@ -128,8 +169,15 @@ export function StaffForm() {
           email: form.get("email"),
           password: form.get("password"),
           phone: form.get("phone") || undefined,
-          role: form.get("role"),
+          role,
           active: true,
+          ...(role === "admin" ? {
+            companyName: String(form.get("companyName") || "A1 SOLAR SOLUTION").trim(),
+            companyAddress: String(form.get("companyAddress") || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR").trim(),
+            companyLogoUrl: companyLogoUrl || undefined,
+            companySignatureUrl: companySignatureUrl || undefined,
+            bankDetails,
+          } : {})
         }),
       });
       toast.success("Staff account created");
@@ -153,8 +201,85 @@ export function StaffForm() {
         <label>Email<input name="email" type="email" required /></label>
         <label>Password<input name="password" type="password" required minLength={6} /></label>
         <label>Mobile<input name="phone" pattern="[6-9][0-9]{9}" /></label>
-        <label>Role<select name="role" required>{allowed.map(r => <option key={r.id} value={r.name}>{r.name.replaceAll("_", " ")}</option>)}</select></label>
-        <button className="primary" disabled={saving}>{saving ? "Creating account…" : "Create account"}</button>
+        <label>Role
+          <select name="role" value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} required>
+            {allowed.map(r => <option key={r.id} value={r.name}>{r.name.replaceAll("_", " ")}</option>)}
+          </select>
+        </label>
+
+        {selectedRole === "admin" && (
+          <>
+            <div style={{ gridColumn: "1 / -1", marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed #cbd5e1" }}>
+              <h3 style={{ margin: "0 0 6px", color: "#1e3a8a", fontSize: "15px", fontWeight: 700 }}>
+                🏢 Admin Company &amp; Branding Setup
+              </h3>
+              <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#64748b" }}>
+                Set custom company logo, stamp signature, address and bank details for this administrator.
+              </p>
+            </div>
+
+            <label className="span-2">
+              Company Name
+              <input name="companyName" placeholder="e.g. A1 SOLAR SOLUTION" defaultValue="A1 SOLAR SOLUTION" required />
+            </label>
+
+            <label className="span-2">
+              Company Registered Address
+              <textarea name="companyAddress" placeholder="e.g. VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR" defaultValue="VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR" rows={2} required />
+            </label>
+
+            <label>
+              Company Logo
+              <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <input type="file" accept="image/*" onChange={handleLogoUpload} />
+                {companyLogoUrl && <img src={companyLogoUrl} alt="Logo preview" style={{ height: "36px", objectFit: "contain", border: "1px solid #ddd", borderRadius: "4px" }} />}
+              </div>
+            </label>
+
+            <label>
+              Stamp / Proprietor Signature
+              <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <input type="file" accept="image/*" onChange={handleSignatureUpload} />
+                {companySignatureUrl && <img src={companySignatureUrl} alt="Stamp preview" style={{ height: "36px", objectFit: "contain", border: "1px solid #ddd", borderRadius: "4px" }} />}
+              </div>
+            </label>
+
+            <div style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
+              <h4 style={{ margin: "0 0 8px", color: "#334155", fontSize: "13px", fontWeight: 700 }}>
+                💳 Payment Details (Bank Account Info)
+              </h4>
+            </div>
+
+            <label>
+              Account Holder
+              <input name="accountHolder" placeholder="e.g. A1 SOLAR SOLUTION" defaultValue="A1 SOLAR SOLUTION" required />
+            </label>
+
+            <label>
+              Bank Name
+              <input name="bankName" placeholder="e.g. PUNJAB NATIONAL BANK" defaultValue="PUNJAB NATIONAL BANK" required />
+            </label>
+
+            <label>
+              Branch
+              <input name="bankBranch" placeholder="e.g. TAJPUR" defaultValue="TAJPUR" required />
+            </label>
+
+            <label>
+              Account Number
+              <input name="accountNo" placeholder="e.g. 9335002100003167" defaultValue="9335002100003167" required />
+            </label>
+
+            <label>
+              IFSC Code
+              <input name="ifscCode" placeholder="e.g. PUNB0933500" defaultValue="PUNB0933500" required />
+            </label>
+          </>
+        )}
+
+        <button className="primary" disabled={saving} style={{ gridColumn: "1 / -1", marginTop: "12px" }}>
+          {saving ? "Creating account…" : "Create account"}
+        </button>
       </form>
     </main>
   );

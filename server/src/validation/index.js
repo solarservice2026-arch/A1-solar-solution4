@@ -15,8 +15,19 @@ export const staffSchema = z.object({
   password: z.string().min(6),
   phone: z.string().regex(/^[6-9]\d{9}$/).optional(),
   role: z.enum(appRoles),
-  active: z.boolean().default(true)
-});
+  active: z.boolean().default(true),
+  companyName: z.string().optional(),
+  companyAddress: z.string().optional(),
+  companyLogoUrl: z.string().optional(),
+  companySignatureUrl: z.string().optional(),
+  bankDetails: z.object({
+    accountHolder: z.string().optional(),
+    bankName: z.string().optional(),
+    branch: z.string().optional(),
+    accountNo: z.string().optional(),
+    ifscCode: z.string().optional(),
+  }).optional(),
+}).passthrough();
 
 export const indianMobile = z.string().regex(/^[6-9]\d{9}$/, "Enter a valid Indian mobile number");
 export const pinCode = z.string().regex(/^[1-9]\d{5}$/, "Enter a valid PIN code");
