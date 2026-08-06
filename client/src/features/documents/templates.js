@@ -97,7 +97,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .terms{padding:6mm 14mm;font-size:12px;line-height:1.6}
 .terms h2{font-size:13px;color:#1a3a6b;border-bottom:2px solid #586bc5;padding-bottom:3px;margin:10px 0 5px}
 .terms p{margin:4px 0}
-.sig-row{display:grid;grid-template-columns:1fr 1fr;gap:24mm;padding:8mm 14mm 6mm;align-items:end}
+.sig-row{display:flex;justify-content:flex-end;padding:8mm 14mm 6mm;align-items:end}
 .sig-block{text-align:center}
 .sig-block img{display:block;width:54mm;height:21mm;object-fit:contain;margin:0 auto 4px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .sig-line{border-top:1px solid #333;padding-top:5px;font-size:11px}
@@ -201,10 +201,6 @@ export function quotationDocument(row) {
     <p><b>Monitoring:</b> Performance monitoring subject to selected equipment.</p>
   </div>
   <div class="sig-row">
-    <div class="sig-block">
-      ${row.customer_signature_url ? `<img src="${esc(row.customer_signature_url)}" alt="Customer Signature">` : ""}
-      <div class="sig-line">Customer Acceptance Signature</div>
-    </div>
     <div class="sig-block">
       <img src="${esc(signature)}" alt="A1 Solar proprietor signature">
       <div class="sig-line"><b>For A1 Solar Solution</b><br>Authorized Signatory / Proprietor</div>
