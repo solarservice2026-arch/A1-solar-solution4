@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      outDir: "dist",
+    },
     define: {
       "import.meta.env.VITE_API_URL": JSON.stringify(
         process.env.VITE_API_URL ?? env.VITE_API_URL ?? "http://localhost:5000/api/v1",
