@@ -188,6 +188,7 @@ function DataPage({
 
   const canCreate =
     user?.roles?.includes("super_admin") ||
+    user?.roles?.includes("admin") ||
     user?.permissions?.includes(permission);
 
   const canDelete = Boolean(
