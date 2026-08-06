@@ -116,14 +116,8 @@ export function StaffForm() {
   const [companySignatureUrl, setCompanySignatureUrl] = useState(null);
 
   useEffect(() => {
-    void api("/roles").then((fetchedRoles) => {
-      setRoles(fetchedRoles);
-      const allowedRoles = fetchedRoles.filter(role => user?.roles?.includes("super_admin") ? role.name !== "super_admin" : !["super_admin", "admin"].includes(role.name));
-      if (allowedRoles.length > 0) {
-        setSelectedRole(allowedRoles[0].name);
-      }
-    }).catch(e => toast.error(e instanceof Error ? e.message : "Unable to load roles"));
-  }, [user]);
+    void api("/roles").then(setRoles).catch(e => toast.error(e instanceof Error ? e.message : "Unable to load roles"));
+  }, []);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
