@@ -330,7 +330,10 @@ export function agreementDocument(row) {
   const merged = row.merged_data ?? {};
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const stamp = `${origin}/document-assets/agreement-stamp-paper.png`;
-  const vendorSign = `${origin}/document-assets/vendor-authorized-signature.png`;
+
+  const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTIONS";
+  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
+  const vendorSign = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const rawDate = String(merged.agreement_date || row.agreement_date || row.created_at || new Date().toISOString());
   const parsedDate = new Date(rawDate);
@@ -379,7 +382,7 @@ ${sharedCss()}
     
     <p style="text-align:center;margin:3mm 0"><b>And</b></p>
     
-    <p style="margin:2mm 0"><b>A1 SOLAR SOLUTIONS</b> (Name of Vendor) having registered office at VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR (hereinafter referred to as second Party i.e. Vendor / contractor / System Integrator).</p>
+    <p style="margin:2mm 0"><b>${esc(companyName)}</b> (Name of Vendor) having registered office at <b>${esc(companyAddress)}</b> (hereinafter referred to as second Party i.e. Vendor / contractor / System Integrator).</p>
     
     <p style="margin:3mm 0"><b>Whereas</b><br>First Party wishes to install a Grid Connected Rooftop Solar Plant on the rooftop of the residential building of the Consumer under PM Surya Ghar: Muft Bijli Yojana.</p>
     
