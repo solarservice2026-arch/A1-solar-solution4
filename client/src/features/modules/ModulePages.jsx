@@ -441,12 +441,6 @@ function DataPage({
                 <label>Customer GSTIN<input value={qCustGst} onChange={e => setQCustGst(e.target.value)} /></label>
                 <label className="span-2">Installation Address<textarea value={qAddress} onChange={e => setQAddress(e.target.value)} rows={2} required /></label>
                 <label>Valid Until<input type="date" value={qValid} onChange={e => setQValid(e.target.value)} required /></label>
-                <label className="span-2">Customer Signature
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "5px" }}>
-                    <input type="file" accept="image/*" onChange={handleQSignatureUpload} />
-                    {qCustomerSignature && <img src={qCustomerSignature} alt="Signature Preview" style={{ height: "40px", border: "1px solid #ddd", borderRadius: "4px" }} />}
-                  </div>
-                </label>
               </div>
 
               <h3 className="section-divider">Quotation Items</h3>
