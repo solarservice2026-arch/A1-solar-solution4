@@ -268,24 +268,33 @@ export function invoiceDocument(row) {
   const balance = Math.max(0, Number(row.total || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const header = `${origin}/document-assets/solar-document-header.png`;
-  const signature = `${origin}/document-assets/vendor-authorized-signature.png`;
-  const logoUrl = `${origin}${logo}`;
+
+  const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
+  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}${logo}`;
+  const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
+
+  const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
+  const bankName = row.bank_details?.bankName || row.bank_details?.bank_name || row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
+  const bankBranch = row.bank_details?.branch || row.bank_branch || row.payment_details?.branch || "TAJPUR";
+  const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "9335002100003167";
+  const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(row.invoice_number)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
   <div class="hero-container">
-    <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
+    <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
   <div class="doc-header cols-4">
-    <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
+    <img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
     <div class="meta">Date<b>${esc(row.invoice_date)}</b></div>
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
   </div>
   <section class="party">
-    <div><b>A1 SOLAR SOLUTION</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>VISHNUPUR KAIJU PATEHPUR VAISHALI BIHA</div>
+    <div><b>${esc(companyName)}</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>${esc(companyAddress)}</div>
     <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}${customer.email ? `<br>Email: ${esc(customer.email)}` : ""}${customer.gst_number ? `<br>GSTIN: ${esc(customer.gst_number)}` : ""}<br>${esc(row.installation_address)}</div>
   </section>
   <section class="products">
@@ -304,15 +313,15 @@ export function invoiceDocument(row) {
   <section class="bottom">
     <div class="payment">
       <h2>PAYMENT DETAILS</h2>
-      ACCOUNT HOLDER: A1 SOLAR SOLUTION<br>
-      PUNJAB NATIONAL BANK<br>
-      BRANCH: TAJPUR<br>
-      A/C NO: 9335002100003167<br>
-      IFSC CODE: PUNB0933500
+      ACCOUNT HOLDER: ${esc(bankAccHolder)}<br>
+      ${esc(bankName)}<br>
+      BRANCH: ${esc(bankBranch)}<br>
+      A/C NO: ${esc(bankAccNo)}<br>
+      IFSC CODE: ${esc(bankIfsc)}
     </div>
     <div class="vsig">
       <img src="${esc(signature)}" alt="Proprietor signature">
-      <b>A1 SOLAR SOLUTION<br>PROPRIETOR</b>
+      <b>${esc(companyName)}<br>PROPRIETOR</b>
     </div>
   </section>
   <section class="status-bar">
