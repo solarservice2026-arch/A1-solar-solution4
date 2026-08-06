@@ -277,6 +277,10 @@ function DataPage({
         customerSignatureUrl: aCustomerSignature,
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
+    } else {
+      body = formObject(e.currentTarget);
+    }
+
     if (user?.company_name || user?.companyName) {
       body.companyName = user.company_name || user.companyName;
       body.companyAddress = user.company_address || user.companyAddress;
