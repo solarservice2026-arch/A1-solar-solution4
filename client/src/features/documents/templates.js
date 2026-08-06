@@ -135,24 +135,39 @@ export function quotationDocument(row) {
 
   const itemRows = items.map((item, i) => {
     const product = item.products ?? {};
+    const price = Number(item.unit_price ?? item.unitPrice ?? 0);
+    const qty = parseQty(item.quantity);
     return `<tr>
       <td>${i + 1}</td>
-      <td><b>${esc(product.name ?? item.product_name ?? item.description)}</b></td>
+      <td><b>${esc(product.name ?? item.product_name ?? item.productName ?? item.description)}</b></td>
       <td>${esc(item.description)}</td>
       <td>${esc(item.brand ?? product.brand ?? product.model ?? item.brand_model)}</td>
       <td style="text-align:right">${esc(item.quantity)}</td>
-      <td style="text-align:right">${inr(item.unit_price)}</td>
-      <td style="text-align:right">${inr(parseQty(item.quantity) * Number(item.unit_price || 0))}</td>
+      <td style="text-align:right">${inr(price)}</td>
+      <td style="text-align:right">${inr(qty * price)}</td>
     </tr>`;
   }).join("") || `<tr><td colspan="7">No line items recorded</td></tr>`;
 
+  const grandTotal = Number(row.grand_total ?? row.grandTotal ?? row.total ?? 0);
   const bankAccHolder = row.account_holder || row.payment_details?.account_holder || "A1 SOLAR SOLUTION";
   const bankName = row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
   const bankBranch = row.bank_branch || row.payment_details?.branch || "TAJPUR";
   const bankAccNo = row.account_no || row.payment_details?.account_no || "9335002100003167";
   const bankIfsc = row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(row.quotation_number)}</title>
+  const custName = customer.name || row.customer_name || row.customerName || "—";
+  const custMobile = customer.mobile || row.customer_mobile || row.customerMobile || "—";
+  const custEmail = customer.email || row.customer_email || row.customerEmail || "";
+  const custGst = customer.gst_number || row.customer_gst || row.customerGst || "";
+  const custAddress = row.installation_address || row.consumer_address || row.consumerAddress || customer.address || "—";
+
+  const qNum = row.quotation_number || row.quotationNumber || row.number || "—";
+  const qDate = row.quotation_date || row.quotationDate || "—";
+  const qValid = row.valid_until || row.validUntil || "—";
+  const qCap = row.capacity_kw || row.capacityKw || "—";
+  const qType = row.quotation_type || row.quotationType || "Solar Power System";
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(qNum)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
   <div class="hero-container">
@@ -161,13 +176,13 @@ export function quotationDocument(row) {
   </div>
   <div class="doc-header cols-4">
     <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
-    <div class="doc-title"><h1>QUOTATION</h1><b>${esc(row.capacity_kw)} kW ${esc(row.quotation_type ?? "Solar Power System")}</b></div>
-    <div class="meta">Date<b>${esc(row.quotation_date)}</b></div>
-    <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
+    <div class="doc-title"><h1>QUOTATION</h1><b>${esc(qCap)} kW ${esc(qType)}</b></div>
+    <div class="meta">Date<b>${esc(qDate)}</b></div>
+    <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
   </div>
   <section class="party">
     <div><b>A1 SOLAR SOLUTION</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>VISHNUPUR KAIJU PATEHPUR VAISHALI BIHA</div>
-    <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}${customer.email ? `<br>Email: ${esc(customer.email)}` : ""}${customer.gst_number ? `<br>GSTIN: ${esc(customer.gst_number)}` : ""}<br>${esc(row.installation_address)}</div>
+    <div><b>${esc(custName)}</b><br>Mobile: ${esc(custMobile)}${custEmail ? `<br>Email: ${esc(custEmail)}` : ""}${custGst ? `<br>GSTIN: ${esc(custGst)}` : ""}<br>${esc(custAddress)}</div>
   </section>
   <section class="products">
     <table>
@@ -202,8 +217,8 @@ export function quotationDocument(row) {
   <div class="doc-header cols-4" style="margin-top:8mm">
     <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
-    <div class="meta">Valid Until<b>${esc(row.valid_until)}</b></div>
-    <div class="meta">Quotation #<b>${esc(row.quotation_number)}</b></div>
+    <div class="meta">Valid Until<b>${esc(qValid)}</b></div>
+    <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
   </div>
   <div class="terms">
     <h2>Payment Terms</h2>
