@@ -130,8 +130,11 @@ export function quotationDocument(row) {
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const header = `${origin}/document-assets/solar-document-header.png`;
-  const signature = `${origin}/document-assets/vendor-authorized-signature.png`;
-  const logoUrl = `${origin}${logo}`;
+
+  const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
+  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}${logo}`;
+  const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const itemRows = items.map((item, i) => {
     const product = item.products ?? {};
@@ -149,11 +152,11 @@ export function quotationDocument(row) {
   }).join("") || `<tr><td colspan="7">No line items recorded</td></tr>`;
 
   const grandTotal = Number(row.grand_total ?? row.grandTotal ?? row.total ?? 0);
-  const bankAccHolder = row.account_holder || row.payment_details?.account_holder || "A1 SOLAR SOLUTION";
-  const bankName = row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
-  const bankBranch = row.bank_branch || row.payment_details?.branch || "TAJPUR";
-  const bankAccNo = row.account_no || row.payment_details?.account_no || "9335002100003167";
-  const bankIfsc = row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
+  const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
+  const bankName = row.bank_details?.bankName || row.bank_details?.bank_name || row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
+  const bankBranch = row.bank_details?.branch || row.bank_branch || row.payment_details?.branch || "TAJPUR";
+  const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "9335002100003167";
+  const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
 
   const custName = customer.name || row.customer_name || row.customerName || "—";
   const custMobile = customer.mobile || row.customer_mobile || row.customerMobile || "—";
@@ -171,17 +174,17 @@ export function quotationDocument(row) {
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
   <div class="hero-container">
-    <img class="hero" src="${esc(header)}" alt="A1 Solar Solution Header Banner">
+    <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
   <div class="doc-header cols-4">
-    <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
+    <img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(qCap)} kW ${esc(qType)}</b></div>
     <div class="meta">Date<b>${esc(qDate)}</b></div>
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
   </div>
   <section class="party">
-    <div><b>A1 SOLAR SOLUTION</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>VISHNUPUR KAIJU PATEHPUR VAISHALI BIHA</div>
+    <div><b>${esc(companyName)}</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>${esc(companyAddress)}</div>
     <div><b>${esc(custName)}</b><br>Mobile: ${esc(custMobile)}${custEmail ? `<br>Email: ${esc(custEmail)}` : ""}${custGst ? `<br>GSTIN: ${esc(custGst)}` : ""}<br>${esc(custAddress)}</div>
   </section>
   <section class="products">
@@ -208,7 +211,7 @@ export function quotationDocument(row) {
     </div>
     <div class="vsig">
       <img src="${esc(signature)}" alt="Proprietor signature">
-      <b>A1 SOLAR SOLUTION<br>PROPRIETOR</b>
+      <b>${esc(companyName)}<br>PROPRIETOR</b>
     </div>
   </section>
 
