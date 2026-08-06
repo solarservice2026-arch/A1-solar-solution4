@@ -1,6 +1,6 @@
 # A1 Solar Solution Platform (Enterprise MERN Architecture & Multi-Tenant Data Isolation)
 
-Enterprise-grade MERN stack platform (MongoDB, Express.js, React, Node.js) for **A1 Solar Solution**. Includes CRM, Customer Portal, Admin Dashboard, Automated Document Management (Quotations, Invoices, Agreements, Contracts, Estimates, Attachments, Notes), and complete Multi-Tenant Owner-Based Data Isolation.
+Enterprise-grade MERN stack platform (MongoDB, Express.js, React, Node.js) for **A1 Solar Solution**. Includes CRM, Customer Portal, Admin Dashboard, Automated Document Management (Quotations, Invoices, Agreements, Contracts, Estimates, Attachments, Notes), Admin Branding Customizations, and complete Multi-Tenant Owner-Based Data Isolation.
 
 ---
 

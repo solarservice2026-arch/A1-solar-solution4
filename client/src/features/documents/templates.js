@@ -1,5 +1,3 @@
-import logo from "../../assets/a1-solar-logo-transparent.png";
-
 const esc = (value) =>
   String(value ?? "—").replace(
     /[&<>"']/g,
@@ -133,7 +131,7 @@ export function quotationDocument(row) {
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}${logo}`;
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}/logo.png`;
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const itemRows = items.map((item, i) => {
@@ -271,7 +269,7 @@ export function invoiceDocument(row) {
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}${logo}`;
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}/logo.png`;
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
