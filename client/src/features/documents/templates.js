@@ -465,8 +465,8 @@ ${sharedCss()}
       <div class="agr-sig-card">
         <div>
           <b>Second Party (Vendor)</b><br>
-          Name: <b>A1 SOLAR SOLUTIONS</b><br>
-          Address: <b>VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR</b><br>
+          Name: <b>${esc(companyName)}</b><br>
+          Address: <b>${esc(companyAddress)}</b><br>
           Signature:<br>
           <img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(vendorSign)}" alt="Vendor signature" onerror="this.style.display='none'">
         </div>
