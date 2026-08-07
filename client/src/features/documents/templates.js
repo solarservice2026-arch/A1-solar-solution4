@@ -88,7 +88,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .payment h2{color:#586bc5;font-size:13px;margin:0 0 4px}
 .payment{font-size:12px;font-weight:700;line-height:1.6}
 .vsig{text-align:center}
-.vsig img{width:54mm;height:21mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(1.08);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.vsig img{width:54mm;height:21mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(250%) brightness(140%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .vsig b{display:block;color:#1a3a6b;font-size:11px;margin-top:2px}
 .status-bar{padding:0 14mm 4mm;display:flex;justify-content:space-between;color:#666;font-size:11px}
 /* ─── Terms section (quotation page 2) ─── */
@@ -97,7 +97,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .terms p{margin:4px 0}
 .sig-row{display:flex;justify-content:flex-end;padding:8mm 14mm 6mm;align-items:end}
 .sig-block{text-align:center}
-.sig-block img{display:block;width:54mm;height:21mm;object-fit:contain;margin:0 auto 4px;mix-blend-mode:multiply;filter:contrast(1.08);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.sig-block img{display:block;width:54mm;height:21mm;object-fit:contain;margin:0 auto 4px;mix-blend-mode:multiply;filter:contrast(250%) brightness(140%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .sig-line{border-top:1px solid #333;padding-top:5px;font-size:11px}
 /* ─── Agreement pages ─── */
 .page{break-after:page;page-break-after:always}.page:last-of-type{break-after:auto;page-break-after:auto}
@@ -112,7 +112,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .disclaimer{font-size:8px;border-top:1px solid #aaa;padding-top:2mm;margin-top:5mm}
 /* ─── Stamp ─── */
 .stamp-wrap{text-align:center;margin:3mm 0 2mm}
-.stamp{display:block;width:140mm;height:16mm;object-fit:contain;margin:0 auto;mix-blend-mode:multiply;filter:contrast(1.08);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.stamp{display:block;width:140mm;height:16mm;object-fit:contain;margin:0 auto;mix-blend-mode:multiply;filter:contrast(250%) brightness(140%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .annexure{text-align:right;font-weight:700;font-size:10px;margin-bottom:1mm}
 .agr-title{text-align:center;font-size:11px;font-weight:700;margin:2mm 8mm}
 /* ─── Misc ─── */
