@@ -52,7 +52,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .hero-container{position:relative;width:100%;height:68mm;overflow:hidden}
 .hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
-.hero-patch{position:absolute;top:0;right:0;width:26%;height:46%;background:linear-gradient(135deg,#72aee6 0%,#468bcd 50%,#347dbd 100%);z-index:2;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-patch{position:absolute;top:0;right:0;width:22%;height:44%;backdrop-filter:blur(16px) contrast(110%);-webkit-backdrop-filter:blur(16px) contrast(110%);background:radial-gradient(ellipse at center, rgba(100,165,225,0.75) 0%, rgba(60,135,210,0.85) 100%);border-bottom-left-radius:50%;z-index:2;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
