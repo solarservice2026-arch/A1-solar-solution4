@@ -235,8 +235,8 @@ export function quotationDocument(row) {
   </div>
   <div class="sig-row">
     <div class="sig-block">
-      <img src="${esc(signature)}" alt="A1 Solar proprietor signature">
-      <div class="sig-line"><b>For A1 Solar Solution</b><br>Authorized Signatory / Proprietor</div>
+      <img src="${esc(signature)}" alt="Proprietor signature">
+      <div class="sig-line"><b>For ${esc(companyName)}</b><br>Authorized Signatory / Proprietor</div>
     </div>
   </div>
 </main>
