@@ -52,6 +52,7 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 .hero-container{position:relative;width:100%;height:68mm;overflow:hidden}
 .hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
+.hero-patch{position:absolute;top:0;right:0;width:26%;height:46%;background:linear-gradient(135deg,#72aee6 0%,#468bcd 50%,#347dbd 100%);z-index:2;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -174,6 +175,7 @@ export function quotationDocument(row) {
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
+    ${!isSuperAdmin ? `<div class="hero-patch"></div>` : ""}
   </div>
   <div class="doc-header cols-4">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
@@ -285,6 +287,7 @@ export function invoiceDocument(row) {
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
+    ${!isSuperAdmin ? `<div class="hero-patch"></div>` : ""}
   </div>
   <div class="doc-header cols-4">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
