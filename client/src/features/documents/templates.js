@@ -130,7 +130,8 @@ export function quotationDocument(row) {
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}/logo.png`;
+  const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName);
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const itemRows = items.map((item, i) => {
@@ -175,7 +176,7 @@ export function quotationDocument(row) {
     <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
   <div class="doc-header cols-4">
-    <img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">
+    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(qCap)} kW ${esc(qType)}</b></div>
     <div class="meta">Date<b>${esc(qDate)}</b></div>
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
@@ -215,7 +216,7 @@ export function quotationDocument(row) {
   <div class="page-break"></div>
 
   <div class="doc-header cols-4" style="margin-top:8mm">
-    <img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">
+    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
     <div class="meta">Valid Until<b>${esc(qValid)}</b></div>
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
@@ -268,7 +269,8 @@ export function invoiceDocument(row) {
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || `${origin}/logo.png`;
+  const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName);
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
@@ -285,7 +287,7 @@ export function invoiceDocument(row) {
     <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
   <div class="doc-header cols-4">
-    <img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">
+    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
     <div class="meta">Date<b>${esc(row.invoice_date)}</b></div>
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
