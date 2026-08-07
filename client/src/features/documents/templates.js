@@ -126,7 +126,7 @@ export function quotationDocument(row) {
   const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
@@ -265,7 +265,7 @@ export function invoiceDocument(row) {
 
   const balance = Math.max(0, Number(row.total || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
