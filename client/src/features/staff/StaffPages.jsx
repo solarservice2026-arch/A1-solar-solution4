@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
+import { removeImageBackground } from "../../lib/imageUtils.js";
 
 export function StaffList() {
   const { user } = useAuth();
@@ -123,7 +124,11 @@ export function StaffForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setCompanyLogoUrl(String(ev.target?.result || ""));
+    reader.onload = async (ev) => {
+      const raw = String(ev.target?.result || "");
+      const clean = await removeImageBackground(raw);
+      setCompanyLogoUrl(clean);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -131,7 +136,11 @@ export function StaffForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setCompanySignatureUrl(String(ev.target?.result || ""));
+    reader.onload = async (ev) => {
+      const raw = String(ev.target?.result || "");
+      const clean = await removeImageBackground(raw);
+      setCompanySignatureUrl(clean);
+    };
     reader.readAsDataURL(file);
   };
 
