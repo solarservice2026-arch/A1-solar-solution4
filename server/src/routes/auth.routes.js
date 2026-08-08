@@ -53,6 +53,9 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
       const passwordHash = userDoc.password_hash;
       const isValid = passwordHash ? bcryptjs.compareSync(password, passwordHash) : false;
       if (isValid) {
+        if (userDoc.status === "Disabled" || userDoc.active === false || userDoc.is_active === false) {
+          throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
+        }
         let userRoles = [];
         if (userDoc.role && userDoc.role !== "customer") {
           userRoles = [userDoc.role];
@@ -135,6 +138,10 @@ authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
     } catch {}
     if (!userDoc && req.auth.email) {
       userDoc = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
+    }
+
+    if (userDoc && (userDoc.status === "Disabled" || userDoc.active === false || userDoc.is_active === false)) {
+      throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
     }
 
     return success(res, "Current user retrieved", {
@@ -283,7 +290,7 @@ usersRouter.patch("/:id/status", requirePermission("users:disable"), asyncHandle
     }
     await db.collection("users").updateOne(
       query,
-      { $set: { status: active ? "Active" : "Disabled" } }
+      { $set: { status: active ? "Active" : "Disabled", active: Boolean(active), is_active: Boolean(active) } }
     );
     return success(res, "Account status updated", { id: paramId, active });
   }
@@ -639,7 +646,7 @@ function statusAction(active) {
       }
       await db.collection("users").updateOne(
         query,
-        { $set: { status: active ? "Active" : "Disabled" } }
+        { $set: { status: active ? "Active" : "Disabled", active: Boolean(active), is_active: Boolean(active) } }
       );
       return success(res, active ? "Staff activated" : "Staff disabled", { id, active });
     }

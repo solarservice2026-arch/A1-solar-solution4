@@ -83,6 +83,27 @@ export class MongoAuthProvider {
       try {
         const decoded = jwt.verify(accessToken, JWT_SECRET);
         if (decoded && decoded.userId) {
+          try {
+            const mongoose = (await import("mongoose")).default;
+            if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+              const { ObjectId } = await import("mongodb");
+              let filter = { email: decoded.email };
+              if (ObjectId.isValid(decoded.userId)) {
+                filter = { $or: [{ _id: new ObjectId(decoded.userId) }, { email: decoded.email }] };
+              }
+              const dbUser = await mongoose.connection.db.collection("users").findOne(filter);
+              if (dbUser && (dbUser.status === "Disabled" || dbUser.active === false || dbUser.is_active === false)) {
+                return {
+                  userId: decoded.userId,
+                  email: decoded.email,
+                  active: false,
+                  roles: decoded.roles,
+                  permissions: decoded.permissions,
+                };
+              }
+            }
+          } catch {}
+
           return {
             userId: decoded.userId,
             email: decoded.email,

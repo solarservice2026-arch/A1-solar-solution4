@@ -12,7 +12,7 @@ export async function requireAuth(req, _res, next) {
   if (!header?.startsWith("Bearer ")) return next(new AppError(401, "Authentication required", "UNAUTHORIZED"));
   const context = await provider.resolve(header.slice(7));
   if (!context) return next(new AppError(401, "Session is invalid or expired", "INVALID_SESSION"));
-  if (!context.active) return next(new AppError(403, "Account is disabled", "ACCOUNT_DISABLED"));
+  if (!context.active) return next(new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED"));
   
   req.auth = context;
   req.user = {
