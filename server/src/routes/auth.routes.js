@@ -48,14 +48,18 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
   // 2. Check MongoDB users collection
   if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
     const db = mongoose.connection.db;
-    const userDoc = await db.collection("users").findOne({ email: normalizedEmail });
+    const userDoc = await db.collection("users").findOne({
+      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') }
+    });
     if (userDoc) {
+      if (userDoc.status === "Disabled" || userDoc.active === false || userDoc.is_active === false) {
+        throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
+      }
       const passwordHash = userDoc.password_hash;
       const isValid = passwordHash ? bcryptjs.compareSync(password, passwordHash) : false;
-      if (isValid) {
-        if (userDoc.status === "Disabled" || userDoc.active === false || userDoc.is_active === false) {
-          throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
-        }
+      if (!isValid) {
+        throw new AppError(401, "Invalid email or password. Please verify your credentials.", "INVALID_CREDENTIALS");
+      }
         let userRoles = [];
         if (userDoc.role && userDoc.role !== "customer") {
           userRoles = [userDoc.role];
@@ -119,7 +123,6 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
           roles: userRoles,
           permissions,
         });
-      }
     }
   }
 

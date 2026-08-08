@@ -53,8 +53,8 @@ export function LoginPage() {
           />
         </label>
         {error && (
-          <div className="form-error" role="alert">
-            {error}
+          <div className="form-error" role="alert" style={{ background: "#fee2e2", border: "1px solid #ef4444", color: "#b91c1c", padding: "12px 14px", borderRadius: "6px", margin: "14px 0", fontSize: "13px", fontWeight: 600, lineHeight: 1.4 }}>
+            🚫 {error}
           </div>
         )}
         <button disabled={loading} className="primary">
