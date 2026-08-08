@@ -169,7 +169,8 @@ export function quotationDocument(row) {
   const qDate = row.quotation_date || row.quotationDate || "—";
   const qValid = row.valid_until || row.validUntil || "—";
   const qCap = row.capacity_kw || row.capacityKw || "—";
-  const qType = row.quotation_type || row.quotationType || "Solar Power System";
+  const rawCap = row.capacity_kw || row.capacityKw || "3";
+  const capStr = String(rawCap).toUpperCase().includes("KW") ? String(rawCap) : `${rawCap}KW`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(qNum)}</title>
 <style>${sharedCss()}</style></head><body>
@@ -232,16 +233,16 @@ export function quotationDocument(row) {
   </div>
   <div class="terms">
     <h2>Payment Terms</h2>
-    <p>${esc(row.payment_terms ?? "Advance payment on order confirmation; balance after installation completion. Payment percentages are governed by the approved business template.")}</p>
+    <p>70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.</p>
     <h2>Delivery &amp; Installation</h2>
-    <p>${esc(row.installation_terms ?? "Installation begins after advance payment and is subject to site readiness, approvals and material availability. Additional civil or electrical work is charged separately.")}</p>
+    <p>Delivery and installation process will begin only after receiving the advance payment. Installation timeline: 7–15 working days depending on site condition and material availability. Customer must ensure proper site access, safety, and necessary approvals at the installation location. Any additional civil or electrical work required at the site will be chargeable. Civil Work is to be done by the customer at their own cost.</p>
     <h2>Guarantee &amp; Support</h2>
-    <p>${esc(row.warranty_terms ?? "Solar panels, inverter and components carry their respective manufacturer warranties. Physical damage, misuse, theft, fire and natural calamities are excluded unless expressly covered.")}</p>
+    <p>Solar Panels: Up to 30 years performance guarantee as per manufacturer policy. Inverter &amp; Other Components: Standard manufacturer guarantee shall apply. 1-year free service support shall be provided from the date of installation. Guarantee shall not cover physical damage, mishandling, fire, theft, or natural calamities.</p>
     <h2>System Components</h2>
-    <p><b>Solar Panels:</b> High-efficiency modules selected for the approved capacity.</p>
-    <p><b>Inverter:</b> Grid-compatible inverter sized for the system.</p>
-    <p><b>Mounting Structure:</b> Site-specific structure designed for safe placement.</p>
-    <p><b>Monitoring:</b> Performance monitoring subject to selected equipment.</p>
+    <p style="margin-top:6px"><b style="color:#1a3a6b">Solar Panels</b><br>We propose using high-efficiency solar panels from renowned brands, such as ${esc(primaryBrand)} with a total capacity of ${esc(capStr)}</p>
+    <p style="margin-top:6px"><b style="color:#1a3a6b">Inverter</b><br>We recommend reliable and industry-standard ON grid inverters from brands like ${esc(primaryBrand)} based on the system's size and requirements.</p>
+    <p style="margin-top:6px"><b style="color:#1a3a6b">Mounting Structure</b><br>Customized GI mounting structures will be designed and installed to optimize the placement and efficiency of the solar panels</p>
+    <p style="margin-top:6px"><b style="color:#1a3a6b">Monitoring System</b><br>A real-time monitoring system will be implemented to track the system's performance and ensure optimal operation.</p>
   </div>
   <div class="sig-row">
     <div class="sig-block">
