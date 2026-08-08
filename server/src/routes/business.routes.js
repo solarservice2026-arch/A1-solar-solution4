@@ -1523,16 +1523,33 @@ profileRouter.use(requireAuth);
 profileRouter.patch(
   "/",
   asyncHandler(async (req, res) => {
-    const { fullName, phone } = req.body;
+    const { fullName, phone, companyName, companyAddress, companyLogoUrl, companySignatureUrl, bankDetails } = req.body;
     if (!fullName) throw new AppError(400, "Full name is required", "VALIDATION_ERROR");
     const mongo = await getMongoDb();
     const { ObjectId } = await import("mongodb");
     const userId = req.user?._id || req.auth?.userId;
-    await mongo.collection("users").updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { name: fullName, phone: phone || null, updatedBy: userId } }
-    );
-    return success(res, "Profile updated", { id: userId, fullName, phone });
+    const email = req.user?.email || req.auth?.email;
+
+    const setFields = {
+      name: fullName,
+      phone: phone || null,
+      updatedBy: userId,
+      ...(companyName !== undefined ? { company_name: companyName } : {}),
+      ...(companyAddress !== undefined ? { company_address: companyAddress } : {}),
+      ...(companyLogoUrl !== undefined ? { company_logo_url: companyLogoUrl } : {}),
+      ...(companySignatureUrl !== undefined ? { company_signature_url: companySignatureUrl } : {}),
+      ...(bankDetails !== undefined ? { bank_details: bankDetails } : {}),
+    };
+
+    let query = {};
+    if (userId && ObjectId.isValid(userId)) {
+      query = { $or: [{ _id: new ObjectId(userId) }, ...(email ? [{ email: String(email).trim().toLowerCase() }] : [])] };
+    } else if (email) {
+      query = { email: String(email).trim().toLowerCase() };
+    }
+
+    await mongo.collection("users").updateMany(query, { $set: setFields });
+    return success(res, "Profile updated successfully", { id: userId, fullName, phone, ...setFields });
   }),
 );
 

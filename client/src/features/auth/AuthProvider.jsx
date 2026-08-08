@@ -118,6 +118,11 @@ async function fetchCurrent(token) {
         email: body.data.user.email,
         fullName: body.data.user.full_name,
         active: body.data.user.active,
+        company_name: body.data.user.company_name || null,
+        company_address: body.data.user.company_address || null,
+        company_logo_url: body.data.user.company_logo_url || null,
+        company_signature_url: body.data.user.company_signature_url || null,
+        bank_details: body.data.user.bank_details || null,
         roles: body.data.roles,
         permissions: body.data.permissions,
       };
@@ -256,6 +261,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
+    currentProfileRequest = null;
     await restoreSession();
   }, [restoreSession]);
 

@@ -122,12 +122,18 @@ export function AppShell() {
   const crumb =
     items.find((i) => i.to === location.pathname)?.label ?? "Workspace";
 
+  const userLogo = user?.company_logo_url || user?.companyLogoUrl || user?.companyLogo || user?.logo;
+
   return (
     <div className="app-layout">
       <aside className={open ? "app-sidebar open" : "app-sidebar"}>
         <div className="app-logo" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link to="/" style={{ display: "flex", alignItems: "center" }}>
-            <img src={logo} alt="A1 Solar Solution" style={{ height: "60px", width: "auto", objectFit: "contain" }} />
+          <Link to="/app" style={{ display: "flex", alignItems: "center" }}>
+            <img
+              src={userLogo || logo}
+              alt={user?.company_name || "A1 Solar Solution"}
+              style={{ height: "55px", maxWidth: "180px", width: "auto", objectFit: "contain", maxHeight: "55px" }}
+            />
           </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu">
             <X />

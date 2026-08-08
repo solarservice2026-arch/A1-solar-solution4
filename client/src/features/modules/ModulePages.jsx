@@ -2,6 +2,7 @@ import { BarChart3, FileText, Package, Settings, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../lib/api.js";
+import { removeImageBackground } from "../../lib/imageUtils.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import {
   agreementDocument,
@@ -1375,7 +1376,26 @@ export function SettingsPage() {
 }
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
+  const [companyLogoUrl, setCompanyLogoUrl] = useState(user?.company_logo_url || user?.companyLogoUrl || null);
+
+  useEffect(() => {
+    if (user?.company_logo_url || user?.companyLogoUrl) {
+      setCompanyLogoUrl(user.company_logo_url || user.companyLogoUrl);
+    }
+  }, [user]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const raw = String(ev.target?.result || "");
+      const clean = await removeImageBackground(raw);
+      setCompanyLogoUrl(clean);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const profile = async (e) => {
     e.preventDefault();
@@ -1386,9 +1406,13 @@ export function ProfilePage() {
         body: JSON.stringify({
           fullName: form.get("fullName"),
           phone: form.get("phone") || null,
+          companyName: form.get("companyName") || null,
+          companyAddress: form.get("companyAddress") || null,
+          companyLogoUrl: companyLogoUrl,
         }),
       });
-      toast.success("Profile updated");
+      toast.success("Profile & Company logo updated successfully");
+      if (refreshProfile) await refreshProfile();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Profile update failed");
     }
@@ -1417,18 +1441,40 @@ export function ProfilePage() {
     <main className="app-page">
       <span className="kicker">MY ACCOUNT</span>
       <h1>Profile & security</h1>
-      <div className="detail-grid">
+      <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "24px" }}>
         <form className="card operational-form" onSubmit={profile}>
-          <h2>Profile</h2>
+          <h2>Profile & Company Branding</h2>
           <label>
             Full name
-            <input name="fullName" defaultValue={user?.fullName} required />
+            <input name="fullName" defaultValue={user?.fullName || user?.full_name} required />
           </label>
           <label>
             Phone
-            <input name="phone" />
+            <input name="phone" defaultValue={user?.phone} />
           </label>
-          <button className="primary">Update profile</button>
+          <label>
+            Company Name
+            <input name="companyName" defaultValue={user?.company_name || user?.companyName} placeholder="Your Company Name" />
+          </label>
+          <label>
+            Company Address
+            <textarea name="companyAddress" defaultValue={user?.company_address || user?.companyAddress} rows={2} placeholder="Your Company Address" />
+          </label>
+
+          <label style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+            <span>Company Logo (Top Left Corner Logo)</span>
+            <input type="file" accept="image/*" onChange={handleLogoUpload} />
+            {companyLogoUrl ? (
+              <div style={{ marginTop: "8px", padding: "12px", background: "#0a2e36", borderRadius: "8px", display: "flex", alignItems: "center", gap: "16px" }}>
+                <img src={companyLogoUrl} alt="Logo Preview" style={{ height: "45px", maxWidth: "160px", objectFit: "contain" }} />
+                <button type="button" onClick={() => setCompanyLogoUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "5px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}>Remove Logo</button>
+              </div>
+            ) : (
+              <small style={{ color: "#666" }}>Upload PNG/JPG logo (Background is automatically cleaned for a sleek dark sidebar header look)</small>
+            )}
+          </label>
+
+          <button className="primary" style={{ marginTop: "20px" }}>Save Profile & Logo</button>
         </form>
         <form className="card operational-form" onSubmit={password}>
           <h2>Change password</h2>
