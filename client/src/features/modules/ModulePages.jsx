@@ -89,8 +89,8 @@ function DataPage({
   const [isCustomCustomer, setIsCustomCustomer] = useState(false);
 
   useEffect(() => {
-    if (open && (title === "Quotations" || title === "Invoices" || title === "Agreements")) {
-      const fetchData = async () => {
+    if (title === "Quotations" || title === "Invoices" || title === "Agreements") {
+      const loadMasterData = async () => {
         try {
           if (title === "Quotations" || title === "Invoices") {
             const res = await api("/products");
@@ -98,22 +98,33 @@ function DataPage({
           }
           const custRes = await api("/customers");
           if (Array.isArray(custRes)) setAvailableCustomers(custRes);
+        } catch (e) {}
+      };
+      void loadMasterData();
+    }
+  }, [title]);
 
-          // Fetch next auto-generated number
-          if (title === "Quotations") {
-            const firstBrand = qItems[0]?.brand || "LivFast";
-            const numRes = await api(`/next-number/QOT?brand=${encodeURIComponent(firstBrand)}`);
-            if (numRes?.nextNumber) setQNumber(numRes.nextNumber);
-          } else if (title === "Invoices") {
-            const firstBrand = iItems[0]?.brand || "A1 Solution";
-            const numRes = await api(`/next-number/INV?brand=${encodeURIComponent(firstBrand)}`);
-            if (numRes?.nextNumber) setINumber(numRes.nextNumber);
-          } else if (title === "Agreements") {
-            const numRes = await api(`/next-number/AGR?brand=LivFast`);
-            if (numRes?.nextNumber) setANumber(numRes.nextNumber);
+  useEffect(() => {
+    if (open && (title === "Quotations" || title === "Invoices" || title === "Agreements")) {
+      const fetchData = async () => {
+        try {
+          if (!editingRow) {
+            // Fetch next auto-generated number for new creation
+            if (title === "Quotations") {
+              const firstBrand = qItems[0]?.brand || "LivFast";
+              const numRes = await api(`/next-number/QOT?brand=${encodeURIComponent(firstBrand)}`);
+              if (numRes?.nextNumber) setQNumber(numRes.nextNumber);
+            } else if (title === "Invoices") {
+              const firstBrand = iItems[0]?.brand || "A1 Solution";
+              const numRes = await api(`/next-number/INV?brand=${encodeURIComponent(firstBrand)}`);
+              if (numRes?.nextNumber) setINumber(numRes.nextNumber);
+            } else if (title === "Agreements") {
+              const numRes = await api(`/next-number/AGR?brand=LivFast`);
+              if (numRes?.nextNumber) setANumber(numRes.nextNumber);
+            }
           }
         } catch (e) {
-          console.error("Failed to load data", e);
+          console.error("Failed to load document sequence number", e);
         }
       };
       void fetchData();
@@ -121,7 +132,41 @@ function DataPage({
     if (!open) {
       setIsCustomCustomer(false);
     }
-  }, [open, title]);
+  }, [open, title, editingRow]);
+
+  useEffect(() => {
+    if (open && editingRow && availableCustomers.length > 0) {
+      const custName = editingRow.customer_name || editingRow.customerName || editingRow.customers?.name || "";
+      const custMobile = editingRow.customer_mobile || editingRow.customerMobile || editingRow.customers?.mobile || "";
+      const found = availableCustomers.find(
+        c => (c.name && custName && c.name.trim().toLowerCase() === custName.trim().toLowerCase()) ||
+             (c.mobile && custMobile && c.mobile.trim() === custMobile.trim()) ||
+             (c.id && editingRow.customer_id && String(c.id) === String(editingRow.customer_id))
+      );
+      if (found) {
+        const emailVal = editingRow.customer_email || editingRow.customerEmail || editingRow.customers?.email || found.email || "";
+        const gstVal = editingRow.customer_gst || editingRow.customerGst || editingRow.customers?.gst_number || editingRow.customers?.gstNumber || editingRow.customer_gstin || found.gst_number || found.gstNumber || found.gstin || "";
+        const mobileVal = custMobile || found.mobile || "";
+        const addressVal = editingRow.consumer_address || editingRow.consumerAddress || editingRow.installation_address || editingRow.customers?.address || found.address || "";
+
+        if (title === "Quotations") {
+          setQCustEmail(emailVal);
+          setQCustGst(gstVal);
+          setQCustMobile(mobileVal);
+          setQAddress(addressVal);
+        } else if (title === "Invoices") {
+          setICustEmail(emailVal);
+          setICustGst(gstVal);
+          setICustMobile(mobileVal);
+          setIAddress(addressVal);
+        } else if (title === "Agreements") {
+          setACustEmail(emailVal);
+          setACustMobile(mobileVal);
+          setAAddress(addressVal);
+        }
+      }
+    }
+  }, [open, editingRow, availableCustomers, title]);
 
   // ─── CUSTOM FORMS STATES ───
   // Quotation States
