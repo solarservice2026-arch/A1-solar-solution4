@@ -9,6 +9,19 @@ import { testAccountMap, fullPermissions } from "../lib/provider.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "a1-solar-secret-key-2026-safe";
 
+function isUserDisabled(doc) {
+  if (!doc) return false;
+  const statusStr = String(doc.status || "").toLowerCase().trim();
+  if (statusStr === "disabled" || statusStr === "inactive" || statusStr === "blocked" || statusStr === "deactivated") {
+    return true;
+  }
+  if (doc.active === false || doc.active === "false") return true;
+  if (doc.is_active === false || doc.is_active === "false") return true;
+  if (doc.disabled === true || doc.disabled === "true") return true;
+  if (doc.blocked === true || doc.blocked === "true") return true;
+  return false;
+}
+
 export const authRouter = Router();
 
 authRouter.post("/login", asyncHandler(async (req, res) => {
@@ -17,8 +30,26 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
     throw new AppError(400, "Email and password are required", "VALIDATION_ERROR");
   }
   const normalizedEmail = String(email).trim().toLowerCase();
-  
-  // 1. Check test accounts mock list
+
+  // 1. FIRST: Check MongoDB for disabled status for this email (in users or customers)
+  if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+    const db = mongoose.connection.db;
+    const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+    
+    const dbUser = await db.collection("users").findOne({
+      $or: [{ email: normalizedEmail }, { email: regexEmail }]
+    });
+
+    const dbCust = await db.collection("customers").findOne({
+      $or: [{ email: normalizedEmail }, { email: regexEmail }]
+    });
+
+    if (isUserDisabled(dbUser) || isUserDisabled(dbCust)) {
+      throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
+    }
+  }
+
+  // 2. Check test accounts mock list
   const testUser = testAccountMap[normalizedEmail];
   if (testUser && testUser.pass === password) {
     const token = jwt.sign(
@@ -45,14 +76,16 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
     });
   }
 
-  // 2. Check MongoDB users collection
+  // 3. Check MongoDB users collection for login authentication
   if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
     const db = mongoose.connection.db;
+    const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
     const userDoc = await db.collection("users").findOne({
-      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') }
+      $or: [{ email: normalizedEmail }, { email: regexEmail }]
     });
+
     if (userDoc) {
-      if (userDoc.status === "Disabled" || userDoc.active === false || userDoc.is_active === false) {
+      if (isUserDisabled(userDoc)) {
         throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
       }
       const passwordHash = userDoc.password_hash;
@@ -647,10 +680,27 @@ function statusAction(active) {
       if (mongoose.Types.ObjectId.isValid(id)) {
         query = { $or: [ { _id: new ObjectId(id) }, { profile_id: id } ] };
       }
-      await db.collection("users").updateOne(
+
+      const targetUser = await db.collection("users").findOne(query);
+
+      await db.collection("users").updateMany(
         query,
         { $set: { status: active ? "Active" : "Disabled", active: Boolean(active), is_active: Boolean(active) } }
       );
+
+      if (targetUser?.email) {
+        const regexEmail = new RegExp(`^${targetUser.email.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+        await db.collection("customers").updateMany(
+          { $or: [{ email: targetUser.email }, { email: regexEmail }, { profile_id: id }] },
+          { $set: { status: active ? "Active" : "Disabled", active: Boolean(active), is_active: Boolean(active) } }
+        );
+      } else {
+        await db.collection("customers").updateMany(
+          { $or: [query, { profile_id: id }] },
+          { $set: { status: active ? "Active" : "Disabled", active: Boolean(active), is_active: Boolean(active) } }
+        );
+      }
+
       return success(res, active ? "Staff activated" : "Staff disabled", { id, active });
     }
     throw new AppError(503, "Database unavailable", "DATABASE_ERROR");
