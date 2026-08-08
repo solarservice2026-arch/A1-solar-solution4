@@ -364,12 +364,24 @@ function DataPage({
     }
 
     try {
-      await api(path, { method: "POST", body: JSON.stringify(body) });
-      toast.success(`${title.slice(0, -1)} created`);
+      if (editingRow) {
+        const targetId = (editingRow.id && String(editingRow.id).length === 24)
+          ? editingRow.id
+          : (editingRow._id && String(editingRow._id).length === 24)
+            ? editingRow._id
+            : (editingRow.id || editingRow._id || editingRow.quotation_number || editingRow.invoice_number || editingRow.agreement_number);
+
+        await api(`${path}/${targetId}`, { method: "PUT", body: JSON.stringify(body) });
+        toast.success(`${title.slice(0, -1)} updated successfully`);
+      } else {
+        await api(path, { method: "POST", body: JSON.stringify(body) });
+        toast.success(`${title.slice(0, -1)} created`);
+      }
       setOpen(false);
+      setEditingRow(null);
       await load();
     } catch (x) {
-      toast.error(x instanceof Error ? x.message : "Unable to create");
+      toast.error(x instanceof Error ? x.message : `Unable to ${editingRow ? "update" : "create"}`);
     }
   };
 
