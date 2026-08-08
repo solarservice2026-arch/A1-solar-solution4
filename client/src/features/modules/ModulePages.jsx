@@ -195,11 +195,36 @@ function DataPage({
       setQDate(row.quotation_date || row.quotationDate || "2026-04-25");
       setQCapacity(String(row.capacity_kw || row.capacityKw || "3"));
       setQType(row.quotation_type || row.quotationType || "ON-GRID SOLAR POWER SYSTEM");
-      setQCustName(row.customer_name || row.customerName || row.customers?.name || "");
-      setQCustMobile(row.customer_mobile || row.customerMobile || row.customers?.mobile || "");
-      setQCustEmail(row.customer_email || row.customerEmail || row.customers?.email || "");
-      setQCustGst(row.customer_gst || row.customerGst || row.customers?.gst_number || "");
-      setQAddress(row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "");
+
+      const custName = row.customer_name || row.customerName || row.customers?.name || "";
+      const custMobile = row.customer_mobile || row.customerMobile || row.customers?.mobile || "";
+      let custEmail = row.customer_email || row.customerEmail || row.customers?.email || "";
+      let custGst = row.customer_gst || row.customerGst || row.customers?.gst_number || row.customers?.gstNumber || row.customer_gstin || "";
+      const custAddress = row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "";
+
+      const foundCust = availableCustomers.find(
+        c => (c.name && custName && c.name.trim().toLowerCase() === custName.trim().toLowerCase()) ||
+             (c.mobile && custMobile && c.mobile.trim() === custMobile.trim()) ||
+             (c.id && row.customer_id && String(c.id) === String(row.customer_id))
+      );
+      if (foundCust) {
+        if (!custEmail) custEmail = foundCust.email || "";
+        if (!custGst) custGst = foundCust.gst_number || foundCust.gstNumber || foundCust.gstin || "";
+      }
+
+      const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
+      if (custName && !matchInList) {
+        setIsCustomCustomer(true);
+      } else {
+        setIsCustomCustomer(false);
+      }
+
+      setQCustName(matchInList ? matchInList.name : custName);
+      setQCustMobile(custMobile || (matchInList?.mobile || ""));
+      setQCustEmail(custEmail || (matchInList?.email || ""));
+      setQCustGst(custGst || (matchInList?.gst_number || ""));
+      setQAddress(custAddress || (matchInList?.address || ""));
+
       setQValid(row.valid_until || row.validUntil || "2026-05-25");
       setQCustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
 
@@ -209,22 +234,52 @@ function DataPage({
           ? row.items
           : [];
       if (rawItems.length > 0) {
-        setQItems(rawItems.map(item => ({
-          productName: item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product",
-          description: item.description ?? "",
-          brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
-          quantity: String(item.quantity ?? "1"),
-          unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
-        })));
+        setQItems(rawItems.map(item => {
+          const pName = item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product";
+          const matchedProd = availableProducts.find(p => p.name?.toLowerCase() === pName?.toLowerCase() || p.id === item.product_id);
+          return {
+            productId: matchedProd?.id || item.product_id || item.productId || (pName ? "custom" : ""),
+            productName: pName,
+            description: item.description ?? "",
+            brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
+            quantity: String(item.quantity ?? "1"),
+            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
+          };
+        }));
       }
     } else if (title === "Invoices") {
       setINumber(row.invoice_number || row.invoiceNumber || row.number || "");
       setITitle(row.title || "SOLAR POWER SYSTEM");
-      setICustName(row.customer_name || row.customerName || row.customers?.name || "");
-      setICustMobile(row.customer_mobile || row.customerMobile || row.customers?.mobile || "");
-      setICustEmail(row.customer_email || row.customerEmail || row.customers?.email || "");
-      setICustGst(row.customer_gst || row.customerGst || row.customers?.gst_number || "");
-      setIAddress(row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "");
+
+      const custName = row.customer_name || row.customerName || row.customers?.name || "";
+      const custMobile = row.customer_mobile || row.customerMobile || row.customers?.mobile || "";
+      let custEmail = row.customer_email || row.customerEmail || row.customers?.email || "";
+      let custGst = row.customer_gst || row.customerGst || row.customers?.gst_number || row.customers?.gstNumber || row.customer_gstin || "";
+      const custAddress = row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "";
+
+      const foundCust = availableCustomers.find(
+        c => (c.name && custName && c.name.trim().toLowerCase() === custName.trim().toLowerCase()) ||
+             (c.mobile && custMobile && c.mobile.trim() === custMobile.trim()) ||
+             (c.id && row.customer_id && String(c.id) === String(row.customer_id))
+      );
+      if (foundCust) {
+        if (!custEmail) custEmail = foundCust.email || "";
+        if (!custGst) custGst = foundCust.gst_number || foundCust.gstNumber || foundCust.gstin || "";
+      }
+
+      const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
+      if (custName && !matchInList) {
+        setIsCustomCustomer(true);
+      } else {
+        setIsCustomCustomer(false);
+      }
+
+      setICustName(matchInList ? matchInList.name : custName);
+      setICustMobile(custMobile || (matchInList?.mobile || ""));
+      setICustEmail(custEmail || (matchInList?.email || ""));
+      setICustGst(custGst || (matchInList?.gst_number || ""));
+      setIAddress(custAddress || (matchInList?.address || ""));
+
       setIDate(row.invoice_date || row.invoiceDate || "");
       setIDueDate(row.due_date || row.dueDate || "");
       setIPaidAmount(String(row.paid_amount ?? row.paidAmount ?? 0));
@@ -236,21 +291,49 @@ function DataPage({
           ? row.items
           : [];
       if (rawItems.length > 0) {
-        setIItems(rawItems.map(item => ({
-          productName: item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product",
-          description: item.description ?? "",
-          brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
-          quantity: String(item.quantity ?? "1"),
-          unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
-        })));
+        setIItems(rawItems.map(item => {
+          const pName = item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product";
+          const matchedProd = availableProducts.find(p => p.name?.toLowerCase() === pName?.toLowerCase() || p.id === item.product_id);
+          return {
+            productId: matchedProd?.id || item.product_id || item.productId || (pName ? "custom" : ""),
+            productName: pName,
+            description: item.description ?? "",
+            brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
+            quantity: String(item.quantity ?? "1"),
+            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
+          };
+        }));
       }
     } else if (title === "Agreements") {
       setANumber(row.agreement_number || row.agreementNumber || row.number || "");
       setADate(row.agreement_date || row.agreementDate || "");
-      setACustName(row.customer_name || row.customerName || row.customers?.name || "");
-      setACustMobile(row.customer_mobile || row.customerMobile || row.customers?.mobile || "");
-      setACustEmail(row.customer_email || row.customerEmail || row.customers?.email || "");
-      setAAddress(row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "");
+
+      const custName = row.customer_name || row.customerName || row.customers?.name || "";
+      const custMobile = row.customer_mobile || row.customerMobile || row.customers?.mobile || "";
+      let custEmail = row.customer_email || row.customerEmail || row.customers?.email || "";
+      const custAddress = row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "";
+
+      const foundCust = availableCustomers.find(
+        c => (c.name && custName && c.name.trim().toLowerCase() === custName.trim().toLowerCase()) ||
+             (c.mobile && custMobile && c.mobile.trim() === custMobile.trim()) ||
+             (c.id && row.customer_id && String(c.id) === String(row.customer_id))
+      );
+      if (foundCust) {
+        if (!custEmail) custEmail = foundCust.email || "";
+      }
+
+      const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
+      if (custName && !matchInList) {
+        setIsCustomCustomer(true);
+      } else {
+        setIsCustomCustomer(false);
+      }
+
+      setACustName(matchInList ? matchInList.name : custName);
+      setACustMobile(custMobile || (matchInList?.mobile || ""));
+      setACustEmail(custEmail || (matchInList?.email || ""));
+      setAAddress(custAddress || (matchInList?.address || ""));
+
       setAQuotationNumber(row.quotation_number || row.quotationNumber || "");
       setACapacity(String(row.capacity_kw || row.capacityKw || "3"));
       setAAmount(String(row.payment_amount ?? row.paymentAmount ?? 0));
@@ -502,11 +585,11 @@ function DataPage({
                   {isCustomCustomer ? (
                     <div style={{ display: 'flex', gap: '5px' }}>
                       <input style={{ flex: 1, minWidth: 0 }} value={qCustName} onChange={e => setQCustName(e.target.value)} placeholder="Type name" required autoFocus />
-                      <button type="button" onClick={() => { setIsCustomCustomer(false); setQCustName(""); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
+                      <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
                     </div>
                   ) : (
                     <select
-                      value={availableCustomers.some(c => c.name === qCustName) ? qCustName : ""}
+                      value={qCustName || ""}
                       onChange={e => {
                         const val = e.target.value;
                         if (val === "custom") {
@@ -518,6 +601,8 @@ function DataPage({
                           if (customer) {
                             setQCustMobile(customer.mobile || "");
                             setQCustEmail(customer.email || "");
+                            setQCustGst(customer.gst_number || customer.gstNumber || "");
+                            if (customer.address) setQAddress(customer.address);
                           }
                         }
                       }}
@@ -527,6 +612,9 @@ function DataPage({
                       {availableCustomers.map(c => (
                         <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
                       ))}
+                      {qCustName && !availableCustomers.some(c => c.name === qCustName) && (
+                        <option value={qCustName}>{qCustName}</option>
+                      )}
                       <option value="custom">+ Add Custom Name</option>
                     </select>
                   )}
@@ -647,11 +735,11 @@ function DataPage({
                   {isCustomCustomer ? (
                     <div style={{ display: 'flex', gap: '5px' }}>
                       <input style={{ flex: 1, minWidth: 0 }} value={iCustName} onChange={e => setICustName(e.target.value)} placeholder="Type name" required autoFocus />
-                      <button type="button" onClick={() => { setIsCustomCustomer(false); setICustName(""); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
+                      <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
                     </div>
                   ) : (
                     <select
-                      value={availableCustomers.some(c => c.name === iCustName) ? iCustName : ""}
+                      value={iCustName || ""}
                       onChange={e => {
                         const val = e.target.value;
                         if (val === "custom") {
@@ -663,6 +751,8 @@ function DataPage({
                           if (customer) {
                             setICustMobile(customer.mobile || "");
                             setICustEmail(customer.email || "");
+                            setICustGst(customer.gst_number || customer.gstNumber || "");
+                            if (customer.address) setIAddress(customer.address);
                           }
                         }
                       }}
@@ -672,6 +762,9 @@ function DataPage({
                       {availableCustomers.map(c => (
                         <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
                       ))}
+                      {iCustName && !availableCustomers.some(c => c.name === iCustName) && (
+                        <option value={iCustName}>{iCustName}</option>
+                      )}
                       <option value="custom">+ Add Custom Name</option>
                     </select>
                   )}
@@ -801,11 +894,11 @@ function DataPage({
                   {isCustomCustomer ? (
                     <div style={{ display: 'flex', gap: '5px' }}>
                       <input style={{ flex: 1, minWidth: 0 }} value={aCustName} onChange={e => setACustName(e.target.value)} placeholder="Type name" required autoFocus />
-                      <button type="button" onClick={() => { setIsCustomCustomer(false); setACustName(""); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
+                      <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
                     </div>
                   ) : (
                     <select
-                      value={availableCustomers.some(c => c.name === aCustName) ? aCustName : ""}
+                      value={aCustName || ""}
                       onChange={e => {
                         const val = e.target.value;
                         if (val === "custom") {
@@ -817,6 +910,7 @@ function DataPage({
                           if (customer) {
                             setACustMobile(customer.mobile || "");
                             setACustEmail(customer.email || "");
+                            if (customer.address) setAAddress(customer.address);
                           }
                         }
                       }}
@@ -826,6 +920,9 @@ function DataPage({
                       {availableCustomers.map(c => (
                         <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
                       ))}
+                      {aCustName && !availableCustomers.some(c => c.name === aCustName) && (
+                        <option value={aCustName}>{aCustName}</option>
+                      )}
                       <option value="custom">+ Add Custom Name</option>
                     </select>
                   )}
