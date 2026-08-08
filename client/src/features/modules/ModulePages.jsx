@@ -472,7 +472,7 @@ function DataPage({
           <p>{description}</p>
         </div>
         {canCreate && fields && (
-          <button className="primary" onClick={() => setOpen(true)}>
+          <button className="primary" onClick={() => { setEditingRow(null); setOpen(true); }}>
             New {title.slice(0, -1)}
           </button>
         )}
@@ -491,7 +491,7 @@ function DataPage({
         <div className="modal-backdrop">
           {title === "Quotations" ? (
             <form className="card modal-form" style={{ maxWidth: "920px", width: "95%", maxHeight: "92vh", overflowY: "auto", padding: "28px" }} onSubmit={submit}>
-              <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>Create Premium Quotation</h2>
+              <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>{editingRow ? "Edit Quotation" : "Create Premium Quotation"}</h2>
               <div className="create-form-grid">
                 <label>Quote Number<input value={qNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Quotation Date<input type="date" value={qDate} onChange={e => setQDate(e.target.value)} required /></label>
@@ -631,12 +631,12 @@ function DataPage({
 
               <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "16px" }}>
                 <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
-                <button className="primary">Create Quotation</button>
+                <button className="primary">{editingRow ? "Save Changes" : "Create Quotation"}</button>
               </div>
             </form>
           ) : title === "Invoices" ? (
             <form className="card modal-form" style={{ maxWidth: "920px", width: "95%", maxHeight: "92vh", overflowY: "auto", padding: "28px" }} onSubmit={submit}>
-              <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>Create Invoice</h2>
+              <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>{editingRow ? "Edit Invoice" : "Create Invoice"}</h2>
               <div className="create-form-grid">
                 <label>Invoice Number<input value={iNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Invoice Title<input value={iTitle} onChange={e => setITitle(e.target.value)} required /></label>
@@ -787,12 +787,12 @@ function DataPage({
 
               <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "16px" }}>
                 <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
-                <button className="primary">Create Invoice</button>
+                <button className="primary">{editingRow ? "Save Changes" : "Create Invoice"}</button>
               </div>
             </form>
           ) : title === "Agreements" ? (
             <form className="card modal-form" style={{ maxWidth: "780px", width: "95%", maxHeight: "90vh", overflowY: "auto" }} onSubmit={submit}>
-              <h2>Create Agreement</h2>
+              <h2>{editingRow ? "Edit Agreement" : "Create Agreement"}</h2>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <label>Agreement Number<input value={aNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Agreement Date<input type="date" value={aDate} onChange={e => setADate(e.target.value)} required /></label>
@@ -845,7 +845,7 @@ function DataPage({
 
               <div className="row-actions" style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", marginTop: "20px" }}>
                 <button type="button" className="secondary" onClick={() => setOpen(false)}>Cancel</button>
-                <button className="primary">Create Agreement</button>
+                <button className="primary">{editingRow ? "Save Changes" : "Create Agreement"}</button>
               </div>
             </form>
           ) : (
@@ -992,7 +992,7 @@ function DataPage({
                 {columns.map(([_, label]) => (
                   <th key={label}>{label}</th>
                 ))}
-                {(printable || canDelete) && <th>Actions</th>}
+                {(printable || canDelete || canCreate) && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -1003,9 +1003,18 @@ function DataPage({
                     {columns.map(([key, _, fmt]) => (
                       <td key={key}>{fmt ? fmt(row[key]) : text(row[key])}</td>
                     ))}
-                    {(printable || canDelete) && (
+                    {(printable || canDelete || canCreate) && (
                       <td>
                         <div className="row-actions">
+                          {canCreate && (title === "Quotations" || title === "Invoices" || title === "Agreements") && (
+                            <button
+                              className="secondary"
+                              style={{ background: "#2563eb", borderColor: "#1d4ed8", color: "#fff", fontWeight: 600, padding: "5px 10px", fontSize: "12px" }}
+                              onClick={() => handleEdit(row)}
+                            >
+                              Edit
+                            </button>
+                          )}
                           {printable && (
                             isAgreementLocked ? (
                               <button
