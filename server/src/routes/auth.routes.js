@@ -6,8 +6,19 @@ import { paginationSchema, staffSchema } from "../validation/index.js";
 import { asyncHandler, AppError, success } from "../lib/http.js";
 import { requireAuth, requirePermission, requireRole } from "../middleware/auth.js";
 import { testAccountMap, fullPermissions } from "../lib/provider.js";
+import { connectMongoDB } from "../config/db.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "a1-solar-secret-key-2026-safe";
+
+const getMongoDb = async () => {
+  try {
+    await connectMongoDB();
+  } catch {}
+  if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+    return mongoose.connection.db;
+  }
+  return null;
+};
 
 function isUserDisabled(doc) {
   if (!doc) return false;
@@ -32,8 +43,8 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
   const normalizedEmail = String(email).trim().toLowerCase();
 
   // 1. FIRST: Check MongoDB for disabled status for this email (in users or customers)
-  if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
-    const db = mongoose.connection.db;
+  const db = await getMongoDb();
+  if (db) {
     const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
     
     const dbUser = await db.collection("users").findOne({
@@ -77,8 +88,7 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
   }
 
   // 3. Check MongoDB users collection for login authentication
-  if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
-    const db = mongoose.connection.db;
+  if (db) {
     const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
     const userDoc = await db.collection("users").findOne({
       $or: [{ email: normalizedEmail }, { email: regexEmail }]

@@ -214,6 +214,11 @@ export function AuthProvider({ children }) {
         setLoading(false);
         return;
       }
+
+      if (body?.error?.message) {
+        setLoading(false);
+        throw new Error(body.error.message);
+      }
     } catch {}
 
     const fallbackUser = getTestCredentialUser(normalizedEmail, password);
