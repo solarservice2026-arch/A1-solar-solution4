@@ -29,28 +29,38 @@ const formObject = (form) => {
 };
 
 const printRecord = async (title, row, user) => {
-  if (title === "Agreement" && user?.roles?.includes("customer") && (row.locked || row.payment_status !== "Paid")) {
+  const isQuotation = String(title || "").toLowerCase().includes("quotation");
+  const isAgreement = String(title || "").toLowerCase().includes("agreement");
+
+  if (isAgreement && user?.roles?.includes("customer") && (row.locked || row.payment_status !== "Paid")) {
     return toast.error("PayU Payment required before viewing/downloading agreement.");
   }
   let recordData = row;
-  if (title === "Agreement") {
+  if (isAgreement) {
     try {
-      const docRes = await api(`/agreements/${row.id}/document`);
+      const docRes = await api(`/agreements/${row.id || row._id}/document`);
       recordData = docRes;
     } catch (err) {
       return toast.error(err instanceof Error ? err.message : "Document fetch failed");
     }
   }
-  const popup = window.open("", "_blank", "width=900,height=700");
-  if (!popup) return toast.error("Allow pop-ups to print PDF");
-  const html =
-    title === "Quotation"
+
+  try {
+    const html = isQuotation
       ? quotationDocument(recordData)
-      : title === "Agreement"
+      : isAgreement
         ? agreementDocument(recordData)
         : invoiceDocument(recordData);
-  popup.document.write(html);
-  popup.document.close();
+
+    const popup = window.open("", "_blank", "width=900,height=700");
+    if (!popup) return toast.error("Allow pop-ups to print PDF");
+    popup.document.open();
+    popup.document.write(html);
+    popup.document.close();
+  } catch (err) {
+    console.error("PDF document generation error:", err);
+    toast.error("Failed to generate document HTML");
+  }
 };
 
 function DataPage({
