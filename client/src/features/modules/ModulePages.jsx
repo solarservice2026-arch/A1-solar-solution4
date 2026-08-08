@@ -1439,6 +1439,7 @@ export function ProfilePage() {
           phone: form.get("phone") || null,
           companyName: form.get("companyName") || null,
           companyAddress: form.get("companyAddress") || null,
+          companyGstin: form.get("companyGstin") || null,
           companyLogoUrl: companyLogoUrl,
           companySignatureUrl: companySignatureUrl,
           bankDetails: bankDetails,
@@ -1503,10 +1504,15 @@ export function ProfilePage() {
               <input name="companyName" defaultValue={user?.company_name || user?.companyName || "A1 SOLAR SOLUTION"} placeholder="Company Name" />
             </label>
             <label>
-              Company Registered Address
-              <textarea name="companyAddress" defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"} rows={2} placeholder="Company Address" />
+              Company GSTIN Number
+              <input name="companyGstin" defaultValue={user?.company_gstin || user?.companyGstin || "10EFTPA0258C1Z1"} placeholder="Company GSTIN" />
             </label>
           </div>
+
+          <label style={{ marginTop: "12px", display: "block" }}>
+            Company Registered Address
+            <textarea name="companyAddress" defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"} rows={2} placeholder="Company Address" />
+          </label>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
             <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

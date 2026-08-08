@@ -177,6 +177,7 @@ export function StaffForm() {
           ...(role === "admin" ? {
             companyName: String(form.get("companyName") || "A1 SOLAR SOLUTION").trim(),
             companyAddress: String(form.get("companyAddress") || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR").trim(),
+            companyGstin: String(form.get("companyGstin") || "10EFTPA0258C1Z1").trim(),
             companyLogoUrl: companyLogoUrl || undefined,
             companySignatureUrl: companySignatureUrl || undefined,
             bankDetails,
@@ -221,9 +222,14 @@ export function StaffForm() {
               </p>
             </div>
 
-            <label className="span-2">
+            <label>
               Company Name
               <input name="companyName" placeholder="e.g. A1 SOLAR SOLUTION" defaultValue="A1 SOLAR SOLUTION" required />
+            </label>
+
+            <label>
+              Company GSTIN Number
+              <input name="companyGstin" placeholder="e.g. 10EFTPA0258C1Z1" defaultValue="10EFTPA0258C1Z1" required />
             </label>
 
             <label className="span-2">
@@ -431,6 +437,7 @@ export function StaffEdit() {
           phone: form.get("phone") || null,
           companyName: form.get("companyName") || null,
           companyAddress: form.get("companyAddress") || null,
+          companyGstin: form.get("companyGstin") || null,
           companyLogoUrl: companyLogoUrl,
           ...(pwd ? { password: String(pwd).trim() } : {}),
         }),
@@ -452,6 +459,7 @@ export function StaffEdit() {
         <label>Full name<input name="fullName" required defaultValue={staff.full_name || staff.name} /></label>
         <label>Mobile<input name="phone" defaultValue={staff.phone} /></label>
         <label>Company Name<input name="companyName" defaultValue={staff.company_name || staff.companyName} placeholder="Company Name" /></label>
+        <label>Company GSTIN Number<input name="companyGstin" defaultValue={staff.company_gstin || staff.companyGstin} placeholder="Company GSTIN" /></label>
         <label>Company Address<textarea name="companyAddress" defaultValue={staff.company_address || staff.companyAddress} rows={2} placeholder="Company Address" /></label>
         
         <label style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>

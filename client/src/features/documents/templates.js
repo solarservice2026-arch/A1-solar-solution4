@@ -130,7 +130,10 @@ export function quotationDocument(row) {
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName);
+  const companyGstin = row.company_gstin || row.companyGstin || row.owner?.company_gstin || "10EFTPA0258C1Z1";
+  const companyPhone = row.owner?.phone || row.company_phone || row.companyPhone || "7739661147";
+  const companyEmail = row.owner?.email || row.company_email || row.companyEmail || "a1solarsolution2026@gmail.com";
+  const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
   const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
@@ -182,7 +185,13 @@ export function quotationDocument(row) {
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
   </div>
   <section class="party">
-    <div><b>${esc(companyName)}</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>${esc(companyAddress)}</div>
+    <div>
+      <b>${esc(companyName)}</b><br>
+      Mobile: ${esc(companyPhone)}<br>
+      ${companyEmail ? `Email: ${esc(companyEmail)}<br>` : ""}
+      ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
+      ${esc(companyAddress)}
+    </div>
     <div><b>${esc(custName)}</b><br>Mobile: ${esc(custMobile)}${custEmail ? `<br>Email: ${esc(custEmail)}` : ""}${custGst ? `<br>GSTIN: ${esc(custGst)}` : ""}<br>${esc(custAddress)}</div>
   </section>
   <section class="products">
@@ -269,7 +278,10 @@ export function invoiceDocument(row) {
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName);
+  const companyGstin = row.company_gstin || row.companyGstin || row.owner?.company_gstin || "10EFTPA0258C1Z1";
+  const companyPhone = row.owner?.phone || row.company_phone || row.companyPhone || "7739661147";
+  const companyEmail = row.owner?.email || row.company_email || row.companyEmail || "a1solarsolution2026@gmail.com";
+  const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
   const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
@@ -293,7 +305,13 @@ export function invoiceDocument(row) {
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
   </div>
   <section class="party">
-    <div><b>${esc(companyName)}</b><br>Mobile: 7739661147<br>Email: a1solarsolution2026@gmail.com<br>GSTIN: 10EFTPA0258C1Z1<br>${esc(companyAddress)}</div>
+    <div>
+      <b>${esc(companyName)}</b><br>
+      Mobile: ${esc(companyPhone)}<br>
+      ${companyEmail ? `Email: ${esc(companyEmail)}<br>` : ""}
+      ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
+      ${esc(companyAddress)}
+    </div>
     <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}${customer.email ? `<br>Email: ${esc(customer.email)}` : ""}${customer.gst_number ? `<br>GSTIN: ${esc(customer.gst_number)}` : ""}<br>${esc(row.installation_address)}</div>
   </section>
   <section class="products">
