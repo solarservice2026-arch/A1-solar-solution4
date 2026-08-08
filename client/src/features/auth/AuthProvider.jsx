@@ -205,6 +205,11 @@ export function AuthProvider({ children }) {
           email: normalizedEmail,
           fullName: body.data.user?.full_name ?? "User",
           active: true,
+          company_name: body.data.user?.company_name || null,
+          company_address: body.data.user?.company_address || null,
+          company_logo_url: body.data.user?.company_logo_url || null,
+          company_signature_url: body.data.user?.company_signature_url || null,
+          bank_details: body.data.user?.bank_details || null,
           roles: body.data.roles ?? ["super_admin", "admin"],
           permissions: body.data.permissions ?? fullPermissions,
         };

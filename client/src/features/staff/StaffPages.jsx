@@ -396,10 +396,28 @@ export function StaffEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [staff, setStaff] = useState(null);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState(null);
 
   useEffect(() => {
-    void api(`/staff/${id}`).then(setStaff).catch(e => toast.error(e instanceof Error ? e.message : "Unable to load staff"));
+    void api(`/staff/${id}`).then(data => {
+      setStaff(data);
+      if (data?.company_logo_url || data?.companyLogoUrl) {
+        setCompanyLogoUrl(data.company_logo_url || data.companyLogoUrl);
+      }
+    }).catch(e => toast.error(e instanceof Error ? e.message : "Unable to load staff"));
   }, [id]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const raw = String(ev.target?.result || "");
+      const clean = await removeImageBackground(raw);
+      setCompanyLogoUrl(clean);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -411,10 +429,13 @@ export function StaffEdit() {
         body: JSON.stringify({
           fullName: form.get("fullName"),
           phone: form.get("phone") || null,
+          companyName: form.get("companyName") || null,
+          companyAddress: form.get("companyAddress") || null,
+          companyLogoUrl: companyLogoUrl,
           ...(pwd ? { password: String(pwd).trim() } : {}),
         }),
       });
-      toast.success("Staff updated successfully");
+      toast.success("Staff profile & company logo updated successfully");
       navigate(`/app/staff/${id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to update staff");
@@ -426,12 +447,28 @@ export function StaffEdit() {
   return (
     <main className="app-page">
       <span className="kicker">STAFF MANAGEMENT</span>
-      <h1>Edit staff</h1>
+      <h1>Edit staff profile</h1>
       <form className="card operational-form" onSubmit={submit}>
-        <label>Full name<input name="fullName" required defaultValue={staff.full_name} /></label>
-        <label>Mobile<input name="phone" pattern="[6-9][0-9]{9}" defaultValue={staff.phone} /></label>
-        <label>New password (optional)<input name="password" type="password" minLength={6} placeholder="Leave blank to keep existing password" /></label>
-        <button className="primary">Save changes</button>
+        <label>Full name<input name="fullName" required defaultValue={staff.full_name || staff.name} /></label>
+        <label>Mobile<input name="phone" defaultValue={staff.phone} /></label>
+        <label>Company Name<input name="companyName" defaultValue={staff.company_name || staff.companyName} placeholder="Company Name" /></label>
+        <label>Company Address<textarea name="companyAddress" defaultValue={staff.company_address || staff.companyAddress} rows={2} placeholder="Company Address" /></label>
+        
+        <label style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+          <span>Company Logo (Top Left Corner Logo)</span>
+          <input type="file" accept="image/*" onChange={handleLogoUpload} />
+          {companyLogoUrl ? (
+            <div style={{ marginTop: "8px", padding: "10px", background: "#0a2e36", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "14px" }}>
+              <img src={companyLogoUrl} alt="Logo Preview" style={{ height: "45px", maxWidth: "160px", objectFit: "contain" }} />
+              <button type="button" onClick={() => setCompanyLogoUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Logo</button>
+            </div>
+          ) : (
+            <small style={{ color: "#666" }}>Upload PNG/JPG logo (Background cleaned automatically)</small>
+          )}
+        </label>
+
+        <label style={{ marginTop: "14px" }}>New password (optional)<input name="password" type="password" minLength={6} placeholder="Leave blank to keep existing password" /></label>
+        <button className="primary" style={{ marginTop: "16px" }}>Save changes</button>
       </form>
     </main>
   );

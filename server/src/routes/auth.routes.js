@@ -65,7 +65,7 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
   if (testUser && testUser.pass === password) {
     const token = jwt.sign(
       {
-        userId: "00000000-0000-0000-0000-000000000001",
+        userId: dbUser ? dbUser._id.toString() : "00000000-0000-0000-0000-000000000001",
         email: normalizedEmail,
         active: true,
         roles: testUser.roles,
@@ -77,10 +77,15 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
     return success(res, "Login successful", {
       access_token: token,
       user: {
-        id: "00000000-0000-0000-0000-000000000001",
+        id: dbUser ? dbUser._id.toString() : "00000000-0000-0000-0000-000000000001",
         email: normalizedEmail,
-        full_name: testUser.fullName,
+        full_name: dbUser?.name || testUser.fullName,
         active: true,
+        company_name: dbUser?.company_name || null,
+        company_address: dbUser?.company_address || null,
+        company_logo_url: dbUser?.company_logo_url || null,
+        company_signature_url: dbUser?.company_signature_url || null,
+        bank_details: dbUser?.bank_details || null,
       },
       roles: testUser.roles,
       permissions: testUser.permissions,
@@ -412,7 +417,15 @@ usersRouter.patch("/:id", requirePermission("users:update"), asyncHandler(async 
       query = { $or: [ { _id: new ObjectId(paramId) }, { profile_id: paramId } ] };
     }
 
-    const setFields = { name: fullName, phone: req.body.phone ?? null };
+    const setFields = {
+      name: fullName,
+      phone: req.body.phone ?? null,
+      ...(req.body.companyName !== undefined ? { company_name: req.body.companyName } : {}),
+      ...(req.body.companyAddress !== undefined ? { company_address: req.body.companyAddress } : {}),
+      ...(req.body.companyLogoUrl !== undefined ? { company_logo_url: req.body.companyLogoUrl } : {}),
+      ...(req.body.companySignatureUrl !== undefined ? { company_signature_url: req.body.companySignatureUrl } : {}),
+      ...(req.body.bankDetails !== undefined ? { bank_details: req.body.bankDetails } : {}),
+    };
     const rawPwd = req.body.password || req.body.newPassword;
     if (rawPwd && String(rawPwd).trim().length >= 6) {
       setFields.password_hash = bcryptjs.hashSync(String(rawPwd).trim(), 10);
