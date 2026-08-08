@@ -174,6 +174,7 @@ export function quotationDocument(row) {
   const qDate = row.quotation_date || row.quotationDate || "—";
   const qValid = row.valid_until || row.validUntil || "—";
   const qCap = row.capacity_kw || row.capacityKw || "—";
+  const qType = row.quotation_type || row.quotationType || "Solar Power System";
   const rawCap = row.capacity_kw || row.capacityKw || "3";
   const capStr = String(rawCap).toUpperCase().includes("KW") ? String(rawCap) : `${rawCap}KW`;
 
