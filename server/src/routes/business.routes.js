@@ -1008,7 +1008,52 @@ agreementsRouter.get(
       company_address: agreement.company_address || agreement.companyAddress || owner?.company_address || null,
       company_logo_url: agreement.company_logo_url || agreement.companyLogoUrl || owner?.company_logo_url || null,
       company_signature_url: agreement.company_signature_url || agreement.companySignatureUrl || owner?.company_signature_url || null,
-      bank_details: agreement.bank_details || agreement.bankDetails || owner?.bank_details || null,
+    });
+  }),
+);
+
+agreementsRouter.post(
+  "/:id/payu-initiate",
+  authorizeOwner("agreements"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const agreement = req.doc;
+
+    const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "hMFjB7";
+    const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "a1uB7QLzzynWz1leQbHGa61hKTBKdZq8";
+    const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+    const amount = Number(1).toFixed(2);
+    const productinfo = `Agreement ${agreement.agreement_number}`;
+    const firstname = agreement.customer_name || "Customer";
+    const email = agreement.customer_email || req.auth?.email || "customer@a1solar.com";
+    const phone = agreement.customer_mobile || "9999999999";
+
+    const apiUrl = process.env.API_URL || "https://a1-solar-solution4.onrender.com/api/v1";
+    const surl = `${apiUrl}/agreements/payu-callback`;
+    const furl = `${apiUrl}/agreements/payu-callback`;
+
+    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
+    const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+    await mongo.collection("agreements").updateOne(
+      { _id: agreement._id },
+      { $set: { payu_txnid: txnid, updated_at: new Date().toISOString() } }
+    );
+
+    return success(res, "PayU payment initiated", {
+      payu_url: process.env.PAYU_URL || "https://test.payu.in/_payment",
+      key,
+      txnid,
+      amount,
+      productinfo,
+      firstname,
+      email,
+      phone,
+      surl,
+      furl,
+      hash,
+      agreement_id: agreement._id.toString(),
+      agreement_number: agreement.agreement_number
     });
   }),
 );
