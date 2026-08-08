@@ -69,6 +69,7 @@ function DataPage({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState(null);
   const [payuRow, setPayuRow] = useState(null);
   const [paying, setPaying] = useState(false);
 
@@ -184,6 +185,78 @@ function DataPage({
     } else {
       setACustomerSignature(null);
     }
+  };
+
+  const handleEdit = (row) => {
+    setEditingRow(row);
+    if (title === "Quotations") {
+      setQNumber(row.quotation_number || row.quotationNumber || row.number || "");
+      setQDate(row.quotation_date || row.quotationDate || "2026-04-25");
+      setQCapacity(String(row.capacity_kw || row.capacityKw || "3"));
+      setQType(row.quotation_type || row.quotationType || "ON-GRID SOLAR POWER SYSTEM");
+      setQCustName(row.customer_name || row.customerName || row.customers?.name || "");
+      setQCustMobile(row.customer_mobile || row.customerMobile || row.customers?.mobile || "");
+      setQCustEmail(row.customer_email || row.customerEmail || row.customers?.email || "");
+      setQCustGst(row.customer_gst || row.customerGst || row.customers?.gst_number || "");
+      setQAddress(row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "");
+      setQValid(row.valid_until || row.validUntil || "2026-05-25");
+      setQCustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
+
+      const rawItems = Array.isArray(row.quotation_items) && row.quotation_items.length > 0
+        ? row.quotation_items
+        : Array.isArray(row.items) && row.items.length > 0
+          ? row.items
+          : [];
+      if (rawItems.length > 0) {
+        setQItems(rawItems.map(item => ({
+          productName: item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product",
+          description: item.description ?? "",
+          brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
+          quantity: String(item.quantity ?? "1"),
+          unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
+        })));
+      }
+    } else if (title === "Invoices") {
+      setINumber(row.invoice_number || row.invoiceNumber || row.number || "");
+      setITitle(row.title || "SOLAR POWER SYSTEM");
+      setICustName(row.customer_name || row.customerName || row.customers?.name || "");
+      setICustMobile(row.customer_mobile || row.customerMobile || row.customers?.mobile || "");
+      setICustEmail(row.customer_email || row.customerEmail || row.customers?.email || "");
+      setICustGst(row.customer_gst || row.customerGst || row.customers?.gst_number || "");
+      setIAddress(row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "");
+      setIDate(row.invoice_date || row.invoiceDate || "");
+      setIDueDate(row.due_date || row.dueDate || "");
+      setIPaidAmount(String(row.paid_amount ?? row.paidAmount ?? 0));
+      setIStatus(row.status || "Draft");
+
+      const rawItems = Array.isArray(row.invoice_items) && row.invoice_items.length > 0
+        ? row.invoice_items
+        : Array.isArray(row.items) && row.items.length > 0
+          ? row.items
+          : [];
+      if (rawItems.length > 0) {
+        setIItems(rawItems.map(item => ({
+          productName: item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product",
+          description: item.description ?? "",
+          brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
+          quantity: String(item.quantity ?? "1"),
+          unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
+        })));
+      }
+    } else if (title === "Agreements") {
+      setANumber(row.agreement_number || row.agreementNumber || row.number || "");
+      setADate(row.agreement_date || row.agreementDate || "");
+      setACustName(row.customer_name || row.customerName || row.customers?.name || "");
+      setACustMobile(row.customer_mobile || row.customerMobile || row.customers?.mobile || "");
+      setACustEmail(row.customer_email || row.customerEmail || row.customers?.email || "");
+      setAAddress(row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "");
+      setAQuotationNumber(row.quotation_number || row.quotationNumber || "");
+      setACapacity(String(row.capacity_kw || row.capacityKw || "3"));
+      setAAmount(String(row.payment_amount ?? row.paymentAmount ?? 0));
+      setATerms(row.terms_of_payment || row.termsOfPayment || "");
+      setACustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
+    }
+    setOpen(true);
   };
 
   const canCreate =
