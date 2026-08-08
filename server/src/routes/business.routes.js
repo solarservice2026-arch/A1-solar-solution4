@@ -616,12 +616,51 @@ quotationsRouter.put(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const b = req.body;
+    const items = Array.isArray(b.items) ? b.items : [];
+    const normalized = items.map((item) => {
+      const qVal = item.quantity;
+      const parsedQty = typeof qVal === "number" ? qVal : parseFloat(String(qVal).match(/[0-9]+(?:\.[0-9]+)?/)?.[0] || "1");
+      const unitPrice = Number(item.unitPrice || item.unit_price || 0);
+      return {
+        product_name: String(item.productName || item.product_name || item.name || "Product"),
+        description: String(item.description || ""),
+        brand: String(item.brand || ""),
+        quantity: isNaN(Number(qVal)) ? String(qVal) : Number(qVal || 1),
+        unit_price: unitPrice,
+        line_amount: (parsedQty || 1) * unitPrice,
+      };
+    });
+
+    const subtotal = normalized.reduce((sum, i) => sum + (Number(i.line_amount) || 0), 0);
+    const grandTotal = subtotal;
+
     const updateData = {
       updatedBy: req.user._id,
       updated_at: new Date(),
-      ...b,
+      customer_name: b.customerName || req.doc.customer_name,
+      customer_mobile: b.customerMobile ?? req.doc.customer_mobile,
+      customer_email: b.customerEmail ?? req.doc.customer_email,
+      customer_gst: b.customerGst ?? req.doc.customer_gst,
+      quotation_date: b.quotationDate || req.doc.quotation_date,
+      valid_until: b.validUntil || req.doc.valid_until,
+      capacity_kw: Number(b.capacityKw ?? req.doc.capacity_kw ?? 0),
+      quotation_type: b.quotationType || req.doc.quotation_type,
+      consumer_address: b.consumerAddress || req.doc.consumer_address,
+      installation_address: b.consumerAddress || b.installationAddress || req.doc.installation_address,
+      subtotal,
+      grand_total: grandTotal,
+      items: normalized,
+      quotation_items: normalized,
+      customer_signature_url: b.customerSignatureUrl ?? req.doc.customer_signature_url ?? null,
+      customers: {
+        name: b.customerName || req.doc.customer_name,
+        mobile: b.customerMobile ?? req.doc.customer_mobile,
+        email: b.customerEmail ?? req.doc.customer_email,
+        gst_number: b.customerGst ?? req.doc.customer_gst,
+        address: b.consumerAddress || req.doc.consumer_address
+      },
     };
-    delete updateData.ownerId; // Never trust ownerId from frontend
+    delete updateData.ownerId;
     delete updateData.ownerRole;
 
     await mongo.collection("quotations").updateOne({ _id: req.doc._id }, { $set: updateData });
@@ -854,9 +893,54 @@ invoicesRouter.put(
   authorizeOwner("invoices"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const updateData = { ...req.body, updatedBy: req.user._id, updated_at: new Date() };
+    const b = req.body;
+    const items = Array.isArray(b.items) ? b.items : [];
+    const normalized = items.map((item) => {
+      const qVal = item.quantity;
+      const parsedQty = typeof qVal === "number" ? qVal : parseFloat(String(qVal).match(/[0-9]+(?:\.[0-9]+)?/)?.[0] || "1");
+      const unitPrice = Number(item.unitPrice || item.unit_price || 0);
+      return {
+        product_name: String(item.productName || item.product_name || item.name || "Product"),
+        description: String(item.description || ""),
+        brand: String(item.brand || ""),
+        quantity: isNaN(Number(qVal)) ? String(qVal) : Number(qVal || 1),
+        unit_price: unitPrice,
+        line_amount: (parsedQty || 1) * unitPrice,
+      };
+    });
+
+    const subtotal = normalized.reduce((sum, i) => sum + (Number(i.line_amount) || 0), 0);
+    const total = subtotal;
+
+    const updateData = {
+      updatedBy: req.user._id,
+      updated_at: new Date(),
+      customer_name: b.customerName || req.doc.customer_name,
+      customer_mobile: b.customerMobile ?? req.doc.customer_mobile,
+      customer_email: b.customerEmail ?? req.doc.customer_email,
+      customer_gst: b.customerGst ?? req.doc.customer_gst,
+      invoice_date: b.invoiceDate || req.doc.invoice_date,
+      due_date: b.dueDate || req.doc.due_date,
+      title: b.title || req.doc.title,
+      consumer_address: b.consumerAddress || req.doc.consumer_address,
+      installation_address: b.consumerAddress || b.installationAddress || req.doc.installation_address,
+      paid_amount: Number(b.paidAmount ?? req.doc.paid_amount ?? 0),
+      status: b.status || req.doc.status,
+      subtotal,
+      total,
+      items: normalized,
+      invoice_items: normalized,
+      customers: {
+        name: b.customerName || req.doc.customer_name,
+        mobile: b.customerMobile ?? req.doc.customer_mobile,
+        email: b.customerEmail ?? req.doc.customer_email,
+        gst_number: b.customerGst ?? req.doc.customer_gst,
+        address: b.consumerAddress || req.doc.consumer_address
+      },
+    };
     delete updateData.ownerId;
     delete updateData.ownerRole;
+
     await mongo.collection("invoices").updateOne({ _id: req.doc._id }, { $set: updateData });
     return success(res, "Invoice updated successfully", { id: req.doc._id.toString() });
   }),
