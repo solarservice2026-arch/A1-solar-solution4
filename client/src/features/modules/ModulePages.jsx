@@ -1509,9 +1509,15 @@ export function ProfilePage() {
             </label>
           </div>
 
-          <label style={{ marginTop: "12px", display: "block" }}>
-            Company Registered Address
-            <textarea name="companyAddress" defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"} rows={2} placeholder="Company Address" />
+          <label style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", marginTop: "14px" }}>
+            <span>Company Registered Address</span>
+            <textarea
+              name="companyAddress"
+              defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"}
+              rows={3}
+              placeholder="Enter complete company registered address"
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
+            />
           </label>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>

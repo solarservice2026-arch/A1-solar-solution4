@@ -129,10 +129,10 @@ export function quotationDocument(row) {
   const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
-  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const companyGstin = row.company_gstin || row.companyGstin || row.owner?.company_gstin || "10EFTPA0258C1Z1";
-  const companyPhone = row.owner?.phone || row.company_phone || row.companyPhone || "7739661147";
-  const companyEmail = row.owner?.email || row.company_email || row.companyEmail || "a1solarsolution2026@gmail.com";
+  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
+  const companyGstin = row.company_gstin || row.companyGstin || row.owner?.company_gstin || "";
+  const companyPhone = row.company_phone || row.companyPhone || row.owner?.phone || row.owner?.mobile || "";
+  const companyEmail = row.company_email || row.companyEmail || row.owner?.email || "";
   const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
   const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
@@ -154,10 +154,10 @@ export function quotationDocument(row) {
 
   const grandTotal = Number(row.grand_total ?? row.grandTotal ?? row.total ?? 0);
   const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
-  const bankName = row.bank_details?.bankName || row.bank_details?.bank_name || row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
-  const bankBranch = row.bank_details?.branch || row.bank_branch || row.payment_details?.branch || "TAJPUR";
-  const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "9335002100003167";
-  const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
+  const bankName = row.bank_details?.bankName || row.bank_details?.bank_name || row.bank_name || row.payment_details?.bank_name || "";
+  const bankBranch = row.bank_details?.branch || row.bank_branch || row.payment_details?.branch || "";
+  const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "";
+  const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "";
 
   const custName = customer.name || row.customer_name || row.customerName || "—";
   const custMobile = customer.mobile || row.customer_mobile || row.customerMobile || "—";
@@ -187,7 +187,7 @@ export function quotationDocument(row) {
   <section class="party">
     <div>
       <b>${esc(companyName)}</b><br>
-      Mobile: ${esc(companyPhone)}<br>
+      ${companyPhone ? `Mobile: ${esc(companyPhone)}<br>` : ""}
       ${companyEmail ? `Email: ${esc(companyEmail)}<br>` : ""}
       ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
       ${esc(companyAddress)}
@@ -277,19 +277,19 @@ export function invoiceDocument(row) {
   const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
-  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
-  const companyGstin = row.company_gstin || row.companyGstin || row.owner?.company_gstin || "10EFTPA0258C1Z1";
-  const companyPhone = row.owner?.phone || row.company_phone || row.companyPhone || "7739661147";
-  const companyEmail = row.owner?.email || row.company_email || row.companyEmail || "a1solarsolution2026@gmail.com";
+  const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
+  const companyGstin = row.company_gstin || row.companyGstin || row.owner?.company_gstin || "";
+  const companyPhone = row.company_phone || row.companyPhone || row.owner?.phone || row.owner?.mobile || "";
+  const companyEmail = row.company_email || row.companyEmail || row.owner?.email || "";
   const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
   const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
-  const bankName = row.bank_details?.bankName || row.bank_details?.bank_name || row.bank_name || row.payment_details?.bank_name || "PUNJAB NATIONAL BANK";
-  const bankBranch = row.bank_details?.branch || row.bank_branch || row.payment_details?.branch || "TAJPUR";
-  const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "9335002100003167";
-  const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "PUNB0933500";
+  const bankName = row.bank_details?.bankName || row.bank_details?.bank_name || row.bank_name || row.payment_details?.bank_name || "";
+  const bankBranch = row.bank_details?.branch || row.bank_branch || row.payment_details?.branch || "";
+  const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "";
+  const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "";
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(row.invoice_number)}</title>
 <style>${sharedCss()}</style></head><body>
@@ -307,7 +307,7 @@ export function invoiceDocument(row) {
   <section class="party">
     <div>
       <b>${esc(companyName)}</b><br>
-      Mobile: ${esc(companyPhone)}<br>
+      ${companyPhone ? `Mobile: ${esc(companyPhone)}<br>` : ""}
       ${companyEmail ? `Email: ${esc(companyEmail)}<br>` : ""}
       ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
       ${esc(companyAddress)}

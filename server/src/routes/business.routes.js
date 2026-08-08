@@ -475,19 +475,36 @@ quotationsRouter.get(
     const customers = await mongo.collection("customers").find().toArray();
     const users = await mongo.collection("users").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
-    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
 
     const formatted = items.map((q) => {
       const c = customerMap.get(String(q.customer_id));
-      const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by));
+      const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by)) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
       return {
         id: q._id.toString(),
         ...q,
-        company_name: q.company_name || q.companyName || owner?.company_name || null,
-        company_address: q.company_address || q.companyAddress || owner?.company_address || null,
-        company_logo_url: q.company_logo_url || q.companyLogoUrl || owner?.company_logo_url || null,
-        company_signature_url: q.company_signature_url || q.companySignatureUrl || owner?.company_signature_url || null,
-        bank_details: q.bank_details || q.bankDetails || owner?.bank_details || null,
+        company_name: owner?.company_name || q.company_name || q.companyName || null,
+        company_address: owner?.company_address || q.company_address || q.companyAddress || null,
+        company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
+        company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
+        company_email: owner?.email || q.company_email || q.companyEmail || null,
+        company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
+        company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
+        bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
+        owner: owner ? {
+          name: owner.name,
+          phone: owner.phone,
+          email: owner.email,
+          company_name: owner.company_name,
+          company_address: owner.company_address,
+          company_gstin: owner.company_gstin,
+          company_logo_url: owner.company_logo_url,
+          company_signature_url: owner.company_signature_url,
+        } : null,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
         } : {
@@ -508,16 +525,33 @@ quotationsRouter.get(
     const mongo = await getMongoDb();
     const q = req.doc;
     const users = await mongo.collection("users").find().toArray();
-    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
-    const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by));
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+    const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by)) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
     return success(res, "Quotation retrieved", {
       id: q._id.toString(),
       ...q,
-      company_name: q.company_name || q.companyName || owner?.company_name || null,
-      company_address: q.company_address || q.companyAddress || owner?.company_address || null,
-      company_logo_url: q.company_logo_url || q.companyLogoUrl || owner?.company_logo_url || null,
-      company_signature_url: q.company_signature_url || q.companySignatureUrl || owner?.company_signature_url || null,
-      bank_details: q.bank_details || q.bankDetails || owner?.bank_details || null,
+      company_name: owner?.company_name || q.company_name || q.companyName || null,
+      company_address: owner?.company_address || q.company_address || q.companyAddress || null,
+      company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
+      company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
+      company_email: owner?.email || q.company_email || q.companyEmail || null,
+      company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
+      company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
+      bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
+      owner: owner ? {
+        name: owner.name,
+        phone: owner.phone,
+        email: owner.email,
+        company_name: owner.company_name,
+        company_address: owner.company_address,
+        company_gstin: owner.company_gstin,
+        company_logo_url: owner.company_logo_url,
+        company_signature_url: owner.company_signature_url,
+      } : null,
     });
   }),
 );
@@ -573,11 +607,14 @@ quotationsRouter.post(
     const qDoc = {
       ownerId: userId,
       ownerRole: userRole,
+      ownerEmail: req.auth?.email || ownerUser?.email || null,
       createdBy: userId,
       updatedBy: userId,
       company_name: ownerUser?.company_name || b.companyName || null,
       company_address: ownerUser?.company_address || b.companyAddress || null,
       company_gstin: ownerUser?.company_gstin || b.companyGstin || null,
+      company_phone: ownerUser?.phone || b.companyPhone || b.phone || null,
+      company_email: ownerUser?.email || b.companyEmail || b.email || null,
       company_logo_url: ownerUser?.company_logo_url || b.companyLogoUrl || null,
       company_signature_url: ownerUser?.company_signature_url || b.companySignatureUrl || null,
       bank_details: ownerUser?.bank_details || b.bankDetails || null,
@@ -750,11 +787,15 @@ invoicesRouter.get(
     const customers = await mongo.collection("customers").find().toArray();
     const users = await mongo.collection("users").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
-    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
 
     const formatted = items.map((item, idx) => {
       const c = customerMap.get(String(item.customer_id));
-      const owner = userMap.get(String(item.ownerId || item.createdBy || item.created_by));
+      const owner = userMap.get(String(item.ownerId || item.createdBy || item.created_by)) || (item.ownerEmail ? userMap.get(String(item.ownerEmail).toLowerCase()) : null);
       let invNum = item.invoice_number;
 
       // Auto-migrate legacy format (like A1/2026/4) to standard INV-A1S-2026-0101 format
@@ -773,11 +814,24 @@ invoicesRouter.get(
       return {
         id: item._id.toString(),
         ...item,
-        company_name: item.company_name || item.companyName || owner?.company_name || null,
-        company_address: item.company_address || item.companyAddress || owner?.company_address || null,
-        company_logo_url: item.company_logo_url || item.companyLogoUrl || owner?.company_logo_url || null,
-        company_signature_url: item.company_signature_url || item.companySignatureUrl || owner?.company_signature_url || null,
-        bank_details: item.bank_details || item.bankDetails || owner?.bank_details || null,
+        company_name: owner?.company_name || item.company_name || item.companyName || null,
+        company_address: owner?.company_address || item.company_address || item.companyAddress || null,
+        company_gstin: owner?.company_gstin || item.company_gstin || item.companyGstin || null,
+        company_phone: owner?.phone || item.company_phone || item.companyPhone || null,
+        company_email: owner?.email || item.company_email || item.companyEmail || null,
+        company_logo_url: owner?.company_logo_url || item.company_logo_url || item.companyLogoUrl || null,
+        company_signature_url: owner?.company_signature_url || item.company_signature_url || item.companySignatureUrl || null,
+        bank_details: owner?.bank_details || item.bank_details || item.bankDetails || null,
+        owner: owner ? {
+          name: owner.name,
+          phone: owner.phone,
+          email: owner.email,
+          company_name: owner.company_name,
+          company_address: owner.company_address,
+          company_gstin: owner.company_gstin,
+          company_logo_url: owner.company_logo_url,
+          company_signature_url: owner.company_signature_url,
+        } : null,
         invoice_number: invNum,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, gst_number: c.gst_number
@@ -798,17 +852,33 @@ invoicesRouter.get(
     const mongo = await getMongoDb();
     const inv = req.doc;
     const users = await mongo.collection("users").find().toArray();
-    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
-    const owner = userMap.get(String(inv.ownerId || inv.createdBy || inv.created_by));
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+    const owner = userMap.get(String(inv.ownerId || inv.createdBy || inv.created_by)) || (inv.ownerEmail ? userMap.get(String(inv.ownerEmail).toLowerCase()) : null);
     return success(res, "Invoice retrieved", {
       id: inv._id.toString(),
       ...inv,
-      company_name: inv.company_name || inv.companyName || owner?.company_name || null,
-      company_address: inv.company_address || inv.companyAddress || owner?.company_address || null,
-      company_gstin: inv.company_gstin || inv.companyGstin || owner?.company_gstin || null,
-      company_logo_url: inv.company_logo_url || inv.companyLogoUrl || owner?.company_logo_url || null,
-      company_signature_url: inv.company_signature_url || inv.companySignatureUrl || owner?.company_signature_url || null,
-      bank_details: inv.bank_details || inv.bankDetails || owner?.bank_details || null,
+      company_name: owner?.company_name || inv.company_name || inv.companyName || null,
+      company_address: owner?.company_address || inv.company_address || inv.companyAddress || null,
+      company_gstin: owner?.company_gstin || inv.company_gstin || inv.companyGstin || null,
+      company_phone: owner?.phone || inv.company_phone || inv.companyPhone || null,
+      company_email: owner?.email || inv.company_email || inv.companyEmail || null,
+      company_logo_url: owner?.company_logo_url || inv.company_logo_url || inv.companyLogoUrl || null,
+      company_signature_url: owner?.company_signature_url || inv.company_signature_url || inv.companySignatureUrl || null,
+      bank_details: owner?.bank_details || inv.bank_details || inv.bankDetails || null,
+      owner: owner ? {
+        name: owner.name,
+        phone: owner.phone,
+        email: owner.email,
+        company_name: owner.company_name,
+        company_address: owner.company_address,
+        company_gstin: owner.company_gstin,
+        company_logo_url: owner.company_logo_url,
+        company_signature_url: owner.company_signature_url,
+      } : null,
     });
   }),
 );
@@ -1042,20 +1112,36 @@ agreementsRouter.get(
     const customers = await mongo.collection("customers").find().toArray();
     const users = await mongo.collection("users").find().toArray();
     const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
-    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
 
     const formatted = items.map((a) => {
       const c = customerMap.get(String(a.customer_id));
-      const owner = userMap.get(String(a.ownerId || a.createdBy || a.created_by));
+      const owner = userMap.get(String(a.ownerId || a.createdBy || a.created_by)) || (a.ownerEmail ? userMap.get(String(a.ownerEmail).toLowerCase()) : null);
       const base = {
         id: a._id.toString(),
         ...a,
-        company_name: a.company_name || a.companyName || owner?.company_name || null,
-        company_address: a.company_address || a.companyAddress || owner?.company_address || null,
-        company_gstin: a.company_gstin || a.companyGstin || owner?.company_gstin || null,
-        company_logo_url: a.company_logo_url || a.companyLogoUrl || owner?.company_logo_url || null,
-        company_signature_url: a.company_signature_url || a.companySignatureUrl || owner?.company_signature_url || null,
-        bank_details: a.bank_details || a.bankDetails || owner?.bank_details || null,
+        company_name: owner?.company_name || a.company_name || a.companyName || null,
+        company_address: owner?.company_address || a.company_address || a.companyAddress || null,
+        company_gstin: owner?.company_gstin || a.company_gstin || a.companyGstin || null,
+        company_phone: owner?.phone || a.company_phone || a.companyPhone || null,
+        company_email: owner?.email || a.company_email || a.companyEmail || null,
+        company_logo_url: owner?.company_logo_url || a.company_logo_url || a.companyLogoUrl || null,
+        company_signature_url: owner?.company_signature_url || a.company_signature_url || a.companySignatureUrl || null,
+        bank_details: owner?.bank_details || a.bank_details || a.bankDetails || null,
+        owner: owner ? {
+          name: owner.name,
+          phone: owner.phone,
+          email: owner.email,
+          company_name: owner.company_name,
+          company_address: owner.company_address,
+          company_gstin: owner.company_gstin,
+          company_logo_url: owner.company_logo_url,
+          company_signature_url: owner.company_signature_url,
+        } : null,
         customers: c ? {
           name: c.name, mobile: c.mobile, email: c.email, address: c.address
         } : {
@@ -1087,17 +1173,33 @@ agreementsRouter.get(
     const mongo = await getMongoDb();
     const agreement = req.doc;
     const users = await mongo.collection("users").find().toArray();
-    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
-    const owner = userMap.get(String(agreement.ownerId || agreement.createdBy || agreement.created_by));
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+    const owner = userMap.get(String(agreement.ownerId || agreement.createdBy || agreement.created_by)) || (agreement.ownerEmail ? userMap.get(String(agreement.ownerEmail).toLowerCase()) : null);
     return success(res, "Agreement details retrieved", {
       id: agreement._id.toString(),
       ...agreement,
-      company_name: agreement.company_name || agreement.companyName || owner?.company_name || null,
-      company_address: agreement.company_address || agreement.companyAddress || owner?.company_address || null,
-      company_gstin: agreement.company_gstin || agreement.companyGstin || owner?.company_gstin || null,
-      company_logo_url: agreement.company_logo_url || agreement.companyLogoUrl || owner?.company_logo_url || null,
-      company_signature_url: agreement.company_signature_url || agreement.companySignatureUrl || owner?.company_signature_url || null,
-      bank_details: agreement.bank_details || agreement.bankDetails || owner?.bank_details || null,
+      company_name: owner?.company_name || agreement.company_name || agreement.companyName || null,
+      company_address: owner?.company_address || agreement.company_address || agreement.companyAddress || null,
+      company_gstin: owner?.company_gstin || agreement.company_gstin || agreement.companyGstin || null,
+      company_phone: owner?.phone || agreement.company_phone || agreement.companyPhone || null,
+      company_email: owner?.email || agreement.company_email || agreement.companyEmail || null,
+      company_logo_url: owner?.company_logo_url || agreement.company_logo_url || agreement.companyLogoUrl || null,
+      company_signature_url: owner?.company_signature_url || agreement.company_signature_url || agreement.companySignatureUrl || null,
+      bank_details: owner?.bank_details || agreement.bank_details || agreement.bankDetails || null,
+      owner: owner ? {
+        name: owner.name,
+        phone: owner.phone,
+        email: owner.email,
+        company_name: owner.company_name,
+        company_address: owner.company_address,
+        company_gstin: owner.company_gstin,
+        company_logo_url: owner.company_logo_url,
+        company_signature_url: owner.company_signature_url,
+      } : null,
     });
   }),
 );
@@ -1549,12 +1651,17 @@ profileRouter.patch(
       ...(bankDetails !== undefined ? { bank_details: bankDetails } : {}),
     };
 
-    let query = {};
+    const queryOrs = [];
     if (userId && ObjectId.isValid(userId)) {
-      query = { $or: [{ _id: new ObjectId(userId) }, ...(email ? [{ email: String(email).trim().toLowerCase() }] : [])] };
-    } else if (email) {
-      query = { email: String(email).trim().toLowerCase() };
+      queryOrs.push({ _id: new ObjectId(userId) });
     }
+    if (userId) {
+      queryOrs.push({ profile_id: String(userId) });
+    }
+    if (email) {
+      queryOrs.push({ email: String(email).trim().toLowerCase() });
+    }
+    const query = queryOrs.length > 0 ? { $or: queryOrs } : {};
 
     await mongo.collection("users").updateMany(query, { $set: setFields });
     return success(res, "Profile updated successfully", { id: userId, fullName, phone, ...setFields });

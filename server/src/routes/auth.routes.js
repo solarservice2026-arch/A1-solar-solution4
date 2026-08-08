@@ -432,6 +432,7 @@ usersRouter.patch("/:id", requirePermission("users:update"), asyncHandler(async 
       phone: req.body.phone ?? null,
       ...(req.body.companyName !== undefined ? { company_name: req.body.companyName } : {}),
       ...(req.body.companyAddress !== undefined ? { company_address: req.body.companyAddress } : {}),
+      ...(req.body.companyGstin !== undefined ? { company_gstin: req.body.companyGstin } : {}),
       ...(req.body.companyLogoUrl !== undefined ? { company_logo_url: req.body.companyLogoUrl } : {}),
       ...(req.body.companySignatureUrl !== undefined ? { company_signature_url: req.body.companySignatureUrl } : {}),
       ...(req.body.bankDetails !== undefined ? { bank_details: req.body.bankDetails } : {}),

@@ -232,9 +232,16 @@ export function StaffForm() {
               <input name="companyGstin" placeholder="e.g. 10EFTPA0258C1Z1" defaultValue="10EFTPA0258C1Z1" required />
             </label>
 
-            <label className="span-2">
-              Company Registered Address
-              <textarea name="companyAddress" placeholder="e.g. VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR" defaultValue="VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR" rows={2} required />
+            <label style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", gridColumn: "1 / -1" }}>
+              <span>Company Registered Address</span>
+              <textarea
+                name="companyAddress"
+                placeholder="e.g. VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"
+                defaultValue="VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"
+                rows={3}
+                required
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
+              />
             </label>
 
             <label>
@@ -460,7 +467,16 @@ export function StaffEdit() {
         <label>Mobile<input name="phone" defaultValue={staff.phone} /></label>
         <label>Company Name<input name="companyName" defaultValue={staff.company_name || staff.companyName} placeholder="Company Name" /></label>
         <label>Company GSTIN Number<input name="companyGstin" defaultValue={staff.company_gstin || staff.companyGstin} placeholder="Company GSTIN" /></label>
-        <label>Company Address<textarea name="companyAddress" defaultValue={staff.company_address || staff.companyAddress} rows={2} placeholder="Company Address" /></label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", gridColumn: "1 / -1", marginTop: "4px" }}>
+          <span>Company Address</span>
+          <textarea
+            name="companyAddress"
+            defaultValue={staff.company_address || staff.companyAddress}
+            rows={3}
+            placeholder="Enter complete company registered address"
+            style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
+          />
+        </label>
         
         <label style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
           <span>Company Logo (Top Left Corner Logo)</span>
