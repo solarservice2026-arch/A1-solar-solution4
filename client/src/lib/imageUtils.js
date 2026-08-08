@@ -28,13 +28,13 @@ export function removeImageBackground(dataUrl) {
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
 
-        // 1. Sample corner pixels to determine if background is DARK (black/dark box) or LIGHT (white/grey paper)
-        let cornerR = 0, cornerG = 0, cornerB = 0, samples = 0;
+        // 1. Sample all 4 corners + edge points to find background color
         const cornerPoints = [
           [2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3],
-          [Math.floor(w / 2), 2], [2, Math.floor(h / 2)]
+          [Math.floor(w / 2), 2], [2, Math.floor(h / 2)], [w - 3, Math.floor(h / 2)], [Math.floor(w / 2), h - 3]
         ];
 
+        let cornerR = 0, cornerG = 0, cornerB = 0, samples = 0;
         for (const [cx, cy] of cornerPoints) {
           if (cx >= 0 && cx < w && cy >= 0 && cy < h) {
             const idx = (cy * w + cx) * 4;
@@ -45,38 +45,40 @@ export function removeImageBackground(dataUrl) {
           }
         }
 
-        const bgR = samples > 0 ? cornerR / samples : 240;
-        const bgG = samples > 0 ? cornerG / samples : 240;
-        const bgB = samples > 0 ? cornerB / samples : 240;
+        const bgR = samples > 0 ? cornerR / samples : 255;
+        const bgG = samples > 0 ? cornerG / samples : 255;
+        const bgB = samples > 0 ? cornerB / samples : 255;
         const bgAvg = (bgR + bgG + bgB) / 3;
 
-        const isDarkBackground = bgAvg < 80; // Black or dark outer box
+        const isDarkBackground = bgAvg < 90;
 
-        // 2. Loop through every pixel and remove background based on luminance & corner color
+        // 2. Process every pixel
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
+          const a = data[i + 3];
+
+          if (a === 0) continue; // Already transparent
+
           const avg = (r + g + b) / 3;
 
-          const diffR = Math.abs(r - bgR);
-          const diffG = Math.abs(g - bgG);
-          const diffB = Math.abs(b - bgB);
-          const bgDiff = (diffR + diffG + diffB) / 3;
+          // Euclidean color distance from background
+          const dist = Math.sqrt(
+            (r - bgR) * (r - bgR) +
+            (g - bgG) * (g - bgG) +
+            (b - bgB) * (b - bgB)
+          );
 
           if (isDarkBackground) {
-            // Dark/black background logo (remove dark pixels & dark corner color)
-            if (avg < 55 || bgDiff < 40 || (r < 65 && g < 65 && b < 65)) {
-              data[i + 3] = 0; // Transparent
-            } else {
-              data[i + 3] = 255;
+            // Dark / black / dark-box background
+            if (dist < 65 || avg < 50 || (r < 65 && g < 65 && b < 65)) {
+              data[i + 3] = 0;
             }
           } else {
-            // Light/white background (remove white/grey pixels & paper background color)
-            if (avg > 175 || bgDiff < 45 || (avg > bgAvg - 40 && diffR < 35 && diffG < 35 && diffB < 35)) {
-              data[i + 3] = 0; // Transparent
-            } else {
-              data[i + 3] = 255;
+            // Light / white / grey paper background
+            if (dist < 60 || avg > 190 || (avg > bgAvg - 35 && Math.abs(r - g) < 25 && Math.abs(g - b) < 25)) {
+              data[i + 3] = 0;
             }
           }
         }

@@ -20,6 +20,7 @@ import {
 } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { api } from "../../lib/api.js";
+import { removeImageBackground } from "../../lib/imageUtils.js";
 import logo from "../../assets/a1-solar-logo-transparent.png";
 
 const items = [
@@ -123,6 +124,25 @@ export function AppShell() {
     items.find((i) => i.to === location.pathname)?.label ?? "Workspace";
 
   const userLogo = user?.company_logo_url || user?.companyLogoUrl || user?.companyLogo || user?.logo;
+  const [cleanLogo, setCleanLogo] = useState(userLogo || null);
+
+  useEffect(() => {
+    let active = true;
+    if (userLogo) {
+      removeImageBackground(userLogo)
+        .then((cleaned) => {
+          if (active) setCleanLogo(cleaned);
+        })
+        .catch(() => {
+          if (active) setCleanLogo(userLogo);
+        });
+    } else {
+      setCleanLogo(null);
+    }
+    return () => {
+      active = false;
+    };
+  }, [userLogo]);
 
   return (
     <div className="app-layout">
@@ -130,7 +150,7 @@ export function AppShell() {
         <div className="app-logo" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Link to="/app" style={{ display: "flex", alignItems: "center" }}>
             <img
-              src={userLogo || logo}
+              src={cleanLogo || userLogo || logo}
               alt={user?.company_name || "A1 Solar Solution"}
               style={{ height: "55px", maxWidth: "180px", width: "auto", objectFit: "contain", maxHeight: "55px" }}
             />
