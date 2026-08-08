@@ -1378,10 +1378,14 @@ export function SettingsPage() {
 export function ProfilePage() {
   const { user, refreshProfile } = useAuth();
   const [companyLogoUrl, setCompanyLogoUrl] = useState(user?.company_logo_url || user?.companyLogoUrl || null);
+  const [companySignatureUrl, setCompanySignatureUrl] = useState(user?.company_signature_url || user?.companySignatureUrl || null);
 
   useEffect(() => {
     if (user?.company_logo_url || user?.companyLogoUrl) {
       setCompanyLogoUrl(user.company_logo_url || user.companyLogoUrl);
+    }
+    if (user?.company_signature_url || user?.companySignatureUrl) {
+      setCompanySignatureUrl(user.company_signature_url || user.companySignatureUrl);
     }
   }, [user]);
 
@@ -1397,9 +1401,36 @@ export function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleSignatureUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const raw = String(ev.target?.result || "");
+      const clean = await removeImageBackground(raw);
+      setCompanySignatureUrl(clean);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const profile = async (e) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+
+    const accountHolder = String(form.get("accountHolder") || "").trim();
+    const bankName = String(form.get("bankName") || "").trim();
+    const branch = String(form.get("bankBranch") || "").trim();
+    const accountNo = String(form.get("accountNo") || "").trim();
+    const ifscCode = String(form.get("ifscCode") || "").trim();
+
+    const bankDetails = (accountHolder || bankName || accountNo) ? {
+      accountHolder: accountHolder || "A1 SOLAR SOLUTION",
+      bankName: bankName || "PUNJAB NATIONAL BANK",
+      branch: branch || "TAJPUR",
+      accountNo: accountNo || "9335002100003167",
+      ifscCode: ifscCode || "PUNB0933500",
+    } : (user?.bank_details || user?.bankDetails || null);
+
     try {
       await api("/profile", {
         method: "PATCH",
@@ -1409,9 +1440,11 @@ export function ProfilePage() {
           companyName: form.get("companyName") || null,
           companyAddress: form.get("companyAddress") || null,
           companyLogoUrl: companyLogoUrl,
+          companySignatureUrl: companySignatureUrl,
+          bankDetails: bankDetails,
         }),
       });
-      toast.success("Profile & Company logo updated successfully");
+      toast.success("Profile, Branding & Bank details updated successfully!");
       if (refreshProfile) await refreshProfile();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Profile update failed");
@@ -1437,45 +1470,105 @@ export function ProfilePage() {
     }
   };
 
+  const bank = user?.bank_details || user?.bankDetails || {};
+
   return (
     <main className="app-page">
       <span className="kicker">MY ACCOUNT</span>
       <h1>Profile & security</h1>
-      <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "24px" }}>
+      <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 0.7fr", gap: "24px" }}>
         <form className="card operational-form" onSubmit={profile}>
-          <h2>Profile & Company Branding</h2>
-          <label>
-            Full name
-            <input name="fullName" defaultValue={user?.fullName || user?.full_name} required />
-          </label>
-          <label>
-            Phone
-            <input name="phone" defaultValue={user?.phone} />
-          </label>
-          <label>
-            Company Name
-            <input name="companyName" defaultValue={user?.company_name || user?.companyName} placeholder="Your Company Name" />
-          </label>
-          <label>
-            Company Address
-            <textarea name="companyAddress" defaultValue={user?.company_address || user?.companyAddress} rows={2} placeholder="Your Company Address" />
-          </label>
+          <h2>Admin Profile & Company Setup</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <label>
+              Full name
+              <input name="fullName" defaultValue={user?.fullName || user?.full_name} required />
+            </label>
+            <label>
+              Mobile / Phone
+              <input name="phone" defaultValue={user?.phone} />
+            </label>
+          </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
-            <span>Company Logo (Top Left Corner Logo)</span>
-            <input type="file" accept="image/*" onChange={handleLogoUpload} />
-            {companyLogoUrl ? (
-              <div style={{ marginTop: "8px", padding: "12px", background: "#0a2e36", borderRadius: "8px", display: "flex", alignItems: "center", gap: "16px" }}>
-                <img src={companyLogoUrl} alt="Logo Preview" style={{ height: "45px", maxWidth: "160px", objectFit: "contain" }} />
-                <button type="button" onClick={() => setCompanyLogoUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "5px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}>Remove Logo</button>
-              </div>
-            ) : (
-              <small style={{ color: "#666" }}>Upload PNG/JPG logo (Background is automatically cleaned for a sleek dark sidebar header look)</small>
-            )}
-          </label>
+          <h3 style={{ margin: "20px 0 10px", fontSize: "15px", borderBottom: "1px solid #eee", paddingBottom: "6px" }}>
+            🏢 Admin Company &amp; Branding Setup
+          </h3>
+          <p style={{ color: "#666", fontSize: "12px", margin: "-6px 0 14px" }}>
+            Set custom company logo, stamp signature, address and bank details for your admin profile.
+          </p>
 
-          <button className="primary" style={{ marginTop: "20px" }}>Save Profile & Logo</button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <label>
+              Company Name
+              <input name="companyName" defaultValue={user?.company_name || user?.companyName || "A1 SOLAR SOLUTION"} placeholder="Company Name" />
+            </label>
+            <label>
+              Company Registered Address
+              <textarea name="companyAddress" defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"} rows={2} placeholder="Company Address" />
+            </label>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span>Company Logo</span>
+              <input type="file" accept="image/*" onChange={handleLogoUpload} />
+              {companyLogoUrl ? (
+                <div style={{ marginTop: "6px", padding: "8px", background: "#0a2e36", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "12px" }}>
+                  <img src={companyLogoUrl} alt="Logo Preview" style={{ height: "40px", maxWidth: "140px", objectFit: "contain" }} />
+                  <button type="button" onClick={() => setCompanyLogoUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Logo</button>
+                </div>
+              ) : (
+                <small style={{ color: "#666" }}>Upload PNG/JPG logo</small>
+              )}
+            </label>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span>Stamp / Proprietor Signature</span>
+              <input type="file" accept="image/*" onChange={handleSignatureUpload} />
+              {companySignatureUrl ? (
+                <div style={{ marginTop: "6px", padding: "8px", background: "#fff", border: "1px solid #ddd", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "12px" }}>
+                  <img src={companySignatureUrl} alt="Signature Preview" style={{ height: "40px", maxWidth: "140px", objectFit: "contain" }} />
+                  <button type="button" onClick={() => setCompanySignatureUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Stamp</button>
+                </div>
+              ) : (
+                <small style={{ color: "#666" }}>Upload Stamp / Signature image</small>
+              )}
+            </label>
+          </div>
+
+          <h3 style={{ margin: "24px 0 10px", fontSize: "15px", borderBottom: "1px solid #eee", paddingBottom: "6px" }}>
+            💳 Payment Details (Bank Account Info)
+          </h3>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+            <label>
+              Account Holder
+              <input name="accountHolder" defaultValue={bank.accountHolder || "A1 SOLAR SOLUTION"} placeholder="Account Holder Name" />
+            </label>
+            <label>
+              Bank Name
+              <input name="bankName" defaultValue={bank.bankName || "PUNJAB NATIONAL BANK"} placeholder="Bank Name" />
+            </label>
+            <label>
+              Branch
+              <input name="bankBranch" defaultValue={bank.branch || "TAJPUR"} placeholder="Branch Name" />
+            </label>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "10px" }}>
+            <label>
+              Account Number
+              <input name="accountNo" defaultValue={bank.accountNo || "9335002100003167"} placeholder="Account Number" />
+            </label>
+            <label>
+              IFSC Code
+              <input name="ifscCode" defaultValue={bank.ifscCode || "PUNB0933500"} placeholder="IFSC Code" />
+            </label>
+          </div>
+
+          <button className="primary" style={{ marginTop: "24px" }}>Save Profile, Branding &amp; Bank Details</button>
         </form>
+
         <form className="card operational-form" onSubmit={password}>
           <h2>Change password</h2>
           <label>
