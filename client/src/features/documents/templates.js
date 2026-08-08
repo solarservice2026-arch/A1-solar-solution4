@@ -46,8 +46,8 @@ const amountWords = (value) => {
 const sharedCss = () => `
 @page{size:A4;margin:0}
 *{box-sizing:border-box}
-body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8}
-.sheet{width:210mm;min-height:297mm;margin:auto;background:#fff}
+html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
+.sheet{width:210mm;min-height:297mm;margin:auto;background:#fff;color:#333}
 /* ─── Hero Banner ─── */
 .hero-container{position:relative;width:100%;height:68mm;overflow:hidden}
 .hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -117,7 +117,12 @@ body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8
 /* ─── Misc ─── */
 .page-break{break-before:page;page-break-before:always}
 .actions{position:fixed;right:15px;bottom:15px;z-index:999}
-@media print{body{background:#fff}.actions{display:none}.sheet{margin:0}}
+@media print{
+  html,body{background:#fff !important;color:#000 !important;color-scheme:light !important}
+  *{mix-blend-mode:normal !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  .actions{display:none !important}
+  .sheet{margin:0 !important;box-shadow:none !important;background:#fff !important}
+}
 `;
 
 // ─── QUOTATION ────────────────────────────────────────────────────────────────
