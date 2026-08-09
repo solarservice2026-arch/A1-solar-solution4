@@ -48,7 +48,7 @@ export const requirePermission = (permission) => (req, _res, next) => {
   }
 
   const userPerms = req.user?.permissions || req.auth?.permissions || [];
-  if (userRoles.includes("admin") || userRoles.includes("customer") || userPerms.includes(permission)) {
+  if (userRoles.includes("admin") || userPerms.includes(permission)) {
     return next();
   }
   return next(new AppError(403, "Permission denied", "FORBIDDEN"));
@@ -61,7 +61,7 @@ export const requireAnyPermission = (...permissions) => (req, _res, next) => {
   if (isSuperAdmin) return next();
 
   const userPerms = req.user?.permissions || req.auth?.permissions || [];
-  if (userRoles.includes("admin") || userRoles.includes("customer") || permissions.some((key) => userPerms.includes(key))) {
+  if (userRoles.includes("admin") || permissions.some((key) => userPerms.includes(key))) {
     return next();
   }
   return next(new AppError(403, "Permission denied", "FORBIDDEN"));

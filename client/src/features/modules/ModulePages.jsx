@@ -420,19 +420,27 @@ function DataPage({
     setOpen(true);
   };
 
+  const isCustomer = user?.roles?.includes("customer");
+
   const canCreate =
-    user?.roles?.includes("super_admin") ||
-    user?.roles?.includes("admin") ||
-    user?.roles?.includes("customer") ||
-    user?.permissions?.includes(permission);
+    (user?.roles?.includes("super_admin") ||
+      user?.roles?.includes("admin") ||
+      user?.permissions?.includes(permission)) &&
+    !isCustomer;
 
   const canDelete = Boolean(
     deletePermission &&
+      (user?.roles?.includes("super_admin") ||
+        user?.roles?.includes("admin") ||
+        user?.permissions?.includes(deletePermission)) &&
+      !isCustomer,
+  );
+
+  const canEdit =
     (user?.roles?.includes("super_admin") ||
       user?.roles?.includes("admin") ||
-      user?.roles?.includes("customer") ||
-      user?.permissions?.includes(deletePermission)),
-  );
+      user?.permissions?.includes(permission)) &&
+    !isCustomer;
 
   const load = async () => {
     setLoading(true);
@@ -1183,7 +1191,7 @@ function DataPage({
                     {(printable || canDelete || canCreate) && (
                       <td>
                         <div className="row-actions">
-                          {canCreate && (title === "Quotations" || title === "Invoices" || title === "Agreements") && (
+                          {canEdit && (title === "Quotations" || title === "Invoices" || title === "Agreements") && (
                             <button
                               className="secondary"
                               style={{ background: "#2563eb", borderColor: "#1d4ed8", color: "#fff", fontWeight: 600, padding: "5px 10px", fontSize: "12px" }}
