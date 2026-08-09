@@ -657,9 +657,7 @@ quotationsRouter.post(
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
       customer_email: b.customerEmail || null,
-      customer_gst: b.customerGst || null,
       quotation_date: b.quotationDate || new Date().toISOString().slice(0, 10),
-      valid_until: b.validUntil || null,
       capacity_kw: Number(b.capacityKw || 0),
       quotation_type: b.quotationType || "Residential",
       title: b.title || "Solar Installation Quotation",
@@ -676,7 +674,7 @@ quotationsRouter.post(
       created_by: userId,
     };
     const result = await mongo.collection("quotations").insertOne(qDoc);
-    const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName, mobile: b.customerMobile, email: b.customerEmail, gst_number: b.customerGst } };
+    const createdQuotation = { id: result.insertedId.toString(), ...qDoc, customers: { name: customerName, mobile: b.customerMobile, email: b.customerEmail } };
     return success(res.status(201), "Quotation created", createdQuotation);
   }),
 );
@@ -712,9 +710,7 @@ quotationsRouter.put(
       customer_name: b.customerName || req.doc.customer_name,
       customer_mobile: b.customerMobile ?? req.doc.customer_mobile,
       customer_email: b.customerEmail ?? req.doc.customer_email,
-      customer_gst: b.customerGst ?? req.doc.customer_gst,
       quotation_date: b.quotationDate || req.doc.quotation_date,
-      valid_until: b.validUntil || req.doc.valid_until,
       capacity_kw: Number(b.capacityKw ?? req.doc.capacity_kw ?? 0),
       quotation_type: b.quotationType || req.doc.quotation_type,
       consumer_address: b.consumerAddress || req.doc.consumer_address,
@@ -728,7 +724,6 @@ quotationsRouter.put(
         name: b.customerName || req.doc.customer_name,
         mobile: b.customerMobile ?? req.doc.customer_mobile,
         email: b.customerEmail ?? req.doc.customer_email,
-        gst_number: b.customerGst ?? req.doc.customer_gst,
         address: b.consumerAddress || req.doc.consumer_address
       },
     };
@@ -1008,7 +1003,6 @@ invoicesRouter.post(
       customer_name: customerName,
       customer_mobile: b.customerMobile || null,
       customer_email: b.customerEmail || null,
-      customer_gst: b.customerGst || null,
       invoice_date: b.invoiceDate || new Date().toISOString().slice(0, 10),
       due_date: b.dueDate || new Date().toISOString().slice(0, 10),
       title: b.title || "Solar Invoice",
@@ -1059,7 +1053,6 @@ invoicesRouter.put(
       customer_name: b.customerName || req.doc.customer_name,
       customer_mobile: b.customerMobile ?? req.doc.customer_mobile,
       customer_email: b.customerEmail ?? req.doc.customer_email,
-      customer_gst: b.customerGst ?? req.doc.customer_gst,
       invoice_date: b.invoiceDate || req.doc.invoice_date,
       due_date: b.dueDate || req.doc.due_date,
       title: b.title || req.doc.title,
@@ -1075,7 +1068,6 @@ invoicesRouter.put(
         name: b.customerName || req.doc.customer_name,
         mobile: b.customerMobile ?? req.doc.customer_mobile,
         email: b.customerEmail ?? req.doc.customer_email,
-        gst_number: b.customerGst ?? req.doc.customer_gst,
         address: b.consumerAddress || req.doc.consumer_address
       },
     };

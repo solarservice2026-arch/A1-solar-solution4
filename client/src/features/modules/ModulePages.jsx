@@ -173,12 +173,10 @@ function DataPage({
 
         if (title === "Quotations") {
           setQCustEmail(emailVal);
-          setQCustGst(gstVal);
           setQCustMobile(mobileVal);
           setQAddress(addressVal);
         } else if (title === "Invoices") {
           setICustEmail(emailVal);
-          setICustGst(gstVal);
           setICustMobile(mobileVal);
           setIAddress(addressVal);
         } else if (title === "Agreements") {
@@ -227,7 +225,6 @@ function DataPage({
   const [iCustName, setICustName] = useState("Rohan Sharma");
   const [iCustMobile, setICustMobile] = useState("9876500001");
   const [iCustEmail, setICustEmail] = useState("customer.home@a1solar.test");
-  const [iCustGst, setICustGst] = useState("sdfsdf");
   const [iAddress, setIAddress] = useState("VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR");
   const [iDate, setIDate] = useState("2026-07-29");
   const [iDueDate, setIDueDate] = useState("2026-07-29");
@@ -274,7 +271,6 @@ function DataPage({
       const custName = row.customer_name || row.customerName || row.customers?.name || "";
       const custMobile = row.customer_mobile || row.customerMobile || row.customers?.mobile || "";
       let custEmail = row.customer_email || row.customerEmail || row.customers?.email || "";
-      let custGst = row.customer_gst || row.customerGst || row.customers?.gst_number || row.customers?.gstNumber || row.customer_gstin || "";
       const custAddress = row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "";
 
       const foundCust = availableCustomers.find(
@@ -284,7 +280,6 @@ function DataPage({
       );
       if (foundCust) {
         if (!custEmail) custEmail = foundCust.email || "";
-        if (!custGst) custGst = foundCust.gst_number || foundCust.gstNumber || foundCust.gstin || "";
       }
 
       const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
@@ -297,10 +292,8 @@ function DataPage({
       setQCustName(matchInList ? matchInList.name : custName);
       setQCustMobile(custMobile || (matchInList?.mobile || ""));
       setQCustEmail(custEmail || (matchInList?.email || ""));
-      setQCustGst(custGst || (matchInList?.gst_number || ""));
       setQAddress(custAddress || (matchInList?.address || ""));
 
-      setQValid(row.valid_until || row.validUntil || "2026-05-25");
       setQCustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
 
       const rawItems = Array.isArray(row.quotation_items) && row.quotation_items.length > 0
@@ -470,9 +463,7 @@ function DataPage({
         customerName: qCustName,
         customerMobile: qCustMobile,
         customerEmail: qCustEmail,
-        customerGst: qCustGst,
         consumerAddress: qAddress,
-        validUntil: qValid,
         items: qItems,
         tax: 0,
         subtotal,
@@ -490,7 +481,6 @@ function DataPage({
         customerName: iCustName,
         customerMobile: iCustMobile,
         customerEmail: iCustEmail,
-        customerGst: iCustGst,
         consumerAddress: iAddress,
         invoiceDate: iDate,
         dueDate: iDueDate,
@@ -704,9 +694,7 @@ function DataPage({
                 </label>
                 <label>Customer Mobile<input value={qCustMobile} onChange={e => setQCustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={qCustEmail} onChange={e => setQCustEmail(e.target.value)} /></label>
-                <label>Customer GSTIN<input value={qCustGst} onChange={e => setQCustGst(e.target.value)} /></label>
                 <label className="span-2">Installation Address<textarea value={qAddress} onChange={e => setQAddress(e.target.value)} rows={2} required /></label>
-                <label>Valid Until<input type="date" value={qValid} onChange={e => setQValid(e.target.value)} required /></label>
               </div>
 
               <h3 className="section-divider">Quotation Items</h3>
@@ -854,7 +842,6 @@ function DataPage({
                 </label>
                 <label>Customer Mobile<input value={iCustMobile} onChange={e => setICustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={iCustEmail} onChange={e => setICustEmail(e.target.value)} /></label>
-                <label>Customer GSTIN<input value={iCustGst} onChange={e => setICustGst(e.target.value)} /></label>
                 <label className="span-2">Billing Address<textarea value={iAddress} onChange={e => setIAddress(e.target.value)} rows={2} required /></label>
                 <label>Paid Amount (₹)<input type="number" value={iPaidAmount} onChange={e => setIPaidAmount(e.target.value)} required /></label>
                 <label>Status
