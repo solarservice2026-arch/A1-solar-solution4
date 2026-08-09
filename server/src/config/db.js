@@ -112,7 +112,7 @@ export async function connectMongoDB() {
             console.log("[MongoDB] Seeding completed successfully!");
           }
 
-          // Automatically purge customer GST and valid_until fields from existing database documents
+          // Automatically purge customer GST, valid_until, and agreement payment_amount fields from existing database documents
           const collectionsToPurge = ["quotations", "invoices", "agreements", "customers", "estimates", "contracts"];
           for (const colName of collectionsToPurge) {
             await db.collection(colName).updateMany(
@@ -133,6 +133,20 @@ export async function connectMongoDB() {
               }
             );
           }
+          await db.collection("agreements").updateMany(
+            {},
+            {
+              $unset: {
+                payment_amount: "",
+                paymentAmount: "",
+                project_value: "",
+                projectValue: "",
+                customer_email: "",
+                customerEmail: "",
+                "customers.email": ""
+              }
+            }
+          );
         }
       } catch (err) {
         console.error("[MongoDB] Seeding/Purge error:", err.message);

@@ -1406,7 +1406,6 @@ agreementsRouter.post(
     }
 
     let customerName = b.customerName || "Customer";
-    let customerEmail = b.customerEmail || null;
     let customerMobile = b.customerMobile || null;
 
     const today = new Date();
@@ -1426,13 +1425,11 @@ agreementsRouter.post(
       agreement_number: await getNextNumber(mongo, "AGR", firstBrand),
       customer_id: b.customerId || null,
       customer_name: customerName,
-      customer_email: customerEmail,
       customer_mobile: customerMobile,
       quotation_id: b.quotationId || null,
       quotation_number: b.quotationNumber || null,
       status: "Draft",
       payment_status: "Unpaid",
-      payment_amount: 1,
       consumer_address: b.consumerAddress || null,
       capacity_kw: Number(b.capacityKw || 3),
       terms_of_payment: b.termsOfPayment || "70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion.",
@@ -1446,8 +1443,40 @@ agreementsRouter.post(
     return success(res.status(201), "Agreement draft created", {
       ...doc,
       id: result.insertedId.toString(),
-      customers: { name: customerName, mobile: customerMobile, email: customerEmail, address: b.consumerAddress },
+      customers: { name: customerName, mobile: customerMobile, address: b.consumerAddress },
     });
+  }),
+);
+
+agreementsRouter.put(
+  "/:id",
+  requirePermission("agreements:update"),
+  authorizeOwner("agreements"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const b = req.body;
+    const updateData = {
+      updatedBy: req.user._id,
+      updated_at: new Date(),
+      customer_name: b.customerName || req.doc.customer_name,
+      customer_mobile: b.customerMobile ?? req.doc.customer_mobile,
+      consumer_address: b.consumerAddress || req.doc.consumer_address,
+      quotation_number: b.quotationNumber || req.doc.quotation_number,
+      capacity_kw: Number(b.capacityKw || req.doc.capacity_kw || 3),
+      terms_of_payment: b.termsOfPayment || req.doc.terms_of_payment,
+      agreement_date: b.agreementDate || req.doc.agreement_date,
+      customer_signature_url: b.customerSignatureUrl ?? req.doc.customer_signature_url,
+      customers: {
+        name: b.customerName || req.doc.customer_name,
+        mobile: b.customerMobile ?? req.doc.customer_mobile,
+        address: b.consumerAddress || req.doc.consumer_address
+      },
+    };
+    delete updateData.ownerId;
+    delete updateData.ownerRole;
+
+    await mongo.collection("agreements").updateOne({ _id: req.doc._id }, { $set: updateData });
+    return success(res, "Agreement updated successfully", { id: req.doc._id.toString() });
   }),
 );
 

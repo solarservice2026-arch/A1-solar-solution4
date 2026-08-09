@@ -6,6 +6,7 @@ import { removeImageBackground } from "../../lib/imageUtils.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import {
   agreementDocument,
+  amountWords,
   invoiceDocument,
   quotationDocument,
 } from "../documents/templates.js";
@@ -158,7 +159,6 @@ function DataPage({
         if (cMobile) setICustMobile(cMobile);
       } else if (title === "Agreements") {
         if (cName) setACustName(cName);
-        if (cEmail) setACustEmail(cEmail);
         if (cMobile) setACustMobile(cMobile);
       }
     }
@@ -187,27 +187,12 @@ function DataPage({
           setICustMobile(mobileVal);
           setIAddress(addressVal);
         } else if (title === "Agreements") {
-          setACustEmail(emailVal);
           setACustMobile(mobileVal);
           setAAddress(addressVal);
         }
       }
     }
   }, [open, editingRow, availableCustomers, title]);
-
-  useEffect(() => {
-    if (open && !editingRow) {
-      const today = getTodayDateStr();
-      if (title === "Quotations") {
-        setQDate(today);
-      } else if (title === "Invoices") {
-        setIDate(today);
-        setIDueDate(today);
-      } else if (title === "Agreements") {
-        setADate(today);
-      }
-    }
-  }, [open, editingRow, title]);
 
   // ─── CUSTOM FORMS STATES ───
   // Quotation States
@@ -263,13 +248,21 @@ function DataPage({
   const [aDate, setADate] = useState(getTodayDateStr());
   const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
   const [aCustMobile, setACustMobile] = useState("9955964771");
-  const [aCustEmail, setACustEmail] = useState("");
   const [aAddress, setAAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
   const [aQuotationNumber, setAQuotationNumber] = useState("AI-QUO-0101");
   const [aCapacity, setACapacity] = useState("3");
-  const [aAmount, setAAmount] = useState("244000");
   const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
   const [aCustomerSignature, setACustomerSignature] = useState(null);
+
+  useEffect(() => {
+    if (open && !editingRow) {
+      const today = getTodayDateStr();
+      setQDate(today);
+      setIDate(today);
+      setIDueDate(today);
+      setADate(today);
+    }
+  }, [open, editingRow, title]);
 
   const handleSignatureUpload = (e) => {
     const file = e.target.files?.[0];
@@ -655,7 +648,15 @@ function DataPage({
           <p>{description}</p>
         </div>
         {canCreate && fields && (
-          <button className="primary" onClick={() => { setEditingRow(null); setOpen(true); }}>
+          <button className="primary" onClick={() => {
+            setEditingRow(null);
+            const today = getTodayDateStr();
+            setQDate(today);
+            setIDate(today);
+            setIDueDate(today);
+            setADate(today);
+            setOpen(true);
+          }}>
             New {title.slice(0, -1)}
           </button>
         )}
@@ -1071,7 +1072,6 @@ function DataPage({
                           const customer = availableCustomers.find(c => c.name === val);
                           if (customer) {
                             setACustMobile(customer.mobile || "");
-                            setACustEmail(customer.email || "");
                             if (customer.address) setAAddress(customer.address);
                           }
                         }
@@ -1090,10 +1090,8 @@ function DataPage({
                   )}
                 </label>
                 <label>Consumer Mobile<input value={aCustMobile} onChange={e => setACustMobile(e.target.value)} required /></label>
-                <label>Consumer Email<input type="email" value={aCustEmail} onChange={e => setACustEmail(e.target.value)} /></label>
                 <label>Quotation Reference #<input value={aQuotationNumber} onChange={e => setAQuotationNumber(e.target.value)} required /></label>
                 <label>System Capacity (kW)<input type="number" value={aCapacity} onChange={e => setACapacity(e.target.value)} required /></label>
-                <label>Project Value (₹)<input type="number" value={aAmount} onChange={e => setAAmount(e.target.value)} required /></label>
                 <label style={{ gridColumn: "span 2" }}>Consumer Site Address<textarea value={aAddress} onChange={e => setAAddress(e.target.value)} rows={2} required /></label>
                 <label style={{ gridColumn: "span 2" }}>Terms of Payment<textarea value={aTerms} onChange={e => setATerms(e.target.value)} rows={3} required /></label>
                 <label style={{ gridColumn: "span 2" }}>

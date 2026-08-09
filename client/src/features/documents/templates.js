@@ -17,7 +17,7 @@ const parseQty = (val) => {
   return match ? parseFloat(match[0]) : 0;
 };
 
-const amountWords = (value) => {
+export const amountWords = (value) => {
   const n = Math.round(Number(value || 0));
   if (!Number.isFinite(n) || n < 0) return "";
   const ones = [
