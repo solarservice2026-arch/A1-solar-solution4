@@ -111,9 +111,31 @@ export async function connectMongoDB() {
             }
             console.log("[MongoDB] Seeding completed successfully!");
           }
+
+          // Automatically purge customer GST and valid_until fields from existing database documents
+          const collectionsToPurge = ["quotations", "invoices", "agreements", "customers", "estimates", "contracts"];
+          for (const colName of collectionsToPurge) {
+            await db.collection(colName).updateMany(
+              {},
+              {
+                $unset: {
+                  customer_gst: "",
+                  customer_gstin: "",
+                  customerGst: "",
+                  customerGstin: "",
+                  gst_number: "",
+                  valid_until: "",
+                  validUntil: "",
+                  valid_date: "",
+                  "customers.gst_number": "",
+                  "customers.gstNumber": ""
+                }
+              }
+            );
           }
+        }
       } catch (err) {
-        console.error("[MongoDB] Seeding error:", err.message);
+        console.error("[MongoDB] Seeding/Purge error:", err.message);
       }
       return m;
     }).catch((err) => {
