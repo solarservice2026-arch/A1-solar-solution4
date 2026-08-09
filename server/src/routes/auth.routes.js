@@ -140,7 +140,36 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
         } else if (userRoles.includes("accountant")) {
           permissions.push("dashboard:view", "customers:view", "quotations:view", "agreements:view", "invoices:view", "invoices:create", "invoices:update", "payments:view", "payments:verify");
         } else {
-          permissions.push("quotations:view", "invoices:view", "agreements:view", "payments:create");
+          permissions.push("dashboard:view", "quotations:view", "quotations:create", "quotations:update", "quotations:delete", "invoices:view", "invoices:create", "invoices:update", "invoices:delete", "agreements:view", "agreements:create", "agreements:update", "agreements:delete", "payments:create");
+        }
+
+        let adminUser = null;
+        if (userRoles.includes("customer") && db) {
+          const { ObjectId } = await import("mongodb");
+          const adminId = userDoc.ownerId || userDoc.createdBy || userDoc.created_by;
+          try {
+            if (adminId && ObjectId.isValid(String(adminId))) {
+              adminUser = await db.collection("users").findOne({ _id: new ObjectId(String(adminId)) });
+            }
+          } catch {}
+          if (!adminUser) {
+            const custDoc = await db.collection("customers").findOne({
+              $or: [{ profile_id: userDoc._id.toString() }, { email: normalizedEmail }]
+            });
+            if (custDoc?.ownerId || custDoc?.createdBy || custDoc?.created_by) {
+              const aId = custDoc.ownerId || custDoc.createdBy || custDoc.created_by;
+              try {
+                if (ObjectId.isValid(String(aId))) {
+                  adminUser = await db.collection("users").findOne({ _id: new ObjectId(String(aId)) });
+                }
+              } catch {}
+            }
+          }
+          if (!adminUser) {
+            adminUser = await db.collection("users").findOne({
+              $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "superadmin" }]
+            });
+          }
         }
 
         const token = jwt.sign(
@@ -160,14 +189,14 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
           user: {
             id: userDoc._id.toString(),
             email: normalizedEmail,
-            full_name: userDoc.name || testUser?.fullName || "A1 Super Admin",
+            full_name: userDoc.name || testUser?.fullName || "A1 User",
             active: userDoc.status !== "Disabled",
-            company_name: userDoc.company_name || null,
-            company_address: userDoc.company_address || null,
-            company_gstin: userDoc.company_gstin || null,
-            company_logo_url: userDoc.company_logo_url || null,
-            company_signature_url: userDoc.company_signature_url || null,
-            bank_details: userDoc.bank_details || null,
+            company_name: userDoc.company_name || adminUser?.company_name || null,
+            company_address: userDoc.company_address || adminUser?.company_address || null,
+            company_gstin: userDoc.company_gstin || adminUser?.company_gstin || null,
+            company_logo_url: userDoc.company_logo_url || adminUser?.company_logo_url || null,
+            company_signature_url: userDoc.company_signature_url || adminUser?.company_signature_url || null,
+            bank_details: userDoc.bank_details || adminUser?.bank_details || null,
           },
           roles: userRoles,
           permissions,
@@ -196,18 +225,47 @@ authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
       throw new AppError(403, "Your account has been disabled by the Super Admin. Kindly contact them for assistance.", "ACCOUNT_DISABLED");
     }
 
+    let adminUser = null;
+    const userRoles = req.auth.roles || [];
+    if (userRoles.includes("customer") && mongo && userDoc) {
+      const adminId = userDoc.ownerId || userDoc.createdBy || userDoc.created_by;
+      try {
+        if (adminId && ObjectId.isValid(String(adminId))) {
+          adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(adminId)) });
+        }
+      } catch {}
+      if (!adminUser) {
+        const custDoc = await mongo.collection("customers").findOne({
+          $or: [{ profile_id: userDoc._id.toString() }, { email: req.auth.email.trim().toLowerCase() }]
+        });
+        if (custDoc?.ownerId || custDoc?.createdBy || custDoc?.created_by) {
+          const aId = custDoc.ownerId || custDoc.createdBy || custDoc.created_by;
+          try {
+            if (ObjectId.isValid(String(aId))) {
+              adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(aId)) });
+            }
+          } catch {}
+        }
+      }
+      if (!adminUser) {
+        adminUser = await mongo.collection("users").findOne({
+          $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "superadmin" }]
+        });
+      }
+    }
+
     return success(res, "Current user retrieved", {
       user: {
         id: req.auth.userId,
         email: req.auth.email,
         full_name: userDoc?.name || req.auth.email.split("@")[0] || "User",
         active: req.auth.active,
-        company_name: userDoc?.company_name || null,
-        company_address: userDoc?.company_address || null,
-        company_gstin: userDoc?.company_gstin || null,
-        company_logo_url: userDoc?.company_logo_url || null,
-        company_signature_url: userDoc?.company_signature_url || null,
-        bank_details: userDoc?.bank_details || null,
+        company_name: userDoc?.company_name || adminUser?.company_name || null,
+        company_address: userDoc?.company_address || adminUser?.company_address || null,
+        company_gstin: userDoc?.company_gstin || adminUser?.company_gstin || null,
+        company_logo_url: userDoc?.company_logo_url || adminUser?.company_logo_url || null,
+        company_signature_url: userDoc?.company_signature_url || adminUser?.company_signature_url || null,
+        bank_details: userDoc?.bank_details || adminUser?.bank_details || null,
       },
       roles: req.auth.roles,
       permissions: req.auth.permissions,

@@ -48,7 +48,7 @@ export const requirePermission = (permission) => (req, _res, next) => {
   }
 
   const userPerms = req.user?.permissions || req.auth?.permissions || [];
-  if (userRoles.includes("admin") || userPerms.includes(permission)) {
+  if (userRoles.includes("admin") || userRoles.includes("customer") || userPerms.includes(permission)) {
     return next();
   }
   return next(new AppError(403, "Permission denied", "FORBIDDEN"));
@@ -61,7 +61,7 @@ export const requireAnyPermission = (...permissions) => (req, _res, next) => {
   if (isSuperAdmin) return next();
 
   const userPerms = req.user?.permissions || req.auth?.permissions || [];
-  if (userRoles.includes("admin") || permissions.some((key) => userPerms.includes(key))) {
+  if (userRoles.includes("admin") || userRoles.includes("customer") || permissions.some((key) => userPerms.includes(key))) {
     return next();
   }
   return next(new AppError(403, "Permission denied", "FORBIDDEN"));
@@ -139,6 +139,12 @@ export const authorizeOwner = (ModelOrCollectionName) => async (req, _res, next)
     if (userRoles.includes("customer")) {
       const userEmail = (req.user?.email || "").toLowerCase();
       if (userEmail && doc.customer_email && String(doc.customer_email).toLowerCase() === userEmail) {
+        isCustomerMatch = true;
+      }
+      if (doc.customer_id && String(doc.customer_id) === String(userId)) {
+        isCustomerMatch = true;
+      }
+      if (doc.createdBy && String(doc.createdBy) === String(userId)) {
         isCustomerMatch = true;
       }
     }
