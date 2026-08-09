@@ -420,27 +420,25 @@ function DataPage({
     setOpen(true);
   };
 
-  const isCustomer = user?.roles?.includes("customer");
-
   const canCreate =
-    (user?.roles?.includes("super_admin") ||
-      user?.roles?.includes("admin") ||
-      user?.permissions?.includes(permission)) &&
-    !isCustomer;
+    user?.roles?.includes("super_admin") ||
+    user?.roles?.includes("admin") ||
+    user?.roles?.includes("customer") ||
+    user?.permissions?.includes(permission);
 
   const canDelete = Boolean(
     deletePermission &&
-      (user?.roles?.includes("super_admin") ||
-        user?.roles?.includes("admin") ||
-        user?.permissions?.includes(deletePermission)) &&
-      !isCustomer,
+    (user?.roles?.includes("super_admin") ||
+      user?.roles?.includes("admin") ||
+      user?.roles?.includes("customer") ||
+      user?.permissions?.includes(deletePermission)),
   );
 
   const canEdit =
-    (user?.roles?.includes("super_admin") ||
-      user?.roles?.includes("admin") ||
-      user?.permissions?.includes(permission)) &&
-    !isCustomer;
+    user?.roles?.includes("super_admin") ||
+    user?.roles?.includes("admin") ||
+    user?.roles?.includes("customer") ||
+    user?.permissions?.includes(permission);
 
   const load = async () => {
     setLoading(true);
