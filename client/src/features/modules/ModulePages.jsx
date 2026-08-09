@@ -1653,15 +1653,16 @@ export function ProfilePage() {
     }
   };
 
+  const isCustomer = user?.roles?.includes("customer");
   const bank = user?.bank_details || user?.bankDetails || {};
 
   return (
     <main className="app-page">
       <span className="kicker">MY ACCOUNT</span>
-      <h1>Profile & security</h1>
+      <h1>Profile &amp; security</h1>
       <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "1.3fr 0.7fr", gap: "24px" }}>
         <form className="card operational-form" onSubmit={profile}>
-          <h2>Admin Profile & Company Setup</h2>
+          <h2>{isCustomer ? "My Profile Information" : "Admin Profile & Company Setup"}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <label>
               Full name
@@ -1669,98 +1670,104 @@ export function ProfilePage() {
             </label>
             <label>
               Mobile / Phone
-              <input name="phone" defaultValue={user?.phone} />
+              <input name="phone" defaultValue={user?.phone || user?.mobile} />
             </label>
           </div>
 
-          <h3 style={{ margin: "20px 0 10px", fontSize: "15px", borderBottom: "1px solid #eee", paddingBottom: "6px" }}>
-            🏢 Admin Company &amp; Branding Setup
-          </h3>
-          <p style={{ color: "#666", fontSize: "12px", margin: "-6px 0 14px" }}>
-            Set custom company logo, stamp signature, address and bank details for your admin profile.
-          </p>
+          {!isCustomer && (
+            <>
+              <h3 style={{ margin: "20px 0 10px", fontSize: "15px", borderBottom: "1px solid #eee", paddingBottom: "6px" }}>
+                🏢 Admin Company &amp; Branding Setup
+              </h3>
+              <p style={{ color: "#666", fontSize: "12px", margin: "-6px 0 14px" }}>
+                Set custom company logo, stamp signature, address and bank details for your admin profile.
+              </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <label>
-              Company Name
-              <input name="companyName" defaultValue={user?.company_name || user?.companyName || "A1 SOLAR SOLUTION"} placeholder="Company Name" />
-            </label>
-            <label>
-              Company GSTIN Number
-              <input name="companyGstin" defaultValue={user?.company_gstin || user?.companyGstin || "10EFTPA0258C1Z1"} placeholder="Company GSTIN" />
-            </label>
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <label>
+                  Company Name
+                  <input name="companyName" defaultValue={user?.company_name || user?.companyName || "A1 SOLAR SOLUTION"} placeholder="Company Name" />
+                </label>
+                <label>
+                  Company GSTIN Number
+                  <input name="companyGstin" defaultValue={user?.company_gstin || user?.companyGstin || "10EFTPA0258C1Z1"} placeholder="Company GSTIN" />
+                </label>
+              </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", marginTop: "14px" }}>
-            <span>Company Registered Address</span>
-            <textarea
-              name="companyAddress"
-              defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"}
-              rows={3}
-              placeholder="Enter complete company registered address"
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
-            />
-          </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", marginTop: "14px" }}>
+                <span>Company Registered Address</span>
+                <textarea
+                  name="companyAddress"
+                  defaultValue={user?.company_address || user?.companyAddress || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR"}
+                  rows={3}
+                  placeholder="Enter complete company registered address"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
+                />
+              </label>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span>Company Logo</span>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} />
-              {companyLogoUrl ? (
-                <div style={{ marginTop: "6px", padding: "8px", background: "#0a2e36", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "12px" }}>
-                  <img src={companyLogoUrl} alt="Logo Preview" style={{ height: "40px", maxWidth: "140px", objectFit: "contain" }} />
-                  <button type="button" onClick={() => setCompanyLogoUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Logo</button>
-                </div>
-              ) : (
-                <small style={{ color: "#666" }}>Upload PNG/JPG logo</small>
-              )}
-            </label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span>Company Logo</span>
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} />
+                  {companyLogoUrl ? (
+                    <div style={{ marginTop: "6px", padding: "8px", background: "#0a2e36", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "12px" }}>
+                      <img src={companyLogoUrl} alt="Logo Preview" style={{ height: "40px", maxWidth: "140px", objectFit: "contain" }} />
+                      <button type="button" onClick={() => setCompanyLogoUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Logo</button>
+                    </div>
+                  ) : (
+                    <small style={{ color: "#666" }}>Upload PNG/JPG logo</small>
+                  )}
+                </label>
 
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span>Stamp / Proprietor Signature</span>
-              <input type="file" accept="image/*" onChange={handleSignatureUpload} />
-              {companySignatureUrl ? (
-                <div style={{ marginTop: "6px", padding: "8px", background: "#fff", border: "1px solid #ddd", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "12px" }}>
-                  <img src={companySignatureUrl} alt="Signature Preview" style={{ height: "40px", maxWidth: "140px", objectFit: "contain" }} />
-                  <button type="button" onClick={() => setCompanySignatureUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Stamp</button>
-                </div>
-              ) : (
-                <small style={{ color: "#666" }}>Upload Stamp / Signature image</small>
-              )}
-            </label>
-          </div>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span>Stamp / Proprietor Signature</span>
+                  <input type="file" accept="image/*" onChange={handleSignatureUpload} />
+                  {companySignatureUrl ? (
+                    <div style={{ marginTop: "6px", padding: "8px", background: "#fff", border: "1px solid #ddd", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "12px" }}>
+                      <img src={companySignatureUrl} alt="Signature Preview" style={{ height: "40px", maxWidth: "140px", objectFit: "contain" }} />
+                      <button type="button" onClick={() => setCompanySignatureUrl(null)} style={{ background: "#ef4444", color: "#fff", border: 0, padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>Remove Stamp</button>
+                    </div>
+                  ) : (
+                    <small style={{ color: "#666" }}>Upload Stamp / Signature image</small>
+                  )}
+                </label>
+              </div>
 
-          <h3 style={{ margin: "24px 0 10px", fontSize: "15px", borderBottom: "1px solid #eee", paddingBottom: "6px" }}>
-            💳 Payment Details (Bank Account Info)
-          </h3>
+              <h3 style={{ margin: "24px 0 10px", fontSize: "15px", borderBottom: "1px solid #eee", paddingBottom: "6px" }}>
+                💳 Payment Details (Bank Account Info)
+              </h3>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
-            <label>
-              Account Holder
-              <input name="accountHolder" defaultValue={bank.accountHolder || "A1 SOLAR SOLUTION"} placeholder="Account Holder Name" />
-            </label>
-            <label>
-              Bank Name
-              <input name="bankName" defaultValue={bank.bankName || "PUNJAB NATIONAL BANK"} placeholder="Bank Name" />
-            </label>
-            <label>
-              Branch
-              <input name="bankBranch" defaultValue={bank.branch || "TAJPUR"} placeholder="Branch Name" />
-            </label>
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                <label>
+                  Account Holder
+                  <input name="accountHolder" defaultValue={bank.accountHolder || "A1 SOLAR SOLUTION"} placeholder="Account Holder Name" />
+                </label>
+                <label>
+                  Bank Name
+                  <input name="bankName" defaultValue={bank.bankName || "PUNJAB NATIONAL BANK"} placeholder="Bank Name" />
+                </label>
+                <label>
+                  Branch
+                  <input name="bankBranch" defaultValue={bank.branch || "TAJPUR"} placeholder="Branch Name" />
+                </label>
+              </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "10px" }}>
-            <label>
-              Account Number
-              <input name="accountNo" defaultValue={bank.accountNo || "9335002100003167"} placeholder="Account Number" />
-            </label>
-            <label>
-              IFSC Code
-              <input name="ifscCode" defaultValue={bank.ifscCode || "PUNB0933500"} placeholder="IFSC Code" />
-            </label>
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "10px" }}>
+                <label>
+                  Account Number
+                  <input name="accountNo" defaultValue={bank.accountNo || "9335002100003167"} placeholder="Account Number" />
+                </label>
+                <label>
+                  IFSC Code
+                  <input name="ifscCode" defaultValue={bank.ifscCode || "PUNB0933500"} placeholder="IFSC Code" />
+                </label>
+              </div>
+            </>
+          )}
 
-          <button className="primary" style={{ marginTop: "24px" }}>Save Profile, Branding &amp; Bank Details</button>
+          <button className="primary" style={{ marginTop: "24px" }}>
+            {isCustomer ? "Save Profile Details" : "Save Profile, Branding & Bank Details"}
+          </button>
         </form>
 
         <form className="card operational-form" onSubmit={password}>
