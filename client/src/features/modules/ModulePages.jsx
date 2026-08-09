@@ -167,7 +167,6 @@ function DataPage({
       );
       if (found) {
         const emailVal = editingRow.customer_email || editingRow.customerEmail || editingRow.customers?.email || found.email || "";
-        const gstVal = editingRow.customer_gst || editingRow.customerGst || editingRow.customers?.gst_number || editingRow.customers?.gstNumber || editingRow.customer_gstin || found.gst_number || found.gstNumber || found.gstin || "";
         const mobileVal = custMobile || found.mobile || "";
         const addressVal = editingRow.consumer_address || editingRow.consumerAddress || editingRow.installation_address || editingRow.customers?.address || found.address || "";
 
@@ -322,7 +321,6 @@ function DataPage({
       const custName = row.customer_name || row.customerName || row.customers?.name || "";
       const custMobile = row.customer_mobile || row.customerMobile || row.customers?.mobile || "";
       let custEmail = row.customer_email || row.customerEmail || row.customers?.email || "";
-      let custGst = row.customer_gst || row.customerGst || row.customers?.gst_number || row.customers?.gstNumber || row.customer_gstin || "";
       const custAddress = row.consumer_address || row.consumerAddress || row.installation_address || row.customers?.address || "";
 
       const foundCust = availableCustomers.find(
@@ -332,7 +330,6 @@ function DataPage({
       );
       if (foundCust) {
         if (!custEmail) custEmail = foundCust.email || "";
-        if (!custGst) custGst = foundCust.gst_number || foundCust.gstNumber || foundCust.gstin || "";
       }
 
       const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
