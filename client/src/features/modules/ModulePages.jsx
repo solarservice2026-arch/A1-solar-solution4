@@ -135,6 +135,28 @@ function DataPage({
   }, [open, title, editingRow]);
 
   useEffect(() => {
+    if (open && !editingRow && user?.roles?.includes("customer")) {
+      const cName = user.full_name || user.name || "Customer";
+      const cEmail = user.email || "";
+      const cMobile = user.mobile || user.phone || "";
+
+      if (title === "Quotations") {
+        if (cName) setQCustName(cName);
+        if (cEmail) setQCustEmail(cEmail);
+        if (cMobile) setQCustMobile(cMobile);
+      } else if (title === "Invoices") {
+        if (cName) setICustName(cName);
+        if (cEmail) setICustEmail(cEmail);
+        if (cMobile) setICustMobile(cMobile);
+      } else if (title === "Agreements") {
+        if (cName) setACustName(cName);
+        if (cEmail) setACustEmail(cEmail);
+        if (cMobile) setACustMobile(cMobile);
+      }
+    }
+  }, [open, editingRow, user, title]);
+
+  useEffect(() => {
     if (open && editingRow && availableCustomers.length > 0) {
       const custName = editingRow.customer_name || editingRow.customerName || editingRow.customers?.name || "";
       const custMobile = editingRow.customer_mobile || editingRow.customerMobile || editingRow.customers?.mobile || "";
@@ -401,12 +423,14 @@ function DataPage({
   const canCreate =
     user?.roles?.includes("super_admin") ||
     user?.roles?.includes("admin") ||
+    user?.roles?.includes("customer") ||
     user?.permissions?.includes(permission);
 
   const canDelete = Boolean(
     deletePermission &&
     (user?.roles?.includes("super_admin") ||
       user?.roles?.includes("admin") ||
+      user?.roles?.includes("customer") ||
       user?.permissions?.includes(deletePermission)),
   );
 
