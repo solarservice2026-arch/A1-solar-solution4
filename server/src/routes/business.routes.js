@@ -225,6 +225,7 @@ customersRouter.post(
       const userDoc = {
         name: b.name,
         email,
+        address: b.address || b.installation_address || b.consumerAddress || null,
         role: assignedRole,
         status: "Active",
         ownerId: userId,
@@ -237,6 +238,8 @@ customersRouter.post(
       };
       const userRes = await mongo.collection("users").insertOne(userDoc);
       userIdObj = userRes.insertedId;
+    } else if (b.address) {
+      await mongo.collection("users").updateOne({ _id: existingUser._id }, { $set: { address: b.address } });
     }
 
     const doc = {
@@ -249,6 +252,7 @@ customersRouter.post(
       name: b.name,
       mobile: b.mobile,
       email,
+      address: b.address || b.installation_address || b.consumerAddress || null,
       customer_type: b.customerType || "Residential",
       gst_number: b.gstNumber || null,
       consumer_number: b.consumerNumber || null,

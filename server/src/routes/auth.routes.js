@@ -260,6 +260,7 @@ authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
         email: req.auth.email,
         full_name: userDoc?.name || req.auth.email.split("@")[0] || "User",
         active: req.auth.active,
+        address: userDoc?.address || userDoc?.installation_address || null,
         company_name: userDoc?.company_name || adminUser?.company_name || null,
         company_address: userDoc?.company_address || adminUser?.company_address || null,
         company_gstin: userDoc?.company_gstin || adminUser?.company_gstin || null,

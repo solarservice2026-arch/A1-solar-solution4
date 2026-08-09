@@ -1358,6 +1358,7 @@ export function CustomersPage() {
       fields={[
         ["name", "Full Name", "text"],
         ["mobile", "Mobile Number", "text"],
+        ["address", "Address / Site Address", "text", null, false],
         ["email", "Email Address", "email", null, false],
         ["password", "Password", "password", null, false],
         [
