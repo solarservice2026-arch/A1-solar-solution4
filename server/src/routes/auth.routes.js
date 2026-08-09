@@ -140,7 +140,7 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
         } else if (userRoles.includes("accountant")) {
           permissions.push("dashboard:view", "customers:view", "quotations:view", "agreements:view", "invoices:view", "invoices:create", "invoices:update", "payments:view", "payments:verify");
         } else {
-          permissions.push("dashboard:view", "quotations:view", "invoices:view", "agreements:view", "projects:view", "tickets:view", "payments:create");
+          permissions.push("dashboard:view", "quotations:view", "quotations:create", "quotations:update", "quotations:delete", "invoices:view", "invoices:create", "invoices:update", "invoices:delete", "agreements:view", "agreements:create", "agreements:update", "agreements:delete", "projects:view", "tickets:view", "payments:create");
         }
 
         let adminUser = null;
