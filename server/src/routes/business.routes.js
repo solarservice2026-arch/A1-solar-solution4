@@ -2,6 +2,7 @@ import { Router } from "express";
 import crypto from "node:crypto";
 import mongoose from "mongoose";
 import bcryptjs from "bcryptjs";
+import { ObjectId } from "mongodb";
 import { asyncHandler, AppError, success } from "../lib/http.js";
 import { connectMongoDB } from "../config/db.js";
 import {
@@ -24,7 +25,49 @@ const getMongoDb = async () => {
   throw new AppError(503, "Database connection failed", "SERVICE_UNAVAILABLE");
 };
 
-// Legacy number() helper removed — replaced by getNextNumber() from sequenceCounter.js
+/**
+ * Fast Effective Owner Resolution
+ */
+async function resolveEffectiveOwner(mongo, userId, userRole, userEmail) {
+  let ownerUser = null;
+  if (userId && ObjectId.isValid(String(userId))) {
+    try { ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(userId)) }); } catch {}
+  }
+  if (!ownerUser && userEmail) {
+    try { ownerUser = await mongo.collection("users").findOne({ email: String(userEmail).trim().toLowerCase() }); } catch {}
+  }
+
+  let effectiveOwner = ownerUser;
+  const isCustomer = userRole === "customer" || userRole === "vendor";
+  if (isCustomer) {
+    const adminId = ownerUser?.ownerId || ownerUser?.createdBy || ownerUser?.created_by;
+    let adminUser = null;
+    if (adminId && ObjectId.isValid(String(adminId))) {
+      try { adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(adminId)) }); } catch {}
+    }
+    if (!adminUser && (userId || userEmail)) {
+      const custDoc = await mongo.collection("customers").findOne({
+        $or: [
+          ...(userId ? [{ profile_id: String(userId) }] : []),
+          ...(userEmail ? [{ email: String(userEmail).trim().toLowerCase() }] : [])
+        ]
+      });
+      if (custDoc?.ownerId || custDoc?.createdBy) {
+        const aId = custDoc.ownerId || custDoc.createdBy;
+        if (aId && ObjectId.isValid(String(aId))) {
+          try { adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(aId)) }); } catch {}
+        }
+      }
+    }
+    if (!adminUser) {
+      adminUser = await mongo.collection("users").findOne({
+        $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "admin" }, { roles: "admin" }]
+      });
+    }
+    if (adminUser) effectiveOwner = adminUser;
+  }
+  return { ownerUser, effectiveOwner };
+}
 
 /**
  * Enterprise Multi-Tenant Ownership Helper
@@ -42,13 +85,13 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
     return { ...extraFilter };
   }
 
-  const isCustomer = userRoles.includes("customer");
+  const isCustomer = userRoles.includes("customer") || userRoles.includes("vendor");
   if (isCustomer) {
     const mongo = await getMongoDb();
     const userEmail = (req.user?.email || req.auth?.email || "").trim().toLowerCase();
     const custObj = await mongo.collection("customers").findOne({
       $or: [
-        ...(userEmail ? [{ email: { $regex: new RegExp("^" + userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } }] : []),
+        ...(userEmail ? [{ email: userEmail }] : []),
         ...(userId ? [{ profile_id: userId }, { ownerId: userId }] : [])
       ]
     });
@@ -65,10 +108,8 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
       customerOrs.push({ profile_id: custObj._id.toString() });
     }
     if (userEmail) {
-      const escaped = userEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       customerOrs.push({ customer_email: userEmail });
-      customerOrs.push({ customer_email: { $regex: new RegExp("^" + escaped + "$", "i") } });
-      customerOrs.push({ email: { $regex: new RegExp("^" + escaped + "$", "i") } });
+      customerOrs.push({ email: userEmail });
     }
 
     return {
