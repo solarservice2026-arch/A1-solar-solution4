@@ -891,22 +891,22 @@ function DataPage({
               </div>
 
               <h3 className="section-divider">Invoice Items</h3>
-              <div className="items-responsive-table" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", minWidth: "900px", fontSize: "13px" }}>
+              <div className="items-responsive-table" style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "6px", background: "#fff" }}>
+                <table style={{ width: "100%", minWidth: "1180px", fontSize: "13px", borderCollapse: "separate", borderSpacing: "0 4px" }}>
                   <thead>
                     <tr style={{ background: "#f0f4fb" }}>
-                      <th>#</th>
-                      <th style={{ minWidth: "160px" }}>Product</th>
-                      <th style={{ minWidth: "130px" }}>Description</th>
-                      <th style={{ minWidth: "100px" }}>Brand/Model</th>
-                      <th style={{ width: "65px", textAlign: "center" }}>Qty</th>
-                      <th style={{ width: "100px", textAlign: "right" }}>Price (₹)</th>
-                      <th style={{ width: "70px", textAlign: "center" }}>CGST%</th>
-                      <th style={{ width: "70px", textAlign: "center" }}>SGST%</th>
-                      <th style={{ width: "70px", textAlign: "center" }}>IGST%</th>
-                      <th style={{ width: "105px", textAlign: "right" }}>Taxable (₹)</th>
-                      <th style={{ width: "105px", textAlign: "right" }}>Total (₹)</th>
-                      <th style={{ width: "35px" }}></th>
+                      <th style={{ width: "35px" }}>#</th>
+                      <th style={{ minWidth: "180px" }}>Product</th>
+                      <th style={{ minWidth: "150px" }}>Description</th>
+                      <th style={{ minWidth: "110px" }}>Brand/Model</th>
+                      <th style={{ width: "85px", minWidth: "85px", textAlign: "center" }}>Qty</th>
+                      <th style={{ width: "125px", minWidth: "125px", textAlign: "right" }}>Price (₹)</th>
+                      <th style={{ width: "90px", minWidth: "90px", textAlign: "center" }}>CGST%</th>
+                      <th style={{ width: "90px", minWidth: "90px", textAlign: "center" }}>SGST%</th>
+                      <th style={{ width: "90px", minWidth: "90px", textAlign: "center" }}>IGST%</th>
+                      <th style={{ width: "120px", minWidth: "120px", textAlign: "right" }}>Taxable (₹)</th>
+                      <th style={{ width: "120px", minWidth: "120px", textAlign: "right" }}>Total (₹)</th>
+                      <th style={{ width: "40px" }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -925,7 +925,7 @@ function DataPage({
                           <td style={{ color: "#888", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>{idx + 1}</td>
                           <td>
                             <select
-                              style={{ width: "100%", marginBottom: "5px" }}
+                              style={{ width: "100%", marginBottom: "5px", padding: "6px" }}
                               value={item.productId || ""}
                               onChange={e => {
                                 const val = e.target.value;
@@ -957,22 +957,22 @@ function DataPage({
                             {(item.productId === "custom" || !item.productId || availableProducts.length === 0) && (
                               <input
                                 placeholder="Type product name"
-                                style={{ width: "100%" }}
+                                style={{ width: "100%", padding: "6px" }}
                                 value={item.productName}
                                 onChange={e => updateIItem(idx, "productName", e.target.value)}
                                 required
                               />
                             )}
                           </td>
-                          <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
-                          <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
-                          <td><input style={{ width: "100%", textAlign: "center" }} type="text" value={item.quantity} onChange={e => updateIItem(idx, "quantity", e.target.value)} required /></td>
-                          <td><input style={{ width: "100%", textAlign: "right" }} type="number" value={item.unitPrice} onChange={e => updateIItem(idx, "unitPrice", Number(e.target.value))} required /></td>
-                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" step="0.1" value={item.cgstRate ?? 2.5} onChange={e => updateIItem(idx, "cgstRate", Number(e.target.value))} required /></td>
-                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" step="0.1" value={item.sgstRate ?? 2.5} onChange={e => updateIItem(idx, "sgstRate", Number(e.target.value))} required /></td>
-                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" step="0.1" value={item.igstRate ?? 0} onChange={e => updateIItem(idx, "igstRate", Number(e.target.value))} required /></td>
-                          <td style={{ textAlign: "right", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>₹{taxableAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td style={{ textAlign: "right", fontWeight: 700, color: "#1a3a6b", verticalAlign: "top", paddingTop: "14px" }}>₹{lineAmt.toLocaleString("en-IN")}</td>
+                          <td><input style={{ width: "100%", padding: "6px 8px" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%", padding: "6px 8px" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center", padding: "6px 4px", minWidth: "75px" }} type="text" value={item.quantity} onChange={e => updateIItem(idx, "quantity", e.target.value)} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "right", padding: "6px 6px", minWidth: "110px" }} type="number" value={item.unitPrice} onChange={e => updateIItem(idx, "unitPrice", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center", padding: "6px 4px", minWidth: "75px" }} type="number" step="0.1" value={item.cgstRate ?? 2.5} onChange={e => updateIItem(idx, "cgstRate", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center", padding: "6px 4px", minWidth: "75px" }} type="number" step="0.1" value={item.sgstRate ?? 2.5} onChange={e => updateIItem(idx, "sgstRate", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center", padding: "6px 4px", minWidth: "75px" }} type="number" step="0.1" value={item.igstRate ?? 0} onChange={e => updateIItem(idx, "igstRate", Number(e.target.value))} required /></td>
+                          <td style={{ textAlign: "right", fontSize: "12px", verticalAlign: "top", paddingTop: "14px", whiteSpace: "nowrap" }}>₹{taxableAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td style={{ textAlign: "right", fontWeight: 700, color: "#1a3a6b", verticalAlign: "top", paddingTop: "14px", whiteSpace: "nowrap" }}>₹{lineAmt.toLocaleString("en-IN")}</td>
                           <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeIItem(idx)}>×</button></td>
                         </tr>
                       );
