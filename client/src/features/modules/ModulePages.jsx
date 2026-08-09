@@ -230,7 +230,10 @@ function DataPage({
   const [iPaidAmount, setIPaidAmount] = useState("0");
   const [iStatus, setIStatus] = useState("Unpaid");
   const [iItems, setIItems] = useState([
-    { productName: "5kW Mounting Structure", description: "MS-5K — Structure", brand: "A1 Fabrication", quantity: "1", unitPrice: 34000 }
+    { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
+    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
+    { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000, cgstRate: 9, sgstRate: 9, igstRate: 0 },
+    { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
 
   // Agreement States
@@ -365,7 +368,10 @@ function DataPage({
             description: item.description ?? "",
             brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
             quantity: String(item.quantity ?? "1"),
-            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
+            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0),
+            cgstRate: Number(item.cgst_rate ?? item.cgstRate ?? 2.5),
+            sgstRate: Number(item.sgst_rate ?? item.sgstRate ?? 2.5),
+            igstRate: Number(item.igst_rate ?? item.igstRate ?? 0)
           };
         }));
       }
@@ -611,7 +617,7 @@ function DataPage({
     setQItems(next);
   };
 
-  const addIItem = () => setIItems([...iItems, { productName: "", description: "", brand: "", quantity: "1", unitPrice: 0 }]);
+  const addIItem = () => setIItems([...iItems, { productName: "", description: "", brand: "", quantity: "1", unitPrice: 0, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 }]);
   const removeIItem = (idx) => setIItems(iItems.filter((_, i) => i !== idx));
   const updateIItem = (idx, key, val) => {
     const next = [...iItems];
@@ -865,23 +871,35 @@ function DataPage({
               </div>
 
               <h3 className="section-divider">Invoice Items</h3>
-              <div className="items-responsive-table">
-                <table>
+              <div className="items-responsive-table" style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", minWidth: "900px", fontSize: "13px" }}>
                   <thead>
                     <tr style={{ background: "#f0f4fb" }}>
                       <th>#</th>
-                      <th>Product</th>
-                      <th>Description</th>
-                      <th>Brand/Model</th>
-                      <th style={{ width: "70px", textAlign: "center" }}>Qty</th>
-                      <th style={{ width: "120px", textAlign: "right" }}>Price (₹)</th>
-                      <th style={{ width: "120px", textAlign: "right" }}>Amount (₹)</th>
-                      <th style={{ width: "40px" }}></th>
+                      <th style={{ minWidth: "160px" }}>Product</th>
+                      <th style={{ minWidth: "130px" }}>Description</th>
+                      <th style={{ minWidth: "100px" }}>Brand/Model</th>
+                      <th style={{ width: "65px", textAlign: "center" }}>Qty</th>
+                      <th style={{ width: "100px", textAlign: "right" }}>Price (₹)</th>
+                      <th style={{ width: "70px", textAlign: "center" }}>CGST%</th>
+                      <th style={{ width: "70px", textAlign: "center" }}>SGST%</th>
+                      <th style={{ width: "70px", textAlign: "center" }}>IGST%</th>
+                      <th style={{ width: "105px", textAlign: "right" }}>Taxable (₹)</th>
+                      <th style={{ width: "105px", textAlign: "right" }}>Total (₹)</th>
+                      <th style={{ width: "35px" }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {iItems.map((item, idx) => {
-                      const lineAmt = (parseQty(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                      const qtyNum = parseQty(item.quantity) || 1;
+                      const priceIncl = Number(item.unitPrice || 0);
+                      const lineAmt = qtyNum * priceIncl;
+                      const cgstR = Number(item.cgstRate ?? 2.5);
+                      const sgstR = Number(item.sgstRate ?? 2.5);
+                      const igstR = Number(item.igstRate ?? 0);
+                      const totalGstR = cgstR + sgstR + igstR;
+                      const taxableAmt = totalGstR > 0 ? lineAmt / (1 + totalGstR / 100) : lineAmt;
+
                       return (
                         <tr key={idx}>
                           <td style={{ color: "#888", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>{idx + 1}</td>
@@ -928,8 +946,12 @@ function DataPage({
                           </td>
                           <td><input style={{ width: "100%" }} value={item.description} onChange={e => updateIItem(idx, "description", e.target.value)} required /></td>
                           <td><input style={{ width: "100%" }} value={item.brand} onChange={e => updateIItem(idx, "brand", e.target.value)} required /></td>
-                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" value={item.quantity} onChange={e => updateIItem(idx, "quantity", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center" }} type="text" value={item.quantity} onChange={e => updateIItem(idx, "quantity", e.target.value)} required /></td>
                           <td><input style={{ width: "100%", textAlign: "right" }} type="number" value={item.unitPrice} onChange={e => updateIItem(idx, "unitPrice", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" step="0.1" value={item.cgstRate ?? 2.5} onChange={e => updateIItem(idx, "cgstRate", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" step="0.1" value={item.sgstRate ?? 2.5} onChange={e => updateIItem(idx, "sgstRate", Number(e.target.value))} required /></td>
+                          <td><input style={{ width: "100%", textAlign: "center" }} type="number" step="0.1" value={item.igstRate ?? 0} onChange={e => updateIItem(idx, "igstRate", Number(e.target.value))} required /></td>
+                          <td style={{ textAlign: "right", fontSize: "12px", verticalAlign: "top", paddingTop: "14px" }}>₹{taxableAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td style={{ textAlign: "right", fontWeight: 700, color: "#1a3a6b", verticalAlign: "top", paddingTop: "14px" }}>₹{lineAmt.toLocaleString("en-IN")}</td>
                           <td><button type="button" className="danger" style={{ padding: "5px 10px" }} onClick={() => removeIItem(idx)}>×</button></td>
                         </tr>
@@ -942,20 +964,51 @@ function DataPage({
 
               {/* Live Total Summary */}
               {(() => {
-                const total = iItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
+                let totalTaxable = 0;
+                let totalCgst = 0;
+                let totalSgst = 0;
+                let totalIgst = 0;
+                let grandTotal = 0;
+
+                iItems.forEach(it => {
+                  const qty = parseQty(it.quantity) || 1;
+                  const price = Number(it.unitPrice) || 0;
+                  const lineTot = qty * price;
+                  const cgstR = Number(it.cgstRate ?? 2.5);
+                  const sgstR = Number(it.sgstRate ?? 2.5);
+                  const igstR = Number(it.igstRate ?? 0);
+                  const totalGstR = cgstR + sgstR + igstR;
+                  const taxAmt = totalGstR > 0 ? lineTot / (1 + totalGstR / 100) : lineTot;
+
+                  totalTaxable += taxAmt;
+                  totalCgst += taxAmt * (cgstR / 100);
+                  totalSgst += taxAmt * (sgstR / 100);
+                  totalIgst += taxAmt * (igstR / 100);
+                  grandTotal += lineTot;
+                });
+
                 const paid = Number(iPaidAmount) || 0;
-                const balance = Math.max(0, total - paid);
+                const balance = Math.max(0, grandTotal - paid);
+
                 return (
-                  <div className="live-total-box">
-                    <div className="live-total-row grand" style={{ flexDirection: "column", alignItems: "stretch", gap: "2px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Total Amount</span>
-                        <span>₹{total.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div style={{ textAlign: "right", fontSize: "11px", fontWeight: "normal", opacity: 0.85 }}>(Including GST)</div>
+                  <div className="live-total-box" style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "16px", marginTop: "16px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px" }}>
+                      <div><span>Taxable Amount:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+                      <div><span>CGST Total:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalCgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+                      <div><span>SGST Total:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalSgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+                      <div><span>IGST Total:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalIgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
                     </div>
-                    <div className="live-total-row"><span>Paid Amount</span><span>₹{paid.toLocaleString("en-IN")}</span></div>
-                    <div className="live-total-row balance"><span>Balance Due</span><span>₹{balance.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row grand" style={{ flexDirection: "column", alignItems: "stretch", gap: "4px", marginTop: "12px", paddingTop: "12px", borderTop: "2px solid #5569c7" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "16px", fontWeight: 700, color: "#1e3a8a" }}>
+                        <span>Total (Inclusive of GST)</span>
+                        <span>₹{grandTotal.toLocaleString("en-IN")}/-</span>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#475569" }}>
+                        In Words: <strong>{amountWords(grandTotal)}</strong>
+                      </div>
+                    </div>
+                    <div className="live-total-row" style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "13px" }}><span>Paid Amount:</span><span>₹{paid.toLocaleString("en-IN")}</span></div>
+                    <div className="live-total-row balance" style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "14px", fontWeight: 600, color: balance > 0 ? "#dc2626" : "#16a34a" }}><span>Balance Due:</span><span>₹{balance.toLocaleString("en-IN")}</span></div>
                   </div>
                 );
               })()}

@@ -264,20 +264,69 @@ export function invoiceDocument(row) {
   const customer = row.customers ?? {};
   const items = Array.isArray(row.invoice_items) ? row.invoice_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
+  
+  let totalTaxable = 0;
+  let totalCgst = 0;
+  let totalSgst = 0;
+  let totalIgst = 0;
+  let grandTotal = 0;
+  let hasIgst = items.some(it => Number(it.igst_rate ?? it.igstRate ?? 0) > 0);
+
   const itemRows = items.map((item, i) => {
     const product = item.products ?? {};
-    return `<tr>
-      <td>${i + 1}.</td>
-      <td><b>${esc(item.product_name ?? product.name)}</b></td>
-      <td>${esc(item.description)}</td>
-      <td>${esc(item.brand ?? product.brand ?? product.model)}</td>
-      <td style="text-align:right">${esc(item.quantity)}</td>
-      <td style="text-align:right">${inr(item.unit_price)}</td>
-      <td style="text-align:right">${inr(item.line_amount ?? parseQty(item.quantity) * Number(item.unit_price || 0))}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="7">No line items recorded</td></tr>`;
+    const pName = item.product_name ?? item.productName ?? product.name ?? "Solar Product";
+    const desc = item.description ?? "";
+    const brand = item.brand ?? product.brand ?? product.model ?? "LivFast";
+    const qtyStr = String(item.quantity ?? "1");
+    const qtyNum = parseQty(qtyStr) || 1;
+    const priceIncl = Number(item.unit_price ?? item.unitPrice ?? 0);
+    const lineTotal = item.line_amount ?? (qtyNum * priceIncl);
 
-  const balance = Math.max(0, Number(row.total || 0) - Number(row.paid_amount || 0));
+    const cgstR = Number(item.cgst_rate ?? item.cgstRate ?? 2.5);
+    const sgstR = Number(item.sgst_rate ?? item.sgstRate ?? 2.5);
+    const igstR = Number(item.igst_rate ?? item.igstRate ?? 0);
+
+    const totalGstR = cgstR + sgstR + igstR;
+    const taxableAmt = totalGstR > 0 ? lineTotal / (1 + totalGstR / 100) : lineTotal;
+    const cgstAmt = taxableAmt * (cgstR / 100);
+    const sgstAmt = taxableAmt * (sgstR / 100);
+    const igstAmt = taxableAmt * (igstR / 100);
+
+    totalTaxable += taxableAmt;
+    totalCgst += cgstAmt;
+    totalSgst += sgstAmt;
+    totalIgst += igstAmt;
+    grandTotal += lineTotal;
+
+    return `<tr>
+      <td style="text-align:center">${i + 1}.</td>
+      <td>
+        <b>${esc(pName)}</b>
+        ${desc ? `<br><span style="font-size:11px;color:#333">${esc(desc)}</span>` : ""}
+        ${brand ? `<br><span style="font-size:10px;color:#666">Brand: ${esc(brand)}</span>` : ""}
+      </td>
+      <td style="text-align:center">${esc(qtyStr)}</td>
+      <td style="text-align:right">Rs ${inr(priceIncl)}</td>
+      <td style="text-align:right">Rs ${taxableAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td style="text-align:right">
+        Rs ${cgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+        <small style="color:#666">(${cgstR.toFixed(2)}%)</small>
+      </td>
+      <td style="text-align:right">
+        Rs ${sgstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+        <small style="color:#666">(${sgstR.toFixed(2)}%)</small>
+      </td>
+      ${hasIgst ? `
+        <td style="text-align:right">
+          Rs ${igstAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+          <small style="color:#666">(${igstR.toFixed(2)}%)</small>
+        </td>
+      ` : ""}
+      <td style="text-align:right"><b>Rs ${inr(lineTotal)}</b></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="${hasIgst ? 9 : 8}">No line items recorded</td></tr>`;
+
+  const balance = Math.max(0, Number(row.total || grandTotal || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
 
@@ -321,15 +370,47 @@ export function invoiceDocument(row) {
   </section>
   <section class="products">
     <table>
-      <thead><tr><th>#</th><th>Product Name</th><th>Description</th><th>Brand</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Item Details</th>
+          <th>QTY</th>
+          <th>Price (Incl.)</th>
+          <th>Taxable Amt</th>
+          <th>CGST</th>
+          <th>SGST</th>
+          ${hasIgst ? `<th>IGST</th>` : ""}
+          <th>Total</th>
+        </tr>
+      </thead>
       <tbody>${itemRows}</tbody>
     </table>
   </section>
-  <section class="summary">
-    <div class="total-box">
-      <div class="total-line"><span>Total :</span><span>${inr(row.total)}/-</span></div>
-      <div class="words-line"><span>In Words :</span><span>${esc(amountWords(row.total))}</span></div>
-      <div class="gst">(Including GST)</div>
+  <section class="summary" style="margin-top:14px; display:flex; justify-content:flex-end;">
+    <div style="width: 320px; font-size: 12px; font-family: sans-serif;">
+      <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+        <span>Taxable Amount:</span>
+        <b style="color:#1e293b">Rs ${totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+        <span>CGST:</span>
+        <b style="color:#1e293b">Rs ${totalCgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+        <span>SGST:</span>
+        <b style="color:#1e293b">Rs ${totalSgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+      </div>
+      ${hasIgst || totalIgst > 0 ? `
+        <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+          <span>IGST:</span>
+          <b style="color:#1e293b">Rs ${totalIgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+        </div>
+      ` : ""}
+      <div style="background:#5569c7; color:#fff; padding:10px 14px; margin-top:6px; border-radius:4px; text-align:right;">
+        <div style="font-size:15px; font-weight:700;">Total: Rs ${inr(grandTotal)}/-</div>
+        <div style="font-size:12px; margin-top:2px; font-weight:600;">In Words: ${esc(amountWords(grandTotal))}</div>
+        <div style="font-size:11px; opacity:0.9;">(Inclusive of GST)</div>
+      </div>
     </div>
   </section>
   <section class="bottom">

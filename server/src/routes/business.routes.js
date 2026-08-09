@@ -971,13 +971,19 @@ invoicesRouter.post(
 
     const normalized = items.map((item) => {
       const parsed = parseQty(item.quantity) || 0;
-      const unitPrice = Number(item.unitPrice || 0);
+      const unitPrice = Number(item.unitPrice || item.unit_price || 0);
+      const cgstRate = Number(item.cgstRate ?? item.cgst_rate ?? 2.5);
+      const sgstRate = Number(item.sgstRate ?? item.sgst_rate ?? 2.5);
+      const igstRate = Number(item.igstRate ?? item.igst_rate ?? 0);
       return {
-        product_name: String(item.productName || item.name || "Product"),
+        product_name: String(item.productName || item.product_name || item.name || "Product"),
         description: String(item.description || ""),
         brand: String(item.brand || ""),
         quantity: isNaN(Number(item.quantity)) ? String(item.quantity) : Number(item.quantity || 1),
         unit_price: unitPrice,
+        cgst_rate: cgstRate,
+        sgst_rate: sgstRate,
+        igst_rate: igstRate,
         line_amount: parsed * unitPrice,
       };
     });
@@ -1034,12 +1040,18 @@ invoicesRouter.put(
       const qVal = item.quantity;
       const parsedQty = typeof qVal === "number" ? qVal : parseFloat(String(qVal).match(/[0-9]+(?:\.[0-9]+)?/)?.[0] || "1");
       const unitPrice = Number(item.unitPrice || item.unit_price || 0);
+      const cgstRate = Number(item.cgstRate ?? item.cgst_rate ?? 2.5);
+      const sgstRate = Number(item.sgstRate ?? item.sgst_rate ?? 2.5);
+      const igstRate = Number(item.igstRate ?? item.igst_rate ?? 0);
       return {
         product_name: String(item.productName || item.product_name || item.name || "Product"),
         description: String(item.description || ""),
         brand: String(item.brand || ""),
         quantity: isNaN(Number(qVal)) ? String(qVal) : Number(qVal || 1),
         unit_price: unitPrice,
+        cgst_rate: cgstRate,
+        sgst_rate: sgstRate,
+        igst_rate: igstRate,
         line_amount: (parsedQty || 1) * unitPrice,
       };
     });
