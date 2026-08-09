@@ -606,50 +606,7 @@ quotationsRouter.post(
     const userId = req.user?._id || req.auth?.userId;
     const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
-    let ownerUser = null;
-    try {
-      const { ObjectId } = await import("mongodb");
-      if (userId && ObjectId.isValid(userId)) {
-        ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(userId) });
-      }
-    } catch {}
-    if (!ownerUser && req.auth?.email) {
-      ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
-    }
-
-    let effectiveOwner = ownerUser;
-    if (userRole === "customer" || req.user?.roles?.includes("customer")) {
-      const adminId = ownerUser?.ownerId || ownerUser?.createdBy || ownerUser?.created_by;
-      let adminUser = null;
-      if (adminId) {
-        try {
-          const { ObjectId } = await import("mongodb");
-          if (ObjectId.isValid(String(adminId))) {
-            adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(adminId)) });
-          }
-        } catch {}
-      }
-      if (!adminUser && ownerUser?.email) {
-        const custDoc = await mongo.collection("customers").findOne({
-          $or: [{ profile_id: userId }, { email: ownerUser.email }]
-        });
-        if (custDoc?.ownerId || custDoc?.createdBy) {
-          const aId = custDoc.ownerId || custDoc.createdBy;
-          try {
-            const { ObjectId } = await import("mongodb");
-            if (ObjectId.isValid(String(aId))) {
-              adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(aId)) });
-            }
-          } catch {}
-        }
-      }
-      if (!adminUser) {
-        adminUser = await mongo.collection("users").findOne({
-          $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "superadmin" }]
-        });
-      }
-      if (adminUser) effectiveOwner = adminUser;
-    }
+    const { ownerUser, effectiveOwner } = await resolveEffectiveOwner(mongo, userId, userRole, req.auth?.email);
 
     let customerName = b.customerName || "Customer";
     let customerId = b.customerId || null;
@@ -962,50 +919,7 @@ invoicesRouter.post(
     const userId = req.user?._id || req.auth?.userId;
     const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
-    let ownerUser = null;
-    try {
-      const { ObjectId } = await import("mongodb");
-      if (userId && ObjectId.isValid(userId)) {
-        ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(userId) });
-      }
-    } catch {}
-    if (!ownerUser && req.auth?.email) {
-      ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
-    }
-
-    let effectiveOwner = ownerUser;
-    if (userRole === "customer" || req.user?.roles?.includes("customer")) {
-      const adminId = ownerUser?.ownerId || ownerUser?.createdBy || ownerUser?.created_by;
-      let adminUser = null;
-      if (adminId) {
-        try {
-          const { ObjectId } = await import("mongodb");
-          if (ObjectId.isValid(String(adminId))) {
-            adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(adminId)) });
-          }
-        } catch {}
-      }
-      if (!adminUser && ownerUser?.email) {
-        const custDoc = await mongo.collection("customers").findOne({
-          $or: [{ profile_id: userId }, { email: ownerUser.email }]
-        });
-        if (custDoc?.ownerId || custDoc?.createdBy) {
-          const aId = custDoc.ownerId || custDoc.createdBy;
-          try {
-            const { ObjectId } = await import("mongodb");
-            if (ObjectId.isValid(String(aId))) {
-              adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(aId)) });
-            }
-          } catch {}
-        }
-      }
-      if (!adminUser) {
-        adminUser = await mongo.collection("users").findOne({
-          $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "superadmin" }]
-        });
-      }
-      if (adminUser) effectiveOwner = adminUser;
-    }
+    const { ownerUser, effectiveOwner } = await resolveEffectiveOwner(mongo, userId, userRole, req.auth?.email);
 
     const customerName = b.customerName || "Customer";
     const items = Array.isArray(b.items) ? b.items : [];
@@ -1401,50 +1315,7 @@ agreementsRouter.post(
     const userId = req.user?._id || req.auth?.userId;
     const userRole = req.user?.role || req.auth?.roles?.[0] || "admin";
 
-    let ownerUser = null;
-    try {
-      const { ObjectId } = await import("mongodb");
-      if (userId && ObjectId.isValid(userId)) {
-        ownerUser = await mongo.collection("users").findOne({ _id: new ObjectId(userId) });
-      }
-    } catch {}
-    if (!ownerUser && req.auth?.email) {
-      ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
-    }
-
-    let effectiveOwner = ownerUser;
-    if (userRole === "customer" || req.user?.roles?.includes("customer")) {
-      const adminId = ownerUser?.ownerId || ownerUser?.createdBy || ownerUser?.created_by;
-      let adminUser = null;
-      if (adminId) {
-        try {
-          const { ObjectId } = await import("mongodb");
-          if (ObjectId.isValid(String(adminId))) {
-            adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(adminId)) });
-          }
-        } catch {}
-      }
-      if (!adminUser && ownerUser?.email) {
-        const custDoc = await mongo.collection("customers").findOne({
-          $or: [{ profile_id: userId }, { email: ownerUser.email }]
-        });
-        if (custDoc?.ownerId || custDoc?.createdBy) {
-          const aId = custDoc.ownerId || custDoc.createdBy;
-          try {
-            const { ObjectId } = await import("mongodb");
-            if (ObjectId.isValid(String(aId))) {
-              adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(aId)) });
-            }
-          } catch {}
-        }
-      }
-      if (!adminUser) {
-        adminUser = await mongo.collection("users").findOne({
-          $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "superadmin" }]
-        });
-      }
-      if (adminUser) effectiveOwner = adminUser;
-    }
+    const { ownerUser, effectiveOwner } = await resolveEffectiveOwner(mongo, userId, userRole, req.auth?.email);
 
     let customerName = b.customerName || "Customer";
     let customerMobile = b.customerMobile || null;
