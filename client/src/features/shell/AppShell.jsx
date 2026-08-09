@@ -206,8 +206,8 @@ export function AppShell() {
           </div>
           <div className="app-user">
             <div className="user-profile-badge">
-              <span>{user?.fullName ?? "Super Admin"}</span>
-              <small>{(user?.roles ?? ["super_admin"]).join(", ").replaceAll("_", " ")}</small>
+              <span>{user?.fullName || user?.full_name || user?.name || "User"}</span>
+              <small>{(user?.roles ?? ["super_admin"]).map(r => r === "customer" ? "Customer" : r === "super_admin" ? "Super Admin" : r).join(", ").replaceAll("_", " ")}</small>
             </div>
             <button
               className="icon-button logout-header-button"

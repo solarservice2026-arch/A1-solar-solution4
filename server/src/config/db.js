@@ -147,6 +147,14 @@ export async function connectMongoDB() {
               }
             }
           );
+          await db.collection("customers").updateMany(
+            { $or: [{ customer_type: "Vendor" }, { customer_type: "vendor" }] },
+            { $set: { customer_type: "Customer" } }
+          );
+          await db.collection("users").updateMany(
+            { $or: [{ role: "vendor" }, { roles: "vendor" }] },
+            { $set: { role: "customer", roles: ["customer"] } }
+          );
         }
       } catch (err) {
         console.error("[MongoDB] Seeding/Purge error:", err.message);
