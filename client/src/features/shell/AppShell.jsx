@@ -1,10 +1,12 @@
 import {
   ArrowLeft,
+  Building2,
   ChevronRight,
   FileText,
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
   Settings,
   UserCircle,
   Users,
