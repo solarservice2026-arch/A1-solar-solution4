@@ -810,14 +810,12 @@ function DataPage({
               {(() => {
                 const total = qItems.reduce((s, it) => s + (parseQty(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0);
                 return (
-                  <div className="live-total-box">
-                    <div className="live-total-row grand" style={{ flexDirection: "column", alignItems: "stretch", gap: "2px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Total Amount</span>
-                        <span>₹{total.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div style={{ textAlign: "right", fontSize: "11px", fontWeight: "normal", opacity: 0.85 }}>(Including GST)</div>
+                  <div style={{ background: "#2563eb", color: "#ffffff", padding: "12px 16px", borderRadius: "6px", marginTop: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "16px", fontWeight: 700 }}>
+                      <span>Total Amount</span>
+                      <span>₹{total.toLocaleString("en-IN")}/-</span>
                     </div>
+                    <div style={{ textAlign: "right", fontSize: "11px", color: "#e0e7ff", marginTop: "2px" }}>(Including GST)</div>
                   </div>
                 );
               })()}
@@ -1014,23 +1012,44 @@ function DataPage({
 
                 return (
                   <div className="live-total-box" style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "16px", marginTop: "16px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px" }}>
-                      <div><span>Taxable Amount:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
-                      <div><span>CGST Total:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalCgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
-                      <div><span>SGST Total:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalSgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
-                      <div><span>IGST Total:</span> <strong style={{ float: "right", color: "#1e293b" }}>₹{totalIgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13.5px", color: "#334155" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "4px" }}>
+                        <span>Taxable Amount:</span>
+                        <strong style={{ color: "#0f172a" }}>₹{totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "4px" }}>
+                        <span>CGST Total:</span>
+                        <strong style={{ color: "#0f172a" }}>₹{totalCgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "4px" }}>
+                        <span>SGST Total:</span>
+                        <strong style={{ color: "#0f172a" }}>₹{totalSgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "4px" }}>
+                        <span>IGST Total:</span>
+                        <strong style={{ color: "#0f172a" }}>₹{totalIgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </div>
                     </div>
-                    <div className="live-total-row grand" style={{ flexDirection: "column", alignItems: "stretch", gap: "4px", marginTop: "12px", paddingTop: "12px", borderTop: "2px solid #5569c7" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "16px", fontWeight: 700, color: "#1e3a8a" }}>
+
+                    <div style={{ background: "#2563eb", color: "#ffffff", padding: "14px 18px", borderRadius: "8px", marginTop: "12px", boxShadow: "0 2px 4px rgba(37,99,235,0.2)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "16px", fontWeight: 700 }}>
                         <span>Total (Inclusive of GST)</span>
-                        <span>₹{grandTotal.toLocaleString("en-IN")}/-</span>
+                        <span style={{ fontSize: "18px" }}>₹{grandTotal.toLocaleString("en-IN")}/-</span>
                       </div>
-                      <div style={{ fontSize: "12px", color: "#475569" }}>
-                        In Words: <strong>{amountWords(grandTotal)}</strong>
+                      <div style={{ fontSize: "12.5px", color: "#eff6ff", marginTop: "6px", borderTop: "1px solid rgba(255,255,255,0.2)", paddingTop: "6px" }}>
+                        In Words: <strong style={{ color: "#ffffff" }}>{amountWords(grandTotal)}</strong>
                       </div>
                     </div>
-                    <div className="live-total-row" style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "13px" }}><span>Paid Amount:</span><span>₹{paid.toLocaleString("en-IN")}</span></div>
-                    <div className="live-total-row balance" style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "14px", fontWeight: 600, color: balance > 0 ? "#dc2626" : "#16a34a" }}><span>Balance Due:</span><span>₹{balance.toLocaleString("en-IN")}</span></div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "12px", padding: "4px 6px", fontSize: "13px", color: "#475569" }}>
+                      <span>Paid Amount:</span>
+                      <strong style={{ color: "#0f172a" }}>₹{paid.toLocaleString("en-IN")}</strong>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", padding: "10px 14px", background: balance > 0 ? "#fef2f2" : "#f0fdf4", border: balance > 0 ? "1px solid #fecaca" : "1px solid #bbf7d0", borderRadius: "6px", fontSize: "14.5px", fontWeight: 700, color: balance > 0 ? "#dc2626" : "#16a34a" }}>
+                      <span>Balance Due:</span>
+                      <span>₹{balance.toLocaleString("en-IN")}</span>
+                    </div>
                   </div>
                 );
               })()}
