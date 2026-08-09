@@ -92,10 +92,69 @@ function DataPage({
   const [editingRow, setEditingRow] = useState(null);
   const [payuRow, setPayuRow] = useState(null);
   const [paying, setPaying] = useState(false);
-
   const [availableProducts, setAvailableProducts] = useState([]);
   const [availableCustomers, setAvailableCustomers] = useState([]);
   const [isCustomCustomer, setIsCustomCustomer] = useState(false);
+
+  // ─── CUSTOM FORMS STATES ───
+  // Quotation States
+  const [qNumber, setQNumber] = useState("");
+  const [qDate, setQDate] = useState(getTodayDateStr());
+  const [qCapacity, setQCapacity] = useState("3");
+  const [qType, setQType] = useState("ON-GRID SOLAR POWER SYSTEM");
+  const [qCustName, setQCustName] = useState("ARJUN CHAUDHARY");
+  const [qCustMobile, setQCustMobile] = useState("9955964771");
+  const [qCustEmail, setQCustEmail] = useState("");
+  const [qAddress, setQAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
+  const [qItems, setQItems] = useState([
+    { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000 },
+    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000 },
+    { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000 },
+    { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000 }
+  ]);
+  const [qCustomerSignature, setQCustomerSignature] = useState(null);
+
+  const handleQSignatureUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setQCustomerSignature(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setQCustomerSignature(null);
+    }
+  };
+
+  // Invoice States
+  const [iNumber, setINumber] = useState("");
+  const [iTitle, setITitle] = useState("FOR 5KW MOUNTING STRUCTURE — OFF-GRID");
+  const [iCustName, setICustName] = useState("Rohan Sharma");
+  const [iCustMobile, setICustMobile] = useState("9876500001");
+  const [iCustEmail, setICustEmail] = useState("customer.home@a1solar.test");
+  const [iAddress, setIAddress] = useState("VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR");
+  const [iDate, setIDate] = useState(getTodayDateStr());
+  const [iDueDate, setIDueDate] = useState(getTodayDateStr());
+  const [iPaidAmount, setIPaidAmount] = useState("0");
+  const [iStatus, setIStatus] = useState("Unpaid");
+  const [iItems, setIItems] = useState([
+    { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
+    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
+    { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000, cgstRate: 9, sgstRate: 9, igstRate: 0 },
+    { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000, cgstRate: 9, sgstRate: 9, igstRate: 0 }
+  ]);
+
+  // Agreement States
+  const [aNumber, setANumber] = useState("");
+  const [aDate, setADate] = useState(getTodayDateStr());
+  const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
+  const [aCustMobile, setACustMobile] = useState("9955964771");
+  const [aAddress, setAAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
+  const [aQuotationNumber, setAQuotationNumber] = useState("AI-QUO-0101");
+  const [aCapacity, setACapacity] = useState("3");
+  const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
+  const [aCustomerSignature, setACustomerSignature] = useState(null);
 
   useEffect(() => {
     if (title === "Quotations" || title === "Invoices" || title === "Agreements") {
@@ -193,66 +252,6 @@ function DataPage({
       }
     }
   }, [open, editingRow, availableCustomers, title]);
-
-  // ─── CUSTOM FORMS STATES ───
-  // Quotation States
-  const [qNumber, setQNumber] = useState("");
-  const [qDate, setQDate] = useState(getTodayDateStr());
-  const [qCapacity, setQCapacity] = useState("3");
-  const [qType, setQType] = useState("ON-GRID SOLAR POWER SYSTEM");
-  const [qCustName, setQCustName] = useState("ARJUN CHAUDHARY");
-  const [qCustMobile, setQCustMobile] = useState("9955964771");
-  const [qCustEmail, setQCustEmail] = useState("");
-  const [qAddress, setQAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
-  const [qItems, setQItems] = useState([
-    { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000 },
-    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000 },
-    { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000 },
-    { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000 }
-  ]);
-  const [qCustomerSignature, setQCustomerSignature] = useState(null);
-
-  const handleQSignatureUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setQCustomerSignature(ev.target.result);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setQCustomerSignature(null);
-    }
-  };
-
-  // Invoice States
-  const [iNumber, setINumber] = useState("");
-  const [iTitle, setITitle] = useState("FOR 5KW MOUNTING STRUCTURE — OFF-GRID");
-  const [iCustName, setICustName] = useState("Rohan Sharma");
-  const [iCustMobile, setICustMobile] = useState("9876500001");
-  const [iCustEmail, setICustEmail] = useState("customer.home@a1solar.test");
-  const [iAddress, setIAddress] = useState("VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR");
-  const [iDate, setIDate] = useState(getTodayDateStr());
-  const [iDueDate, setIDueDate] = useState(getTodayDateStr());
-  const [iPaidAmount, setIPaidAmount] = useState("0");
-  const [iStatus, setIStatus] = useState("Unpaid");
-  const [iItems, setIItems] = useState([
-    { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
-    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
-    { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000, cgstRate: 9, sgstRate: 9, igstRate: 0 },
-    { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000, cgstRate: 9, sgstRate: 9, igstRate: 0 }
-  ]);
-
-  // Agreement States
-  const [aNumber, setANumber] = useState("");
-  const [aDate, setADate] = useState(getTodayDateStr());
-  const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
-  const [aCustMobile, setACustMobile] = useState("9955964771");
-  const [aAddress, setAAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
-  const [aQuotationNumber, setAQuotationNumber] = useState("AI-QUO-0101");
-  const [aCapacity, setACapacity] = useState("3");
-  const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
-  const [aCustomerSignature, setACustomerSignature] = useState(null);
 
   useEffect(() => {
     if (open && !editingRow) {
