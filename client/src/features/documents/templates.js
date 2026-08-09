@@ -5,6 +5,31 @@ const esc = (value) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
 
+export const formatDateDDMMYYYY = (val) => {
+  if (val == null || val === "") return "—";
+  const str = String(val).trim();
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${d}/${m}/${y}`;
+  }
+  if (str.includes("/")) {
+    const parts = str.split("/");
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
+    }
+    return str;
+  }
+  const dObj = new Date(str);
+  if (!isNaN(dObj.getTime())) {
+    const day = String(dObj.getDate()).padStart(2, "0");
+    const month = String(dObj.getMonth() + 1).padStart(2, "0");
+    const year = dObj.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  return str;
+};
+
 const inr = (value) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(
     Number(value || 0),
@@ -49,47 +74,47 @@ const sharedCss = () => `
 html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
 .sheet{width:210mm;min-height:297mm;margin:auto;background:#fff;color:#333}
 /* ─── Hero Banner ─── */
-.hero-container{position:relative;width:100%;height:68mm;overflow:hidden}
+.hero-container{position:relative;width:100%;height:52mm;overflow:hidden}
 .hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
+.hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:38px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
 /* ─── Sub-header row ─── */
-.doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
+.doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
-.logo-brand{display:block;height:18mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.logo-brand{display:block;height:16mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Agreement logo header ─── */
-.agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:4mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:3mm}
-.agr-logo-header img{height:16mm;width:auto;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:3mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:2mm}
+.agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .doc-title{text-align:center}
-.doc-title h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.06em;color:#1a3a6b}
-.doc-title b{display:block;color:#586bc5;font-size:12px;margin-top:2px}
-.meta{text-align:center;color:#8a95ae;font-size:11px;border-left:1px solid #dde1ea;padding-left:8mm}
-.meta b{display:block;color:#1a3a6b;font-size:13px;font-weight:800;margin-top:3px}
+.doc-title h1{margin:0;font-size:20px;font-weight:900;letter-spacing:.06em;color:#1a3a6b}
+.doc-title b{display:block;color:#586bc5;font-size:11.5px;margin-top:2px}
+.meta{text-align:center;color:#8a95ae;font-size:10.5px;border-left:1px solid #dde1ea;padding-left:6mm}
+.meta b{display:block;color:#1a3a6b;font-size:12px;font-weight:800;margin-top:2px}
 /* ─── Party strip ─── */
-.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:6mm 14mm;gap:12mm;font-size:12px;line-height:1.55}
+.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:4mm 14mm;gap:10mm;font-size:11.5px;line-height:1.45}
 .party>div:last-child{text-align:right}
-.party b{font-size:13px;color:#1a3a6b}
+.party b{font-size:12.5px;color:#1a3a6b}
 /* ─── Product table ─── */
-.products{padding:6mm 14mm 2mm}
+.products{padding:4mm 14mm 2mm}
 .products table{width:100%;border-collapse:collapse}
-.products th{color:#586bc5;text-transform:uppercase;font-size:10px;border-bottom:2px solid #586bc5;padding:6px 5px;text-align:left}
-.products td{padding:9px 5px;border-bottom:1px solid #dde1e6;font-size:12px}
+.products th{color:#586bc5;text-transform:uppercase;font-size:10px;border-bottom:2px solid #586bc5;padding:5px 4px;text-align:left}
+.products td{padding:6px 4px;border-bottom:1px solid #dde1e6;font-size:11.5px}
 .products th:nth-last-child(-n+3),.products td:nth-last-child(-n+3){text-align:right}
 /* ─── Totals ─── */
-.summary{display:flex;justify-content:flex-end;padding:3mm 14mm}
-.total-box{width:96mm;background:#1a3a6b;color:#fff;padding:5mm;font-size:14px}
+.summary{display:flex;justify-content:flex-end;padding:2mm 14mm}
+.total-box{width:96mm;background:#1a3a6b;color:#fff;padding:4mm;font-size:13px}
 .total-line,.words-line{display:flex;justify-space-between;gap:12px}
-.total-line{font-size:15px;font-weight:700}
-.words-line{margin-top:6px;font-weight:700;font-size:11px}
-.gst{text-align:right;margin-top:5px;font-size:10px;opacity:.85}
+.total-line{font-size:14.5px;font-weight:700}
+.words-line{margin-top:4px;font-weight:700;font-size:10.5px}
+.gst{text-align:right;margin-top:4px;font-size:9.5px;opacity:.85}
 /* ─── Bottom sections ─── */
-.bottom{display:grid;grid-template-columns:1fr 64mm;padding:4mm 14mm;gap:10mm;align-items:end}
-.payment h2{color:#586bc5;font-size:13px;margin:0 0 4px}
-.payment{font-size:12px;font-weight:700;line-height:1.6}
+.bottom{display:grid;grid-template-columns:1fr 64mm;padding:3mm 14mm;gap:8mm;align-items:end}
+.payment h2{color:#586bc5;font-size:12px;margin:0 0 3px}
+.payment{font-size:11px;font-weight:700;line-height:1.5}
 .vsig{text-align:center}
-.vsig img{width:54mm;height:21mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.vsig b{display:block;color:#1a3a6b;font-size:11px;margin-top:2px}
-.status-bar{padding:0 14mm 4mm;display:flex;justify-content:space-between;color:#666;font-size:11px}
+.vsig img{width:48mm;height:18mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.vsig b{display:block;color:#1a3a6b;font-size:10.5px;margin-top:2px}
+.status-bar{background:#111;color:#fff;padding:6px 14mm;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;mix-blend-mode:normal;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Terms section (quotation page 2) ─── */
 .terms{padding:6mm 14mm;font-size:12px;line-height:1.6}
 .terms h2{font-size:13px;color:#1a3a6b;border-bottom:2px solid #586bc5;padding-bottom:3px;margin:10px 0 5px}
@@ -144,7 +169,12 @@ export function quotationDocument(row) {
 
   const itemRows = items.map((item, i) => {
     const product = item.products ?? {};
-    const price = Number(item.unit_price ?? item.unitPrice ?? 0);
+    let price = Number(item.unit_price ?? item.unitPrice ?? 0);
+    const pNameStr = String(product.name ?? item.product_name ?? item.productName ?? item.description ?? "").toLowerCase();
+    const descStr = String(item.description ?? "").toLowerCase();
+    if ((pNameStr.includes("inverter") || descStr.includes("inverter")) && (price === 43000 || price === 0)) {
+      price = 48000;
+    }
     const qty = parseQty(item.quantity);
     return `<tr>
       <td>${i + 1}</td>
@@ -170,7 +200,7 @@ export function quotationDocument(row) {
   const custAddress = row.installation_address || row.consumer_address || row.consumerAddress || customer.address || "—";
 
   const qNum = row.quotation_number || row.quotationNumber || row.number || "—";
-  const qDate = row.quotation_date || row.quotationDate || "—";
+  const qDate = formatDateDDMMYYYY(row.quotation_date || row.quotationDate || row.created_at);
   const qCap = row.capacity_kw || row.capacityKw || "—";
   const qType = row.quotation_type || row.quotationType || "Solar Power System";
   const rawCap = row.capacity_kw || row.capacityKw || "3";
@@ -279,8 +309,13 @@ export function invoiceDocument(row) {
     const brand = item.brand ?? product.brand ?? product.model ?? "LivFast";
     const qtyStr = String(item.quantity ?? "1");
     const qtyNum = parseQty(qtyStr) || 1;
-    const priceIncl = Number(item.unit_price ?? item.unitPrice ?? 0);
-    const lineTotal = item.line_amount ?? (qtyNum * priceIncl);
+    let priceIncl = Number(item.unit_price ?? item.unitPrice ?? 0);
+    const pNameStr = String(pName).toLowerCase();
+    const descStr = String(desc).toLowerCase();
+    if ((pNameStr.includes("inverter") || descStr.includes("inverter")) && (priceIncl === 43000 || priceIncl === 0)) {
+      priceIncl = 48000;
+    }
+    const lineTotal = qtyNum * priceIncl;
 
     const cgstR = Number(item.cgst_rate ?? item.cgstRate ?? 2.5);
     const sgstR = Number(item.sgst_rate ?? item.sgstRate ?? 2.5);
@@ -355,7 +390,7 @@ export function invoiceDocument(row) {
   <div class="doc-header cols-4">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
-    <div class="meta">Date<b>${esc(row.invoice_date)}</b></div>
+    <div class="meta">Date<b>${esc(formatDateDDMMYYYY(row.invoice_date || row.invoiceDate || row.created_at))}</b></div>
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
   </div>
   <section class="party">
@@ -366,7 +401,7 @@ export function invoiceDocument(row) {
       ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
       ${esc(companyAddress)}
     </div>
-    <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}${customer.email ? `<br>Email: ${esc(customer.email)}` : ""}<br>${esc(row.installation_address)}</div>
+    <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}<br>${esc(row.installation_address)}</div>
   </section>
   <section class="products">
     <table>
@@ -429,7 +464,7 @@ export function invoiceDocument(row) {
   </section>
   <section class="status-bar">
     <span>Paid: ${inr(row.paid_amount)} &nbsp;|&nbsp; Balance: ${inr(balance)}</span>
-    <span>Status: ${esc(row.status)} &nbsp;|&nbsp; Due: ${esc(row.due_date)}</span>
+    <span>Status: ${esc(row.status)}</span>
   </section>
 </main>
 <button class="actions" onclick="window.print()">Print / Save PDF</button>
@@ -454,9 +489,7 @@ export function agreementDocument(row) {
   const monthStr = !Number.isNaN(parsedDate.getTime()) ? monthNames[parsedDate.getMonth()] : "APRIL";
   const yearStr = !Number.isNaN(parsedDate.getTime()) ? String(parsedDate.getFullYear()) : "2026";
   const formattedExecDate = `<b>${dayStr}</b> (Day) - <b>${monthStr}</b> (Month) - <b>${yearStr}</b> (Year)`;
-  const displayDate = !Number.isNaN(parsedDate.getTime())
-    ? parsedDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-    : "25 Apr 2026";
+  const displayDate = formatDateDDMMYYYY(rawDate);
 
   const custName = row.customer_name || row.customerName || customer.name || merged.consumer_name || "ARJUN CHAUDHARY";
   const custAddress =

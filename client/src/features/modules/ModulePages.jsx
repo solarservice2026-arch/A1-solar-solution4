@@ -11,7 +11,39 @@ import {
   quotationDocument,
 } from "../documents/templates.js";
 
-const text = (v) => (v == null ? "—" : String(v));
+const formatDateDDMMYYYY = (val) => {
+  if (val == null || val === "") return "—";
+  const str = String(val).trim();
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${d}/${m}/${y}`;
+  }
+  if (str.includes("/")) {
+    const parts = str.split("/");
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
+    }
+    return str;
+  }
+  const dObj = new Date(str);
+  if (!isNaN(dObj.getTime())) {
+    const day = String(dObj.getDate()).padStart(2, "0");
+    const month = String(dObj.getMonth() + 1).padStart(2, "0");
+    const year = dObj.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  return str;
+};
+
+const text = (v) => {
+  if (v == null || v === "") return "—";
+  const str = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return formatDateDDMMYYYY(str);
+  }
+  return str;
+};
 const money = (v) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
 
 const parseQty = (val) => {
@@ -95,7 +127,6 @@ function DataPage({
   const [paying, setPaying] = useState(false);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [availableCustomers, setAvailableCustomers] = useState([]);
-  const [isCustomCustomer, setIsCustomCustomer] = useState(false);
 
   // ─── CUSTOM FORMS STATES ───
   // Quotation States
@@ -109,7 +140,7 @@ function DataPage({
   const [qAddress, setQAddress] = useState("");
   const [qItems, setQItems] = useState([
     { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000 },
-    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000 },
+    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 48000 },
     { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000 },
     { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000 }
   ]);
@@ -133,15 +164,13 @@ function DataPage({
   const [iTitle, setITitle] = useState("FOR 5KW MOUNTING STRUCTURE — OFF-GRID");
   const [iCustName, setICustName] = useState("");
   const [iCustMobile, setICustMobile] = useState("");
-  const [iCustEmail, setICustEmail] = useState("");
   const [iAddress, setIAddress] = useState("");
   const [iDate, setIDate] = useState(getTodayDateStr());
-  const [iDueDate, setIDueDate] = useState(getTodayDateStr());
   const [iPaidAmount, setIPaidAmount] = useState("0");
   const [iStatus, setIStatus] = useState("Unpaid");
   const [iItems, setIItems] = useState([
     { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
-    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
+    { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 48000, cgstRate: 2.5, sgstRate: 2.5, igstRate: 0 },
     { productName: "Structure", description: "Ms/GI", brand: "Branded", quantity: "3KW", unitPrice: 14000, cgstRate: 9, sgstRate: 9, igstRate: 0 },
     { productName: "ACDB & DCDB Earthing La Ac Wire Dc Wire", description: "For 3KW", brand: "Branded", quantity: "3/KW", unitPrice: 9000, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
@@ -152,8 +181,6 @@ function DataPage({
   const [aCustName, setACustName] = useState("");
   const [aCustMobile, setACustMobile] = useState("");
   const [aAddress, setAAddress] = useState("");
-  const [aQuotationNumber, setAQuotationNumber] = useState("AI-QUO-0101");
-  const [aCapacity, setACapacity] = useState("3");
   const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
   const [aCustomerSignature, setACustomerSignature] = useState(null);
 
@@ -198,9 +225,7 @@ function DataPage({
       };
       void fetchData();
     }
-    if (!open) {
-      setIsCustomCustomer(false);
-    }
+
   }, [open, title, editingRow]);
 
   useEffect(() => {
@@ -218,7 +243,6 @@ function DataPage({
           setQAddress(cAddress);
         } else if (title === "Invoices") {
           setICustName(cName);
-          setICustEmail(cEmail);
           setICustMobile(cMobile);
           setIAddress(cAddress);
         } else if (title === "Agreements") {
@@ -249,7 +273,6 @@ function DataPage({
           setQCustMobile(mobileVal);
           setQAddress(addressVal);
         } else if (title === "Invoices") {
-          setICustEmail(emailVal);
           setICustMobile(mobileVal);
           setIAddress(addressVal);
         } else if (title === "Agreements") {
@@ -265,7 +288,6 @@ function DataPage({
       const today = getTodayDateStr();
       setQDate(today);
       setIDate(today);
-      setIDueDate(today);
       setADate(today);
       if (isCustomer) {
         const uName = user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer";
@@ -311,17 +333,10 @@ function DataPage({
         if (!custEmail) custEmail = foundCust.email || "";
       }
 
-      const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
-      if (custName && !matchInList) {
-        setIsCustomCustomer(true);
-      } else {
-        setIsCustomCustomer(false);
-      }
-
-      setQCustName(matchInList ? matchInList.name : custName);
-      setQCustMobile(custMobile || (matchInList?.mobile || ""));
-      setQCustEmail(custEmail || (matchInList?.email || ""));
-      setQAddress(custAddress || (matchInList?.address || ""));
+      setQCustName(custName);
+      setQCustMobile(custMobile || (foundCust?.mobile || ""));
+      setQCustEmail(custEmail || (foundCust?.email || ""));
+      setQAddress(custAddress || (foundCust?.address || ""));
 
       setQCustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
 
@@ -333,14 +348,19 @@ function DataPage({
       if (rawItems.length > 0) {
         setQItems(rawItems.map(item => {
           const pName = item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product";
+          const desc = item.description ?? "";
+          let uPrice = Number(item.unit_price ?? item.unitPrice ?? 0);
+          if ((pName.toLowerCase().includes("inverter") || desc.toLowerCase().includes("inverter")) && (uPrice === 43000 || uPrice === 0)) {
+            uPrice = 48000;
+          }
           const matchedProd = availableProducts.find(p => p.name?.toLowerCase() === pName?.toLowerCase() || p.id === item.product_id);
           return {
             productId: matchedProd?.id || item.product_id || item.productId || (pName ? "custom" : ""),
             productName: pName,
-            description: item.description ?? "",
+            description: desc,
             brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
             quantity: String(item.quantity ?? "1"),
-            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0)
+            unitPrice: uPrice
           };
         }));
       }
@@ -362,20 +382,11 @@ function DataPage({
         if (!custEmail) custEmail = foundCust.email || "";
       }
 
-      const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
-      if (custName && !matchInList) {
-        setIsCustomCustomer(true);
-      } else {
-        setIsCustomCustomer(false);
-      }
-
-      setICustName(matchInList ? matchInList.name : custName);
-      setICustMobile(custMobile || (matchInList?.mobile || ""));
-      setICustEmail(custEmail || (matchInList?.email || ""));
-      setIAddress(custAddress || (matchInList?.address || ""));
+      setICustName(custName);
+      setICustMobile(custMobile || (foundCust?.mobile || ""));
+      setIAddress(custAddress || (foundCust?.address || ""));
 
       setIDate(row.invoice_date || row.invoiceDate || getTodayDateStr());
-      setIDueDate(row.due_date || row.dueDate || getTodayDateStr());
       setIPaidAmount(String(row.paid_amount ?? row.paidAmount ?? 0));
       setIStatus(row.status || "Draft");
 
@@ -387,14 +398,19 @@ function DataPage({
       if (rawItems.length > 0) {
         setIItems(rawItems.map(item => {
           const pName = item.product_name ?? item.productName ?? item.products?.name ?? item.description ?? "Solar Product";
+          const desc = item.description ?? "";
+          let uPrice = Number(item.unit_price ?? item.unitPrice ?? 0);
+          if ((pName.toLowerCase().includes("inverter") || desc.toLowerCase().includes("inverter")) && (uPrice === 43000 || uPrice === 0)) {
+            uPrice = 48000;
+          }
           const matchedProd = availableProducts.find(p => p.name?.toLowerCase() === pName?.toLowerCase() || p.id === item.product_id);
           return {
             productId: matchedProd?.id || item.product_id || item.productId || (pName ? "custom" : ""),
             productName: pName,
-            description: item.description ?? "",
+            description: desc,
             brand: item.brand ?? item.brand_model ?? item.products?.brand ?? item.products?.model ?? "LivFast",
             quantity: String(item.quantity ?? "1"),
-            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0),
+            unitPrice: uPrice,
             cgstRate: Number(item.cgst_rate ?? item.cgstRate ?? 2.5),
             sgstRate: Number(item.sgst_rate ?? item.sgstRate ?? 2.5),
             igstRate: Number(item.igst_rate ?? item.igstRate ?? 0)
@@ -419,19 +435,10 @@ function DataPage({
         if (!custEmail) custEmail = foundCust.email || "";
       }
 
-      const matchInList = availableCustomers.find(c => c.name?.trim().toLowerCase() === custName.trim().toLowerCase());
-      if (custName && !matchInList) {
-        setIsCustomCustomer(true);
-      } else {
-        setIsCustomCustomer(false);
-      }
+      setACustName(custName);
+      setACustMobile(custMobile || (foundCust?.mobile || ""));
+      setAAddress(custAddress || (foundCust?.address || ""));
 
-      setACustName(matchInList ? matchInList.name : custName);
-      setACustMobile(custMobile || (matchInList?.mobile || ""));
-      setAAddress(custAddress || (matchInList?.address || ""));
-
-      setAQuotationNumber(row.quotation_number || row.quotationNumber || "");
-      setACapacity(String(row.capacity_kw || row.capacityKw || "3"));
       setATerms(row.terms_of_payment || row.termsOfPayment || "");
       setACustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
     }
@@ -482,7 +489,7 @@ function DataPage({
 
     if (title === "Quotations") {
       const subtotal = qItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
-      const finalCustName = isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || qCustName || "Customer") : qCustName;
+      const finalCustName = qCustName || (isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || "") : "");
       const selCust = availableCustomers.find(c => c.name === finalCustName);
       body = {
         quotationDate: qDate,
@@ -503,16 +510,14 @@ function DataPage({
       };
     } else if (title === "Invoices") {
       const subtotal = iItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
-      const finalCustName = isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || iCustName || "Customer") : iCustName;
+      const finalCustName = iCustName || (isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || "") : "");
       const selCust = availableCustomers.find(c => c.name === finalCustName);
       body = {
         title: iTitle,
         customerName: finalCustName,
         customerMobile: iCustMobile,
-        customerEmail: iCustEmail,
         consumerAddress: iAddress,
         invoiceDate: iDate,
-        dueDate: iDueDate,
         paidAmount: iPaidAmount,
         status: iStatus,
         items: iItems,
@@ -522,15 +527,13 @@ function DataPage({
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Agreements") {
-      const finalCustName = isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || aCustName || "Customer") : aCustName;
+      const finalCustName = aCustName || (isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || "") : "");
       const selCust = availableCustomers.find(c => c.name === finalCustName);
       body = {
         agreementDate: aDate,
         customerName: finalCustName,
         customerMobile: aCustMobile,
         consumerAddress: aAddress,
-        quotationNumber: aQuotationNumber,
-        capacityKw: aCapacity,
         termsOfPayment: aTerms,
         status: "Draft",
         customerSignatureUrl: aCustomerSignature,
@@ -662,8 +665,19 @@ function DataPage({
             const today = getTodayDateStr();
             setQDate(today);
             setIDate(today);
-            setIDueDate(today);
             setADate(today);
+            setQCustName("");
+            setQCustMobile("");
+            setQCustEmail("");
+            setQAddress("");
+            setICustName("");
+            setICustMobile("");
+            setIAddress("");
+            setACustName("");
+            setACustMobile("");
+            setAAddress("");
+            setQCustomerSignature(null);
+            setACustomerSignature(null);
             setOpen(true);
           }}>
             New {title.slice(0, -1)}
@@ -691,48 +705,12 @@ function DataPage({
                 <label>System Capacity (kW)<input type="number" value={qCapacity} onChange={e => setQCapacity(e.target.value)} required /></label>
                 <label>Quotation Type<input value={qType} onChange={e => setQType(e.target.value)} required /></label>
                 <label>Customer Name
-                  {isCustomer ? (
-                    <input
-                      value={qCustName || user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer"}
-                      readOnly
-                      style={{ background: "#f0f4fb", cursor: "default" }}
-                      required
-                    />
-                  ) : isCustomCustomer ? (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <input style={{ flex: 1, minWidth: 0 }} value={qCustName} onChange={e => setQCustName(e.target.value)} placeholder="Type name" required autoFocus />
-                      <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
-                    </div>
-                  ) : (
-                    <select
-                      value={qCustName || ""}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === "custom") {
-                          setIsCustomCustomer(true);
-                          setQCustName("");
-                        } else {
-                          setQCustName(val);
-                          const customer = availableCustomers.find(c => c.name === val);
-                          if (customer) {
-                            setQCustMobile(customer.mobile || "");
-                            setQCustEmail(customer.email || "");
-                            if (customer.address) setQAddress(customer.address);
-                          }
-                        }
-                      }}
-                      required
-                    >
-                      <option value="" disabled>-- Select Customer --</option>
-                      {availableCustomers.map(c => (
-                        <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
-                      ))}
-                      {qCustName && !availableCustomers.some(c => c.name === qCustName) && (
-                        <option value={qCustName}>{qCustName}</option>
-                      )}
-                      <option value="custom">+ Add Custom Name</option>
-                    </select>
-                  )}
+                  <input
+                    value={qCustName}
+                    onChange={e => setQCustName(e.target.value)}
+                    placeholder="Enter Customer Name"
+                    required
+                  />
                 </label>
                 <label>Customer Mobile<input value={qCustMobile} onChange={e => setQCustMobile(e.target.value)} required /></label>
                 <label>Customer Email<input type="email" value={qCustEmail} onChange={e => setQCustEmail(e.target.value)} /></label>
@@ -841,53 +819,15 @@ function DataPage({
                 <label>Invoice Number<input value={iNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Invoice Title<input value={iTitle} onChange={e => setITitle(e.target.value)} required /></label>
                 <label>Invoice Date<input type="date" value={iDate} onChange={e => setIDate(e.target.value)} required /></label>
-                <label>Due Date<input type="date" value={iDueDate} onChange={e => setIDueDate(e.target.value)} required /></label>
                 <label>Customer Name
-                  {isCustomer ? (
-                    <input
-                      value={iCustName || user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer"}
-                      readOnly
-                      style={{ background: "#f0f4fb", cursor: "default" }}
-                      required
-                    />
-                  ) : isCustomCustomer ? (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <input style={{ flex: 1, minWidth: 0 }} value={iCustName} onChange={e => setICustName(e.target.value)} placeholder="Type name" required autoFocus />
-                      <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
-                    </div>
-                  ) : (
-                    <select
-                      value={iCustName || ""}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === "custom") {
-                          setIsCustomCustomer(true);
-                          setICustName("");
-                        } else {
-                          setICustName(val);
-                          const customer = availableCustomers.find(c => c.name === val);
-                          if (customer) {
-                            setICustMobile(customer.mobile || "");
-                            setICustEmail(customer.email || "");
-                            if (customer.address) setIAddress(customer.address);
-                          }
-                        }
-                      }}
-                      required
-                    >
-                      <option value="" disabled>-- Select Customer --</option>
-                      {availableCustomers.map(c => (
-                        <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
-                      ))}
-                      {iCustName && !availableCustomers.some(c => c.name === iCustName) && (
-                        <option value={iCustName}>{iCustName}</option>
-                      )}
-                      <option value="custom">+ Add Custom Name</option>
-                    </select>
-                  )}
+                  <input
+                    value={iCustName}
+                    onChange={e => setICustName(e.target.value)}
+                    placeholder="Enter Customer Name"
+                    required
+                  />
                 </label>
                 <label>Customer Mobile<input value={iCustMobile} onChange={e => setICustMobile(e.target.value)} required /></label>
-                <label>Customer Email<input type="email" value={iCustEmail} onChange={e => setICustEmail(e.target.value)} /></label>
                 <label className="span-2">Billing Address<textarea value={iAddress} onChange={e => setIAddress(e.target.value)} rows={2} required /></label>
                 <label>Paid Amount (₹)<input type="number" value={iPaidAmount} onChange={e => setIPaidAmount(e.target.value)} required /></label>
                 <label>Status
@@ -1075,51 +1015,14 @@ function DataPage({
                 <label>Agreement Number<input value={aNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Agreement Date<input type="date" value={aDate} onChange={e => setADate(e.target.value)} required /></label>
                 <label>Consumer Name
-                  {isCustomer ? (
-                    <input
-                      value={aCustName || user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer"}
-                      readOnly
-                      style={{ background: "#f0f4fb", cursor: "default" }}
-                      required
-                    />
-                  ) : isCustomCustomer ? (
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <input style={{ flex: 1, minWidth: 0 }} value={aCustName} onChange={e => setACustName(e.target.value)} placeholder="Type name" required autoFocus />
-                      <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
-                    </div>
-                  ) : (
-                    <select
-                      value={aCustName || ""}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === "custom") {
-                          setIsCustomCustomer(true);
-                          setACustName("");
-                        } else {
-                          setACustName(val);
-                          const customer = availableCustomers.find(c => c.name === val);
-                          if (customer) {
-                            setACustMobile(customer.mobile || "");
-                            if (customer.address) setAAddress(customer.address);
-                          }
-                        }
-                      }}
-                      required
-                    >
-                      <option value="" disabled>-- Select Consumer --</option>
-                      {availableCustomers.map(c => (
-                        <option key={c.id} value={c.name}>{c.name} ({c.mobile})</option>
-                      ))}
-                      {aCustName && !availableCustomers.some(c => c.name === aCustName) && (
-                        <option value={aCustName}>{aCustName}</option>
-                      )}
-                      <option value="custom">+ Add Custom Name</option>
-                    </select>
-                  )}
+                  <input
+                    value={aCustName}
+                    onChange={e => setACustName(e.target.value)}
+                    placeholder="Enter Consumer Name"
+                    required
+                  />
                 </label>
                 <label>Consumer Mobile<input value={aCustMobile} onChange={e => setACustMobile(e.target.value)} required /></label>
-                <label>Quotation Reference #<input value={aQuotationNumber} onChange={e => setAQuotationNumber(e.target.value)} required /></label>
-                <label>System Capacity (kW)<input type="number" value={aCapacity} onChange={e => setACapacity(e.target.value)} required /></label>
                 <label style={{ gridColumn: "span 2" }}>Consumer Site Address<textarea value={aAddress} onChange={e => setAAddress(e.target.value)} rows={2} required /></label>
                 <label style={{ gridColumn: "span 2" }}>Terms of Payment<textarea value={aTerms} onChange={e => setATerms(e.target.value)} rows={3} required /></label>
                 <label style={{ gridColumn: "span 2" }}>
@@ -1414,7 +1317,7 @@ export function ProjectsPage() {
         ["project_number", "Project #"],
         ["stage", "Stage"],
         ["progress", "Progress (%)"],
-        ["created_at", "Date", (v) => new Date(v).toLocaleDateString("en-IN")],
+        ["created_at", "Date", (v) => formatDateDDMMYYYY(v)],
       ]}
       icon={<Package />}
     />
@@ -1492,7 +1395,6 @@ export function InvoicesPage() {
         ["total", "Total Amount (₹)", "number"],
         ["paidAmount", "Paid Amount (₹)", "number"],
         ["tax", "Tax / GST (₹)", "number"],
-        ["dueDate", "Due Date", "date"],
         ["status", "Status", "select", ["Draft", "Sent", "Paid", "Overdue", "Cancelled"]],
       ]}
       icon={<FileText />}
@@ -1521,7 +1423,6 @@ export function AgreementsPage() {
         ["customerName", "Customer Name", "text"],
         ["paymentAmount", "Project / Payment Amount (₹)", "number"],
         ["consumerAddress", "Consumer Address", "text"],
-        ["quotationId", "Quotation # (optional)", "text", null, false],
         ["agreementDate", "Agreement Date", "date"],
       ]}
       icon={<FileText />}
