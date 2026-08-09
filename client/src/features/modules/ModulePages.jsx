@@ -261,8 +261,14 @@ function DataPage({
       setIDate(today);
       setIDueDate(today);
       setADate(today);
+      if (isCustomer) {
+        const uName = user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer";
+        setQCustName(uName);
+        setICustName(uName);
+        setACustName(uName);
+      }
     }
-  }, [open, editingRow, title]);
+  }, [open, editingRow, title, isCustomer, user]);
 
   const handleSignatureUpload = (e) => {
     const file = e.target.files?.[0];
@@ -474,12 +480,13 @@ function DataPage({
 
     if (title === "Quotations") {
       const subtotal = qItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
-      const selCust = availableCustomers.find(c => c.name === qCustName);
+      const finalCustName = isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || qCustName || "Customer") : qCustName;
+      const selCust = availableCustomers.find(c => c.name === finalCustName);
       body = {
         quotationDate: qDate,
         capacityKw: qCapacity,
         quotationType: qType,
-        customerName: qCustName,
+        customerName: finalCustName,
         customerMobile: qCustMobile,
         customerEmail: qCustEmail,
         consumerAddress: qAddress,
@@ -494,10 +501,11 @@ function DataPage({
       };
     } else if (title === "Invoices") {
       const subtotal = iItems.reduce((sum, item) => sum + (parseQty(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0);
-      const selCust = availableCustomers.find(c => c.name === iCustName);
+      const finalCustName = isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || iCustName || "Customer") : iCustName;
+      const selCust = availableCustomers.find(c => c.name === finalCustName);
       body = {
         title: iTitle,
-        customerName: iCustName,
+        customerName: finalCustName,
         customerMobile: iCustMobile,
         customerEmail: iCustEmail,
         consumerAddress: iAddress,
@@ -512,16 +520,15 @@ function DataPage({
         customerId: selCust ? (selCust.id || selCust._id) : null,
       };
     } else if (title === "Agreements") {
-      const selCust = availableCustomers.find(c => c.name === aCustName);
+      const finalCustName = isCustomer ? (user?.fullName || user?.full_name || user?.name || user?.company_name || aCustName || "Customer") : aCustName;
+      const selCust = availableCustomers.find(c => c.name === finalCustName);
       body = {
         agreementDate: aDate,
-        customerName: aCustName,
+        customerName: finalCustName,
         customerMobile: aCustMobile,
-        customerEmail: aCustEmail,
         consumerAddress: aAddress,
         quotationNumber: aQuotationNumber,
         capacityKw: aCapacity,
-        paymentAmount: aAmount,
         termsOfPayment: aTerms,
         status: "Draft",
         customerSignatureUrl: aCustomerSignature,
