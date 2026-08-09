@@ -654,7 +654,14 @@ function DataPage({
                 <label>System Capacity (kW)<input type="number" value={qCapacity} onChange={e => setQCapacity(e.target.value)} required /></label>
                 <label>Quotation Type<input value={qType} onChange={e => setQType(e.target.value)} required /></label>
                 <label>Customer Name
-                  {isCustomCustomer ? (
+                  {isCustomer ? (
+                    <input
+                      value={qCustName || user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer"}
+                      readOnly
+                      style={{ background: "#f0f4fb", cursor: "default" }}
+                      required
+                    />
+                  ) : isCustomCustomer ? (
                     <div style={{ display: 'flex', gap: '5px' }}>
                       <input style={{ flex: 1, minWidth: 0 }} value={qCustName} onChange={e => setQCustName(e.target.value)} placeholder="Type name" required autoFocus />
                       <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
@@ -673,7 +680,6 @@ function DataPage({
                           if (customer) {
                             setQCustMobile(customer.mobile || "");
                             setQCustEmail(customer.email || "");
-                            setQCustGst(customer.gst_number || customer.gstNumber || "");
                             if (customer.address) setQAddress(customer.address);
                           }
                         }
@@ -802,7 +808,14 @@ function DataPage({
                 <label>Invoice Date<input type="date" value={iDate} onChange={e => setIDate(e.target.value)} required /></label>
                 <label>Due Date<input type="date" value={iDueDate} onChange={e => setIDueDate(e.target.value)} required /></label>
                 <label>Customer Name
-                  {isCustomCustomer ? (
+                  {isCustomer ? (
+                    <input
+                      value={iCustName || user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer"}
+                      readOnly
+                      style={{ background: "#f0f4fb", cursor: "default" }}
+                      required
+                    />
+                  ) : isCustomCustomer ? (
                     <div style={{ display: 'flex', gap: '5px' }}>
                       <input style={{ flex: 1, minWidth: 0 }} value={iCustName} onChange={e => setICustName(e.target.value)} placeholder="Type name" required autoFocus />
                       <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
@@ -821,7 +834,6 @@ function DataPage({
                           if (customer) {
                             setICustMobile(customer.mobile || "");
                             setICustEmail(customer.email || "");
-                            setICustGst(customer.gst_number || customer.gstNumber || "");
                             if (customer.address) setIAddress(customer.address);
                           }
                         }
