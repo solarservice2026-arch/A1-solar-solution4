@@ -28,6 +28,14 @@ const formObject = (form) => {
   return result;
 };
 
+const getTodayDateStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const printRecord = async (title, row, user) => {
   const isQuotation = String(title || "").toLowerCase().includes("quotation");
   const isAgreement = String(title || "").toLowerCase().includes("agreement");
@@ -187,10 +195,24 @@ function DataPage({
     }
   }, [open, editingRow, availableCustomers, title]);
 
+  useEffect(() => {
+    if (open && !editingRow) {
+      const today = getTodayDateStr();
+      if (title === "Quotations") {
+        setQDate(today);
+      } else if (title === "Invoices") {
+        setIDate(today);
+        setIDueDate(today);
+      } else if (title === "Agreements") {
+        setADate(today);
+      }
+    }
+  }, [open, editingRow, title]);
+
   // ─── CUSTOM FORMS STATES ───
   // Quotation States
   const [qNumber, setQNumber] = useState("");
-  const [qDate, setQDate] = useState("2026-04-25");
+  const [qDate, setQDate] = useState(getTodayDateStr());
   const [qCapacity, setQCapacity] = useState("3");
   const [qType, setQType] = useState("ON-GRID SOLAR POWER SYSTEM");
   const [qCustName, setQCustName] = useState("ARJUN CHAUDHARY");
@@ -225,8 +247,8 @@ function DataPage({
   const [iCustMobile, setICustMobile] = useState("9876500001");
   const [iCustEmail, setICustEmail] = useState("customer.home@a1solar.test");
   const [iAddress, setIAddress] = useState("VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR");
-  const [iDate, setIDate] = useState("2026-07-29");
-  const [iDueDate, setIDueDate] = useState("2026-07-29");
+  const [iDate, setIDate] = useState(getTodayDateStr());
+  const [iDueDate, setIDueDate] = useState(getTodayDateStr());
   const [iPaidAmount, setIPaidAmount] = useState("0");
   const [iStatus, setIStatus] = useState("Unpaid");
   const [iItems, setIItems] = useState([
@@ -238,7 +260,7 @@ function DataPage({
 
   // Agreement States
   const [aNumber, setANumber] = useState("");
-  const [aDate, setADate] = useState("2026-04-25");
+  const [aDate, setADate] = useState(getTodayDateStr());
   const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
   const [aCustMobile, setACustMobile] = useState("9955964771");
   const [aCustEmail, setACustEmail] = useState("");
@@ -266,7 +288,7 @@ function DataPage({
     setEditingRow(row);
     if (title === "Quotations") {
       setQNumber(row.quotation_number || row.quotationNumber || row.number || "");
-      setQDate(row.quotation_date || row.quotationDate || "2026-04-25");
+      setQDate(row.quotation_date || row.quotationDate || getTodayDateStr());
       setQCapacity(String(row.capacity_kw || row.capacityKw || "3"));
       setQType(row.quotation_type || row.quotationType || "ON-GRID SOLAR POWER SYSTEM");
 
@@ -345,11 +367,10 @@ function DataPage({
       setICustName(matchInList ? matchInList.name : custName);
       setICustMobile(custMobile || (matchInList?.mobile || ""));
       setICustEmail(custEmail || (matchInList?.email || ""));
-      setICustGst(custGst || (matchInList?.gst_number || ""));
       setIAddress(custAddress || (matchInList?.address || ""));
 
-      setIDate(row.invoice_date || row.invoiceDate || "");
-      setIDueDate(row.due_date || row.dueDate || "");
+      setIDate(row.invoice_date || row.invoiceDate || getTodayDateStr());
+      setIDueDate(row.due_date || row.dueDate || getTodayDateStr());
       setIPaidAmount(String(row.paid_amount ?? row.paidAmount ?? 0));
       setIStatus(row.status || "Draft");
 
@@ -377,7 +398,7 @@ function DataPage({
       }
     } else if (title === "Agreements") {
       setANumber(row.agreement_number || row.agreementNumber || row.number || "");
-      setADate(row.agreement_date || row.agreementDate || "");
+      setADate(row.agreement_date || row.agreementDate || getTodayDateStr());
 
       const custName = row.customer_name || row.customerName || row.customers?.name || "";
       const custMobile = row.customer_mobile || row.customerMobile || row.customers?.mobile || "";
