@@ -135,10 +135,10 @@ function DataPage({
   }, [open, title, editingRow]);
 
   useEffect(() => {
-    if (open && !editingRow && user?.roles?.includes("customer")) {
-      const cName = user.full_name || user.name || "Customer";
-      const cEmail = user.email || "";
-      const cMobile = user.mobile || user.phone || "";
+    if (open && user?.roles?.includes("customer")) {
+      const cName = user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer";
+      const cEmail = user?.email || "";
+      const cMobile = user?.mobile || user?.phone || "";
 
       if (title === "Quotations") {
         if (cName) setQCustName(cName);
@@ -154,7 +154,7 @@ function DataPage({
         if (cMobile) setACustMobile(cMobile);
       }
     }
-  }, [open, editingRow, user, title]);
+  }, [open, user, title]);
 
   useEffect(() => {
     if (open && editingRow && availableCustomers.length > 0) {
@@ -407,6 +407,8 @@ function DataPage({
     }
     setOpen(true);
   };
+
+  const isCustomer = user?.roles?.includes("customer");
 
   const canCreate =
     user?.roles?.includes("super_admin") ||
