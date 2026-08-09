@@ -103,10 +103,10 @@ function DataPage({
   const [qDate, setQDate] = useState(getTodayDateStr());
   const [qCapacity, setQCapacity] = useState("3");
   const [qType, setQType] = useState("ON-GRID SOLAR POWER SYSTEM");
-  const [qCustName, setQCustName] = useState("ARJUN CHAUDHARY");
-  const [qCustMobile, setQCustMobile] = useState("9955964771");
+  const [qCustName, setQCustName] = useState("");
+  const [qCustMobile, setQCustMobile] = useState("");
   const [qCustEmail, setQCustEmail] = useState("");
-  const [qAddress, setQAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
+  const [qAddress, setQAddress] = useState("");
   const [qItems, setQItems] = useState([
     { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000 },
     { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000 },
@@ -131,10 +131,10 @@ function DataPage({
   // Invoice States
   const [iNumber, setINumber] = useState("");
   const [iTitle, setITitle] = useState("FOR 5KW MOUNTING STRUCTURE — OFF-GRID");
-  const [iCustName, setICustName] = useState("Rohan Sharma");
-  const [iCustMobile, setICustMobile] = useState("9876500001");
-  const [iCustEmail, setICustEmail] = useState("customer.home@a1solar.test");
-  const [iAddress, setIAddress] = useState("VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR");
+  const [iCustName, setICustName] = useState("");
+  const [iCustMobile, setICustMobile] = useState("");
+  const [iCustEmail, setICustEmail] = useState("");
+  const [iAddress, setIAddress] = useState("");
   const [iDate, setIDate] = useState(getTodayDateStr());
   const [iDueDate, setIDueDate] = useState(getTodayDateStr());
   const [iPaidAmount, setIPaidAmount] = useState("0");
@@ -149,9 +149,9 @@ function DataPage({
   // Agreement States
   const [aNumber, setANumber] = useState("");
   const [aDate, setADate] = useState(getTodayDateStr());
-  const [aCustName, setACustName] = useState("ARJUN CHAUDHARY");
-  const [aCustMobile, setACustMobile] = useState("9955964771");
-  const [aAddress, setAAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
+  const [aCustName, setACustName] = useState("");
+  const [aCustMobile, setACustMobile] = useState("");
+  const [aAddress, setAAddress] = useState("");
   const [aQuotationNumber, setAQuotationNumber] = useState("AI-QUO-0101");
   const [aCapacity, setACapacity] = useState("3");
   const [aTerms, setATerms] = useState("70% advance payment shall be made at the time of order confirmation. Remaining 30% payment shall be made immediately after installation completion. All payments must be made through Bank Transfer / UPI / Cheque only. Any delay in payment may result in project delay or suspension of service.");
@@ -204,25 +204,31 @@ function DataPage({
   }, [open, title, editingRow]);
 
   useEffect(() => {
-    if (open && user?.roles?.includes("customer")) {
-      const cName = user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer";
-      const cEmail = user?.email || "";
-      const cMobile = user?.mobile || user?.phone || "";
+    if (open && !editingRow) {
+      if (user?.roles?.includes("customer")) {
+        const cName = user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer";
+        const cEmail = user?.email || "";
+        const cMobile = user?.mobile || user?.phone || "";
+        const cAddress = user?.address || user?.installation_address || user?.consumer_address || "";
 
-      if (title === "Quotations") {
-        if (cName) setQCustName(cName);
-        if (cEmail) setQCustEmail(cEmail);
-        if (cMobile) setQCustMobile(cMobile);
-      } else if (title === "Invoices") {
-        if (cName) setICustName(cName);
-        if (cEmail) setICustEmail(cEmail);
-        if (cMobile) setICustMobile(cMobile);
-      } else if (title === "Agreements") {
-        if (cName) setACustName(cName);
-        if (cMobile) setACustMobile(cMobile);
+        if (title === "Quotations") {
+          setQCustName(cName);
+          setQCustEmail(cEmail);
+          setQCustMobile(cMobile);
+          setQAddress(cAddress);
+        } else if (title === "Invoices") {
+          setICustName(cName);
+          setICustEmail(cEmail);
+          setICustMobile(cMobile);
+          setIAddress(cAddress);
+        } else if (title === "Agreements") {
+          setACustName(cName);
+          setACustMobile(cMobile);
+          setAAddress(cAddress);
+        }
       }
     }
-  }, [open, user, title]);
+  }, [open, editingRow, user, title]);
 
   useEffect(() => {
     if (open && editingRow && availableCustomers.length > 0) {

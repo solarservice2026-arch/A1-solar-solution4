@@ -1296,12 +1296,19 @@ agreementsRouter.get(
     return success(res, "Agreement document retrieved", {
       id: agreement._id.toString(),
       ...agreement,
+      consumer_address: agreement.consumer_address || agreement.consumerAddress || null,
       company_name: agreement.company_name || agreement.companyName || owner?.company_name || null,
       company_address: agreement.company_address || agreement.companyAddress || owner?.company_address || null,
       company_logo_url: agreement.company_logo_url || agreement.companyLogoUrl || owner?.company_logo_url || null,
       company_signature_url: agreement.company_signature_url || agreement.companySignatureUrl || owner?.company_signature_url || null,
-      bank_details: agreement.bank_details || agreement.bankDetails || owner?.bank_details || null,
-      customers: c ? { name: c.name, mobile: c.mobile } : { name: agreement.customer_name || "Customer" },
+      customers: c
+        ? { name: c.name, mobile: c.mobile, address: agreement.consumer_address || agreement.consumerAddress || c.address }
+        : { name: agreement.customer_name || "Customer", address: agreement.consumer_address || agreement.consumerAddress },
+      merged_data: {
+        ...(agreement.merged_data || {}),
+        consumer_name: agreement.customer_name || agreement.customerName,
+        consumer_address: agreement.consumer_address || agreement.consumerAddress,
+      }
     });
   }),
 );
@@ -1350,6 +1357,11 @@ agreementsRouter.post(
       updated_at: today.toISOString(),
       created_by: userId,
       customer_signature_url: b.customerSignatureUrl || null,
+      merged_data: {
+        consumer_name: customerName,
+        consumer_address: b.consumerAddress || null,
+        agreement_date: b.agreementDate || today.toISOString().slice(0, 10),
+      }
     };
     const result = await mongo.collection("agreements").insertOne(doc);
     return success(res.status(201), "Agreement draft created", {
@@ -1383,6 +1395,12 @@ agreementsRouter.put(
         mobile: b.customerMobile ?? req.doc.customer_mobile,
         address: b.consumerAddress || req.doc.consumer_address
       },
+      merged_data: {
+        ...(req.doc.merged_data || {}),
+        consumer_name: b.customerName || req.doc.customer_name,
+        consumer_address: b.consumerAddress || req.doc.consumer_address,
+        agreement_date: b.agreementDate || req.doc.agreement_date,
+      }
     };
     delete updateData.ownerId;
     delete updateData.ownerRole;

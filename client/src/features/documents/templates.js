@@ -458,8 +458,14 @@ export function agreementDocument(row) {
     ? parsedDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : "25 Apr 2026";
 
-  const custName = customer.name || row.customer_name || row.customerName || merged.consumer_name || "ARJUN CHAUDHARY";
-  const custAddress = merged.consumer_address || row.installation_address || customer.address || "NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503";
+  const custName = row.customer_name || row.customerName || customer.name || merged.consumer_name || "ARJUN CHAUDHARY";
+  const custAddress =
+    row.consumer_address ||
+    row.consumerAddress ||
+    row.installation_address ||
+    (customer.address && customer.address !== "NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503" ? customer.address : null) ||
+    (merged.consumer_address && merged.consumer_address !== "NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503" ? merged.consumer_address : null) ||
+    "NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503";
 
   const customerSigHtml = row.customer_signature_url
     ? `<img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(String(row.customer_signature_url))}" alt="Customer signature">`
