@@ -576,6 +576,40 @@ quotationsRouter.post(
       ownerUser = await mongo.collection("users").findOne({ email: req.auth.email.trim().toLowerCase() });
     }
 
+    let effectiveOwner = ownerUser;
+    if (userRole === "customer" || req.user?.roles?.includes("customer")) {
+      const adminId = ownerUser?.ownerId || ownerUser?.createdBy || ownerUser?.created_by;
+      let adminUser = null;
+      if (adminId) {
+        try {
+          const { ObjectId } = await import("mongodb");
+          if (ObjectId.isValid(String(adminId))) {
+            adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(adminId)) });
+          }
+        } catch {}
+      }
+      if (!adminUser && ownerUser?.email) {
+        const custDoc = await mongo.collection("customers").findOne({
+          $or: [{ profile_id: userId }, { email: ownerUser.email }]
+        });
+        if (custDoc?.ownerId || custDoc?.createdBy) {
+          const aId = custDoc.ownerId || custDoc.createdBy;
+          try {
+            const { ObjectId } = await import("mongodb");
+            if (ObjectId.isValid(String(aId))) {
+              adminUser = await mongo.collection("users").findOne({ _id: new ObjectId(String(aId)) });
+            }
+          } catch {}
+        }
+      }
+      if (!adminUser) {
+        adminUser = await mongo.collection("users").findOne({
+          $or: [{ role: "super_admin" }, { roles: "super_admin" }, { role: "superadmin" }]
+        });
+      }
+      if (adminUser) effectiveOwner = adminUser;
+    }
+
     let customerName = b.customerName || "Customer";
     let customerId = b.customerId || null;
     if (customerId && !b.customerName) {
@@ -605,19 +639,19 @@ quotationsRouter.post(
 
     const firstBrand = normalized[0]?.brand || b.brand || b.brandName || null;
     const qDoc = {
-      ownerId: userId,
-      ownerRole: userRole,
-      ownerEmail: req.auth?.email || ownerUser?.email || null,
+      ownerId: effectiveOwner?._id?.toString() || userId,
+      ownerRole: effectiveOwner?.role || userRole,
+      ownerEmail: effectiveOwner?.email || req.auth?.email || null,
       createdBy: userId,
       updatedBy: userId,
-      company_name: ownerUser?.company_name || b.companyName || null,
-      company_address: ownerUser?.company_address || b.companyAddress || null,
-      company_gstin: ownerUser?.company_gstin || b.companyGstin || null,
-      company_phone: ownerUser?.phone || b.companyPhone || b.phone || null,
-      company_email: ownerUser?.email || b.companyEmail || b.email || null,
-      company_logo_url: ownerUser?.company_logo_url || b.companyLogoUrl || null,
-      company_signature_url: ownerUser?.company_signature_url || b.companySignatureUrl || null,
-      bank_details: ownerUser?.bank_details || b.bankDetails || null,
+      company_name: effectiveOwner?.company_name || ownerUser?.company_name || b.companyName || null,
+      company_address: effectiveOwner?.company_address || ownerUser?.company_address || b.companyAddress || null,
+      company_gstin: effectiveOwner?.company_gstin || ownerUser?.company_gstin || b.companyGstin || null,
+      company_phone: effectiveOwner?.phone || ownerUser?.phone || b.companyPhone || b.phone || null,
+      company_email: effectiveOwner?.email || ownerUser?.email || b.companyEmail || b.email || null,
+      company_logo_url: effectiveOwner?.company_logo_url || ownerUser?.company_logo_url || b.companyLogoUrl || null,
+      company_signature_url: effectiveOwner?.company_signature_url || ownerUser?.company_signature_url || b.companySignatureUrl || null,
+      bank_details: effectiveOwner?.bank_details || ownerUser?.bank_details || b.bankDetails || null,
       quotation_number: await getNextNumber(mongo, "QOT", firstBrand),
       customer_id: customerId,
       customer_name: customerName,
