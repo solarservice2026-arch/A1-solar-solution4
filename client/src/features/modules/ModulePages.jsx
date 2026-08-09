@@ -972,7 +972,14 @@ function DataPage({
                 <label>Agreement Number<input value={aNumber} readOnly style={{ background: "#f0f4fb", cursor: "default" }} /></label>
                 <label>Agreement Date<input type="date" value={aDate} onChange={e => setADate(e.target.value)} required /></label>
                 <label>Consumer Name
-                  {isCustomCustomer ? (
+                  {isCustomer ? (
+                    <input
+                      value={aCustName || user?.fullName || user?.full_name || user?.name || user?.company_name || "Customer"}
+                      readOnly
+                      style={{ background: "#f0f4fb", cursor: "default" }}
+                      required
+                    />
+                  ) : isCustomCustomer ? (
                     <div style={{ display: 'flex', gap: '5px' }}>
                       <input style={{ flex: 1, minWidth: 0 }} value={aCustName} onChange={e => setACustName(e.target.value)} placeholder="Type name" required autoFocus />
                       <button type="button" onClick={() => { setIsCustomCustomer(false); }} className="secondary" style={{ padding: '0 10px' }}>×</button>
