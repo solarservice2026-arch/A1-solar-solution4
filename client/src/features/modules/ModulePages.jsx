@@ -199,9 +199,7 @@ function DataPage({
   const [qCustName, setQCustName] = useState("ARJUN CHAUDHARY");
   const [qCustMobile, setQCustMobile] = useState("9955964771");
   const [qCustEmail, setQCustEmail] = useState("");
-  const [qCustGst, setQCustGst] = useState("");
   const [qAddress, setQAddress] = useState("NEAR KABIR MATH GOVINDPUR BAZIDPUR VAISHALI BIHAR 844503");
-  const [qValid, setQValid] = useState("2026-05-25");
   const [qItems, setQItems] = useState([
     { productName: "Solar Panel", description: "Mono-Halfcut 545 Watt DCR", brand: "LivFast", quantity: "6", unitPrice: 22000 },
     { productName: "Inverter", description: "ON GRID 3 KVA", brand: "LivFast", quantity: "1", unitPrice: 43000 },

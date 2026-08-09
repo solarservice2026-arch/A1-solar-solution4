@@ -167,12 +167,10 @@ export function quotationDocument(row) {
   const custName = customer.name || row.customer_name || row.customerName || "—";
   const custMobile = customer.mobile || row.customer_mobile || row.customerMobile || "—";
   const custEmail = customer.email || row.customer_email || row.customerEmail || "";
-  const custGst = customer.gst_number || row.customer_gst || row.customerGst || "";
   const custAddress = row.installation_address || row.consumer_address || row.consumerAddress || customer.address || "—";
 
   const qNum = row.quotation_number || row.quotationNumber || row.number || "—";
   const qDate = row.quotation_date || row.quotationDate || "—";
-  const qValid = row.valid_until || row.validUntil || "—";
   const qCap = row.capacity_kw || row.capacityKw || "—";
   const qType = row.quotation_type || row.quotationType || "Solar Power System";
   const rawCap = row.capacity_kw || row.capacityKw || "3";
@@ -199,7 +197,7 @@ export function quotationDocument(row) {
       ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
       ${esc(companyAddress)}
     </div>
-    <div><b>${esc(custName)}</b><br>Mobile: ${esc(custMobile)}${custEmail ? `<br>Email: ${esc(custEmail)}` : ""}${custGst ? `<br>GSTIN: ${esc(custGst)}` : ""}<br>${esc(custAddress)}</div>
+    <div><b>${esc(custName)}</b><br>Mobile: ${esc(custMobile)}${custEmail ? `<br>Email: ${esc(custEmail)}` : ""}<br>${esc(custAddress)}</div>
   </section>
   <section class="products">
     <table>
@@ -234,7 +232,7 @@ export function quotationDocument(row) {
   <div class="doc-header cols-4" style="margin-top:8mm">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
-    <div class="meta">Valid Until<b>${esc(qValid)}</b></div>
+    <div class="meta">Date<b>${esc(qDate)}</b></div>
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
   </div>
   <div class="terms">
@@ -319,7 +317,7 @@ export function invoiceDocument(row) {
       ${companyGstin ? `GSTIN: ${esc(companyGstin)}<br>` : ""}
       ${esc(companyAddress)}
     </div>
-    <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}${customer.email ? `<br>Email: ${esc(customer.email)}` : ""}${customer.gst_number ? `<br>GSTIN: ${esc(customer.gst_number)}` : ""}<br>${esc(row.installation_address)}</div>
+    <div><b>${esc(customer.name)}</b><br>Mobile: ${esc(customer.mobile)}${customer.email ? `<br>Email: ${esc(customer.email)}` : ""}<br>${esc(row.installation_address)}</div>
   </section>
   <section class="products">
     <table>
