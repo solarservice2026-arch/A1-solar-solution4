@@ -476,94 +476,88 @@ ${sharedCss()}
 <!-- PAGE 1 -->
 <div class="page">
   <div class="agreement-body" style="padding:10mm 14mm;font-size:10.5px;line-height:1.4">
-    <div style="text-align:center;margin-bottom:4mm">
-      <img class="stamp" src="${esc(stamp)}" alt="Revenue stamp" style="max-height:22mm;object-fit:contain;margin:0 auto" onerror="this.style.display='none'">
+    <div style="text-align:center;margin-bottom:3mm">
+      <img class="stamp" src="${esc(stamp)}" alt="Revenue stamp" style="max-height:20mm;object-fit:contain;margin:0 auto" onerror="this.style.display='none'">
     </div>
     
-    <div style="text-align:center;font-weight:700;font-size:12px;margin:2mm 0">Annexure 2</div>
-    <p style="text-align:center;font-size:12px;font-weight:700;line-height:1.4;margin:2mm 0">
+    <div style="text-align:center;font-weight:700;font-size:12px;margin:1.5mm 0">Annexure 2</div>
+    <p style="text-align:center;font-size:11.5px;font-weight:700;line-height:1.35;margin:1.5mm 0">
       Agreement between Consumer &amp; Vendor for installation of grid connected rooftop solar (RTS) project<br>
       under PM – Surya Ghar: Muft Bijali Yojana
     </p>
     
-    <p style="margin:4mm 0">This agreement is executed on ${formattedExecDate} for design, supply, installation, commissioning and 5-year comprehensive maintenance of RTS project/system along with warranty under PM Surya Ghar: Muft Bijli Yojana</p>
+    <p style="margin:2.5mm 0">This agreement is executed on ${formattedExecDate} for design, supply, installation, commissioning and 5-year comprehensive maintenance of RTS project/system along with warranty under PM Surya Ghar: Muft Bijli Yojana</p>
     
-    <p style="text-align:center;margin:3mm 0"><b>Between</b></p>
+    <p style="text-align:center;margin:2mm 0"><b>Between</b></p>
     
-    <p style="margin:2mm 0"><b>${esc(custName)}</b> (Name of Consumer) having<br><b>${esc(custAddress)}</b> (herein referred to as first Party i.e. Consumer / purchaser / owner of system).</p>
+    <p style="margin:1.5mm 0"><b>${esc(custName)}</b> (Name of Consumer) having<br><b>${esc(custAddress)}</b> (herein referred to as first Party i.e. Consumer / purchaser / owner of system).</p>
     
-    <p style="text-align:center;margin:3mm 0"><b>And</b></p>
+    <p style="text-align:center;margin:2mm 0"><b>And</b></p>
     
-    <p style="margin:2mm 0"><b>${esc(companyName)}</b> (Name of Vendor) having registered office at <b>${esc(companyAddress)}</b> (hereinafter referred to as second Party i.e. Vendor / contractor / System Integrator).</p>
+    <p style="margin:1.5mm 0"><b>${esc(companyName)}</b> (Name of Vendor) having registered office at <b>${esc(companyAddress)}</b> (hereinafter referred to as second Party i.e. Vendor / contractor / System Integrator).</p>
     
-    <p style="margin:3mm 0"><b>Whereas</b><br>First Party wishes to install a Grid Connected Rooftop Solar Plant on the rooftop of the residential building of the Consumer under PM Surya Ghar: Muft Bijli Yojana.</p>
+    <p style="margin:2mm 0"><b>Whereas</b><br>First Party wishes to install a Grid Connected Rooftop Solar Plant on the rooftop of the residential building of the Consumer under PM Surya Ghar: Muft Bijli Yojana.</p>
     
-    <p style="margin:3mm 0"><b>And whereas</b><br>Second Party has verified availability of appropriate roof and found it feasible to install a Grid Connected Roof Top Solar plant and that the second party is willing to design, supply, install, test, commission and carry out Operation &amp; Maintenance of the Rooftop Solar plant for 5 year period.</p>
+    <p style="margin:2mm 0"><b>And whereas</b><br>Second Party has verified availability of appropriate roof and found it feasible to install a Grid Connected Roof Top Solar plant and that the second party is willing to design, supply, install, test, commission and carry out Operation &amp; Maintenance of the Rooftop Solar plant for 5 year period.</p>
     
-    <p style="margin:3mm 0">On this day, the First Party and Second Party agree to the following:</p>
+    <p style="margin:2mm 0">On this day, the First Party and Second Party agree to the following:</p>
     
-    <p style="margin:2mm 0"><b>The First Party hereby undertakes to perform the following activities:</b></p>
-    <ul style="padding-left:18px;margin:2mm 0;list-style-type:disc">
-      <li style="margin:1.5mm 0">Submission of online application at National Portal for installation of RTS project/system, Submission of application for net-metering and system inspection and upload of the relevant documents on the National Portal of the scheme</li>
-      <li style="margin:1.5mm 0">Provide secure storage of the material of the RTS plant delivered at the premises till handover of the system</li>
-      <li style="margin:1.5mm 0">Provide access to the Roof Top during installation of the plant, operation &amp; maintenance, testing of the plant and equipment and for meter reading from solar meter, inverter etc.</li>
-      <li style="margin:1.5mm 0">Provide electricity during plant installation and water for cleaning of the panels</li>
-      <li style="margin:1.5mm 0">Report any malfunctioning of the plant to the Vendor during the warranty period</li>
-      <li style="margin:1.5mm 0">Pay the amount as per the payment schedule as mutually agreed with the vendor, including any additional amount to the second party for any additional work / customization required depending upon the building condition</li>
+    <p style="margin:1.5mm 0"><b>The First Party hereby undertakes to perform the following activities:</b></p>
+    <ul style="padding-left:18px;margin:1.5mm 0;list-style-type:disc">
+      <li style="margin:1mm 0">Submission of online application at National Portal for installation of RTS project/system, Submission of application for net-metering and system inspection and upload of the relevant documents on the National Portal of the scheme</li>
+      <li style="margin:1mm 0">Provide secure storage of the material of the RTS plant delivered at the premises till handover of the system</li>
+      <li style="margin:1mm 0">Provide access to the Roof Top during installation of the plant, operation &amp; maintenance, testing of the plant and equipment and for meter reading from solar meter, inverter etc.</li>
+      <li style="margin:1mm 0">Provide electricity during plant installation and water for cleaning of the panels</li>
+      <li style="margin:1mm 0">Report any malfunctioning of the plant to the Vendor during the warranty period</li>
+      <li style="margin:1mm 0">Pay the amount as per the payment schedule as mutually agreed with the vendor, including any additional amount to the second party for any additional work / customization required depending upon the building condition</li>
     </ul>
     
     <p style="margin:2mm 0"><b>The Second Party hereby undertakes to perform the following activities:</b></p>
+    <p style="margin-bottom:2mm">The Vendor must follow all the standards and safety guidelines prescribed under state regulations and technical standards prescribed by MNRE for RTS projects, failing which the vendor is liable for blacklisting from participation in the govt. project/scheme and other penal actions in accordance with the law. The responsibility of supply, installation and commissioning of the rooftop solar project/system in complete compliance with MNRE scheme guidelines lies with the Vendor.</p>
+    
+    <p class="clause" style="margin:1.5mm 0"><b>Site Survey:</b> Site visit, survey and development of detailed project report for installation of RTS system. This also includes feasibility study of roof, strength of roof and shadow free area. If any additional work or customization is involved for the plant installation as per site condition and requirement of the consumer building, the Vendor shall prepare an estimate and can raise separate invoice including GST in addition to the amount towards standard plant cost. The consumer shall pay the amount for such additional work directly to the Vendor.</p>
+    
+    <p class="clause" style="margin:1.5mm 0"><b>Design &amp; Engineering:</b> Design of plant along with drawings and selection of components as per standard provided by the DISCOM/SERC/MNRE for best performance and safety of the plant.</p>
   </div>
 </div>
 
 <!-- PAGE 2 -->
 <div class="page">
-  <div class="agreement-body" style="padding:10mm 14mm;font-size:10.5px;line-height:1.4">
-    <p style="margin-bottom:4mm">The Vendor must follow all the standards and safety guidelines prescribed under state regulations and technical standards prescribed by MNRE for RTS projects, failing which the vendor is liable for blacklisting from participation in the govt. project/scheme and other penal actions in accordance with the law. The responsibility of supply, installation and commissioning of the rooftop solar project/system in complete compliance with MNRE scheme guidelines lies with the Vendor.</p>
+  <div class="agreement-body" style="padding:10mm 14mm;font-size:10px;line-height:1.35">
+    <p class="clause" style="margin:1.5mm 0"><b>Module and Inverter:</b> The solar modules, including the solar cells, should be manufactured in India. Both the solar modules and inverters shall conform to the relevant standards and specifications prescribed by MNRE. Any other requirement, viz. star labelling (solar modules), quality control orders and standards &amp; labelling (inverters) etc., shall also be complied.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Site Survey:</b> Site visit, survey and development of detailed project report for installation of RTS system. This also includes feasibility study of roof, strength of roof and shadow free area. If any additional work or customization is involved for the plant installation as per site condition and requirement of the consumer building, the Vendor shall prepare an estimate and can raise separate invoice including GST in addition to the amount towards standard plant cost. The consumer shall pay the amount for such additional work directly to the Vendor.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Procurement &amp; Supply:</b> Procurement of complete system as per BIS/IS/IEC standard (whatever applicable) &amp; safety guidelines for installation of rooftop solar plants. The supplied materials should comply with all MNRE standards for release of subsidy.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Design &amp; Engineering:</b> Design of plant along with drawings and selection of components as per standard provided by the DISCOM/SERC/MNRE for best performance and safety of the plant.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Installation &amp; Civil work:</b> Complete civil work, structure work and electrical work (including drawings) following all the safety and relevant BIS standards.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Module and Inverter:</b> The solar modules, including the solar cells, should be manufactured in India. Both the solar modules and inverters shall conform to the relevant standards and specifications prescribed by MNRE. Any other requirement, viz. star labelling (solar modules), quality control orders and standards &amp; labelling (inverters) etc., shall also be complied.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Documentation (Technical Catalogues/Warranty Certificates/BIS certificates/other test reports etc):</b> All such documents shall be provided to the consumer for online uploading and submission of technical specifications, IEC/BIS report, Sr. Nos, Warranty card of Solar Panel &amp; Inverter, Layout &amp; Electrical SLD, Structure Design and Drawing, Cable and other detailed documents.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Procurement &amp; Supply:</b> Procurement of complete system as per BIS/IS/IEC standard (whatever applicable) &amp; safety guidelines for installation of rooftop solar plants. The supplied materials should comply with all MNRE standards for release of subsidy.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Project completion report (PCR):</b> Assisting the consumer in filling and uploading of signed documents (Consumer &amp; Vendor) on the national portal.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Installation &amp; Civil work:</b> Complete civil work, structure work and electrical work (including drawings) following all the safety and relevant BIS standards.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Warranty:</b> System warranty certificates should be provided to the consumer. The complete system should be warranted for 5 years from the date of commissioning by DISCOM. Individual component warranty documents provided by the manufacturer shall be provided to the consumer and all possible assistance should be extended to the consumer for claiming the warranty from the manufacturer.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Documentation (Technical Catalogues/Warranty Certificates/BIS certificates/other test reports etc):</b> All such documents shall be provided to the consumer for online uploading and submission of technical specifications, IEC/BIS report, Sr. Nos, Warranty card of Solar Panel &amp; Inverter, Layout &amp; Electrical SLD, Structure Design and Drawing, Cable and other detailed documents.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>NET meter &amp; Grid Connectivity:</b> Net meter supply/procurement, testing and approvals shall be in the scope of vendor. Grid connection of the plant shall be in the scope of the vendor.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Project completion report (PCR):</b> Assisting the consumer in filling and uploading of signed documents (Consumer &amp; Vendor) on the national portal.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Testing and Commissioning:</b> The vendor shall be present at the time of testing and commissioning by the DISCOM.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Warranty:</b> System warranty certificates should be provided to the consumer. The complete system should be warranted for 5 years from the date of commissioning by DISCOM. Individual component warranty documents provided by the manufacturer shall be provided to the consumer and all possible assistance should be extended to the consumer for claiming the warranty from the manufacturer.</p>
-    
-    <p class="clause" style="margin:2.5mm 0"><b>NET meter &amp; Grid Connectivity:</b> Net meter supply/procurement, testing and approvals shall be in the scope of vendor. Grid connection of the plant shall be in the scope of the vendor.</p>
-    
-    <p class="clause" style="margin:2.5mm 0"><b>Testing and Commissioning:</b> The vendor shall be present at the time of testing and commissioning by the DISCOM.</p>
-    
-    <p class="clause" style="margin:2.5mm 0"><b>Operation &amp; Maintenance:</b> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Operation &amp; Maintenance:</b> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</p>
 
-    <p class="clause" style="margin:2.5mm 0"><b>Insurance:</b> Any insurance cost pertaining to material transfer/storage before commissioning of the system shall be in the scope of the vendor.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Insurance:</b> Any insurance cost pertaining to material transfer/storage before commissioning of the system shall be in the scope of the vendor.</p>
 
-    <p class="clause" style="margin:2.5mm 0"><b>Applicable Standard:</b> The system must meet the technical standards and specifications notified by MNRE. The vendor is solely responsible to supply component and service which meets the technical standards and specification prescribed by MNRE and State DISCOMs.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Applicable Standard:</b> The system must meet the technical standards and specifications notified by MNRE. The vendor is solely responsible to supply component and service which meets the technical standards and specification prescribed by MNRE and State DISCOMs.</p>
 
-    <p class="clause" style="margin:2.5mm 0"><b>Project/system cost &amp; payment terms:</b> The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</p>
-  </div>
-</div>
+    <p class="clause" style="margin:1.5mm 0"><b>Project/system cost &amp; payment terms:</b> The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</p>
 
-<!-- PAGE 3 -->
-<div class="page">
-  <div class="agreement-body" style="padding:10mm 14mm;font-size:10.5px;line-height:1.4">
-    <p class="clause" style="margin:2.5mm 0"><b>Dispute:</b> In-case of any dispute between consumer and vendor (in supply/installation/maintenance of system or payment terms), both parties must settle the same mutually or as per law. MNRE/DISCOM shall not be liable for, and would not be a party to such private dispute.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Dispute:</b> In-case of any dispute between consumer and vendor (in supply/installation/maintenance of system or payment terms), both parties must settle the same mutually or as per law. MNRE/DISCOM shall not be liable for, and would not be a party to such private dispute.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Subsidy / Project Related Documents:</b> Vendor must provide all the documents to consumer and help in uploading the same to National Portal for smooth release of subsidy.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Subsidy / Project Related Documents:</b> Vendor must provide all the documents to consumer and help in uploading the same to National Portal for smooth release of subsidy.</p>
     
-    <p class="clause" style="margin:2.5mm 0"><b>Performance of Plant:</b> The Performance Ratio (PR) of Plant must be 75% at the time of commissioning of the project by DISCOM or its authorised agency. Vendor must provide (returnable basis) radiation sensor with valid calibration certificate of any NABL / International laboratory at the time of commissioning/testing of the plant. Vendor must maintain the PR of the plant till warranty of project i.e. 5 years from the date of commissioning.</p>
+    <p class="clause" style="margin:1.5mm 0"><b>Performance of Plant:</b> The Performance Ratio (PR) of Plant must be 75% at the time of commissioning of the project by DISCOM or its authorised agency. Vendor must provide (returnable basis) radiation sensor with valid calibration certificate of any NABL / International laboratory at the time of commissioning/testing of the plant. Vendor must maintain the PR of the plant till warranty of project i.e. 5 years from the date of commissioning.</p>
     
-    <p class="clause" style="margin:3mm 0"><b>19. Mutually Agreed Terms of Payment:</b><br>The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</p>
+    <p class="clause" style="margin:2mm 0"><b>19. Mutually Agreed Terms of Payment:</b><br>The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</p>
     
-    <div class="agr-box-grid">
-      <div class="agr-sig-card">
+    <div class="agr-box-grid" style="margin-top:3mm">
+      <div class="agr-sig-card" style="padding:3mm;min-height:42mm">
         <div>
           <b>First Party (Consumer)</b><br>
           Name: <b>${esc(custName)}</b><br>
@@ -571,22 +565,22 @@ ${sharedCss()}
           Signature:
           ${customerSigHtml}
         </div>
-        <div style="margin-top:6mm">Date: <b>${esc(displayDate)}</b></div>
+        <div style="margin-top:4mm">Date: <b>${esc(displayDate)}</b></div>
       </div>
 
-      <div class="agr-sig-card">
+      <div class="agr-sig-card" style="padding:3mm;min-height:42mm">
         <div>
           <b>Second Party (Vendor)</b><br>
           Name: <b>${esc(companyName)}</b><br>
           Address: <b>${esc(companyAddress)}</b><br>
           Signature:<br>
-          <img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(vendorSign)}" alt="Vendor signature" onerror="this.style.display='none'">
+          <img style="height:16mm;max-width:50mm;object-fit:contain;display:block;margin:1.5mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(vendorSign)}" alt="Vendor signature" onerror="this.style.display='none'">
         </div>
         <div style="margin-top:2mm">Date: <b>${esc(displayDate)}</b></div>
       </div>
     </div>
     
-    <p style="margin-top:10mm;font-size:9px;font-style:italic">Disclaimer: This agreement is between vendor and consumer and any dispute related to the same shall not involve any third party including MNRE and Distribution Utilities.</p>
+    <p style="margin-top:4mm;font-size:8.5px;font-style:italic">Disclaimer: This agreement is between vendor and consumer and any dispute related to the same shall not involve any third party including MNRE and Distribution Utilities.</p>
   </div>
 </div>
 
