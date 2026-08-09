@@ -85,6 +85,7 @@ function DataPage({
   deletePermission,
 }) {
   const { user } = useAuth();
+  const isCustomer = Boolean(user?.roles?.includes("customer"));
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -421,19 +422,15 @@ function DataPage({
 
       setACustName(matchInList ? matchInList.name : custName);
       setACustMobile(custMobile || (matchInList?.mobile || ""));
-      setACustEmail(custEmail || (matchInList?.email || ""));
       setAAddress(custAddress || (matchInList?.address || ""));
 
       setAQuotationNumber(row.quotation_number || row.quotationNumber || "");
       setACapacity(String(row.capacity_kw || row.capacityKw || "3"));
-      setAAmount(String(row.payment_amount ?? row.paymentAmount ?? 0));
       setATerms(row.terms_of_payment || row.termsOfPayment || "");
       setACustomerSignature(row.customer_signature_url || row.customerSignatureUrl || null);
     }
     setOpen(true);
   };
-
-  const isCustomer = user?.roles?.includes("customer");
 
   const canCreate =
     user?.roles?.includes("super_admin") ||
