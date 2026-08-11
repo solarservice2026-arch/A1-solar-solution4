@@ -72,13 +72,36 @@ const sharedCss = () => `
 @page{size:A4;margin:0}
 *{box-sizing:border-box}
 html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
-.sheet{width:210mm;min-height:297mm;margin:auto;background:#fff;color:#333}
+.sheet{width:210mm;margin:auto;background:#fff;color:#333}
+/* ─── Page 1: fixed A4 — body content stays on one page, hero fills leftover space ─── */
+.page-one{
+  height:297mm;
+  max-height:297mm;
+  display:flex;
+  flex-direction:column;
+  break-after:page;
+  page-break-after:always;
+  break-inside:avoid;
+  page-break-inside:avoid;
+  overflow:hidden;
+}
+.page-one-body{
+  flex:0 0 auto;
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
 /* ─── Hero Banner ─── */
-.hero-container{position:relative;width:100%;height:52mm;overflow:hidden}
-.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 40%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:12%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:38px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2}
+.hero-container{
+  position:relative;
+  width:100%;
+  flex:1 1 0;
+  min-height:52mm;
+  overflow:hidden;
+}
+.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:center 58%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-text{position:absolute;top:18%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.7);white-space:nowrap}
 /* ─── Sub-header row ─── */
-.doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
+.doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
 .logo-brand{display:block;height:16mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -91,24 +114,24 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .meta{text-align:center;color:#8a95ae;font-size:10.5px;border-left:1px solid #dde1ea;padding-left:6mm}
 .meta b{display:block;color:#1a3a6b;font-size:12px;font-weight:800;margin-top:2px}
 /* ─── Party strip ─── */
-.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:4mm 14mm;gap:10mm;font-size:11.5px;line-height:1.45}
+.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:5mm 14mm;gap:10mm;font-size:12px;line-height:1.5}
 .party>div:last-child{text-align:right}
-.party b{font-size:12.5px;color:#1a3a6b}
+.party b{font-size:13px;color:#1a3a6b}
 /* ─── Product table ─── */
-.products{padding:4mm 14mm 2mm}
+.products{padding:5mm 14mm 3mm}
 .products table{width:100%;border-collapse:collapse}
-.products th{color:#586bc5;text-transform:uppercase;font-size:10px;border-bottom:2px solid #586bc5;padding:5px 4px;text-align:left}
-.products td{padding:6px 4px;border-bottom:1px solid #dde1e6;font-size:11.5px}
+.products th{color:#586bc5;text-transform:uppercase;font-size:10.5px;border-bottom:2px solid #586bc5;padding:7px 5px;text-align:left}
+.products td{padding:8px 5px;border-bottom:1px solid #dde1e6;font-size:12px}
 .products th:nth-last-child(-n+3),.products td:nth-last-child(-n+3){text-align:right}
 /* ─── Totals ─── */
-.summary{display:flex;justify-content:flex-end;padding:2mm 14mm}
-.total-box{width:96mm;background:#1a3a6b;color:#fff;padding:4mm;font-size:13px}
-.total-line,.words-line{display:flex;justify-space-between;gap:12px}
-.total-line{font-size:14.5px;font-weight:700}
-.words-line{margin-top:4px;font-weight:700;font-size:10.5px}
-.gst{text-align:right;margin-top:4px;font-size:9.5px;opacity:.85}
+.summary{display:flex;justify-content:flex-end;padding:3mm 14mm}
+.total-box{width:100mm;background:#1a3a6b;color:#fff;padding:5mm;font-size:13px}
+.total-line,.words-line{display:flex;justify-content:space-between;gap:12px}
+.total-line{font-size:15px;font-weight:700}
+.words-line{margin-top:4px;font-weight:700;font-size:11px}
+.gst{text-align:right;margin-top:4px;font-size:10px;opacity:.85}
 /* ─── Bottom sections ─── */
-.bottom{display:grid;grid-template-columns:1fr 64mm;padding:3mm 14mm;gap:8mm;align-items:end}
+.bottom{display:grid;grid-template-columns:1fr 64mm;padding:5mm 14mm 6mm;gap:8mm;align-items:end}
 .payment h2{color:#586bc5;font-size:12px;margin:0 0 3px}
 .payment{font-size:11px;font-weight:700;line-height:1.5}
 .vsig{text-align:center}
@@ -147,6 +170,28 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   *{mix-blend-mode:normal !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
   .actions{display:none !important}
   .sheet{margin:0 !important;box-shadow:none !important;background:#fff !important}
+  .page-one{
+    height:297mm !important;
+    max-height:297mm !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+  .page-one-body{
+    flex:0 0 auto !important;
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+  .hero-container{
+    flex:1 1 0 !important;
+    min-height:52mm !important;
+    height:auto !important;
+    overflow:hidden !important;
+  }
+  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:center 58% !important}
+  .bottom,.summary,.party,.products,.doc-header,.status-bar{break-inside:avoid !important;page-break-inside:avoid !important}
 }
 `;
 
@@ -156,7 +201,7 @@ export function quotationDocument(row) {
   const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean4`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -209,10 +254,12 @@ export function quotationDocument(row) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(qNum)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
+  <div class="page-one">
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
+  <div class="page-one-body">
   <div class="doc-header cols-4">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(qCap)} kW ${esc(qType)}</b></div>
@@ -256,9 +303,10 @@ export function quotationDocument(row) {
       <b>${esc(companyName)}<br>PROPRIETOR</b>
     </div>
   </section>
+  </div>
+  </div>
 
-  <div class="page-break"></div>
-
+  <div class="page-two">
   <div class="doc-header cols-4" style="margin-top:8mm">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
@@ -283,6 +331,7 @@ export function quotationDocument(row) {
       <img src="${esc(signature)}" alt="Proprietor signature">
       <div class="sig-line"><b>For ${esc(companyName)}</b><br>Authorized Signatory / Proprietor</div>
     </div>
+  </div>
   </div>
 </main>
 <button class="actions" onclick="window.print()">Print / Save PDF</button>
@@ -363,7 +412,7 @@ export function invoiceDocument(row) {
 
   const balance = Math.max(0, Number(row.total || grandTotal || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean2`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean4`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -383,10 +432,12 @@ export function invoiceDocument(row) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(row.invoice_number)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
+  <div class="page-one">
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
   </div>
+  <div class="page-one-body">
   <div class="doc-header cols-4">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
@@ -466,6 +517,8 @@ export function invoiceDocument(row) {
     <span>Paid: ${inr(row.paid_amount)} &nbsp;|&nbsp; Balance: ${inr(balance)}</span>
     <span>Status: ${esc(row.status)}</span>
   </section>
+  </div>
+  </div>
 </main>
 <button class="actions" onclick="window.print()">Print / Save PDF</button>
 </body></html>`;
