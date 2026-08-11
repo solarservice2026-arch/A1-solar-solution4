@@ -73,38 +73,35 @@ const sharedCss = () => `
 *{box-sizing:border-box}
 html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
 .sheet{width:210mm;margin:auto;background:#fff;color:#333}
-/* ─── Page 1: fixed A4 — body content stays on one page, hero fills leftover space ─── */
+/* ─── Page 1: fit on one A4 page — nothing clipped at bottom ─── */
 .page-one{
-  height:297mm;
-  max-height:297mm;
   display:flex;
   flex-direction:column;
   break-after:page;
   page-break-after:always;
   break-inside:avoid;
   page-break-inside:avoid;
-  overflow:hidden;
 }
 .page-one-body{
-  flex:1 1 auto;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  min-height:0;
+  flex:0 0 auto;
   break-inside:avoid;
   page-break-inside:avoid;
 }
-/* ─── Hero Banner: full house image visible (no crop) ─── */
+.page-two{
+  break-before:page;
+  page-break-before:always;
+}
+/* ─── Hero Banner: full house visible, fixed height so page 1 never overflows ─── */
 .hero-container{
   position:relative;
   width:100%;
-  flex:0 0 auto;
-  aspect-ratio:1024/682;
+  height:82mm;
+  flex:0 0 82mm;
   overflow:hidden;
   background:#fff;
 }
 .hero{width:100%;height:100%;display:block;object-fit:contain;object-position:center center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:10%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:40px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
+.hero-text{position:absolute;top:7%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:34px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -136,11 +133,11 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .words-line{margin-top:4px;font-weight:700;font-size:11px}
 .gst{text-align:right;margin-top:4px;font-size:10px;opacity:.85}
 /* ─── Bottom sections ─── */
-.bottom{display:grid;grid-template-columns:1fr 64mm;padding:4mm 14mm 5mm;gap:8mm;align-items:end}
+.bottom{display:grid;grid-template-columns:1fr 64mm;padding:3mm 14mm 4mm;gap:8mm;align-items:end;break-inside:avoid;page-break-inside:avoid}
 .payment h2{color:#586bc5;font-size:12px;margin:0 0 3px}
 .payment{font-size:11px;font-weight:700;line-height:1.5}
 .vsig{text-align:center}
-.vsig img{width:48mm;height:18mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.vsig img{width:44mm;height:16mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .vsig b{display:block;color:#1a3a6b;font-size:10.5px;margin-top:2px}
 .status-bar{background:#111;color:#fff;padding:6px 14mm;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;mix-blend-mode:normal;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Terms section (quotation page 2) ─── */
@@ -176,27 +173,24 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   .actions{display:none !important}
   .sheet{margin:0 !important;box-shadow:none !important;background:#fff !important}
   .page-one{
-    height:297mm !important;
-    max-height:297mm !important;
     display:flex !important;
     flex-direction:column !important;
-    overflow:hidden !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
+    overflow:visible !important;
+    height:auto !important;
+    max-height:none !important;
   }
   .page-one-body{
-    flex:1 1 auto !important;
-    display:flex !important;
-    flex-direction:column !important;
-    justify-content:space-between !important;
+    flex:0 0 auto !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
+  .page-two{break-before:page !important;page-break-before:always !important}
   .hero-container{
-    flex:0 0 auto !important;
+    flex:0 0 82mm !important;
     width:100% !important;
-    aspect-ratio:1024/682 !important;
-    height:auto !important;
+    height:82mm !important;
     overflow:hidden !important;
   }
   .hero{width:100% !important;height:100% !important;object-fit:contain !important;object-position:center center !important}
@@ -210,7 +204,7 @@ export function quotationDocument(row) {
   const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean5`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean7`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -421,7 +415,7 @@ export function invoiceDocument(row) {
 
   const balance = Math.max(0, Number(row.total || grandTotal || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean5`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean7`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
