@@ -73,8 +73,9 @@ const sharedCss = () => `
 *{box-sizing:border-box}
 html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
 .sheet{width:210mm;margin:auto;background:#fff;color:#333}
-/* ─── Page 1: fit on one A4 page — nothing clipped at bottom ─── */
+/* ─── Page 1: hero stretches down to use bottom gap, body stays intact ─── */
 .page-one{
+  min-height:297mm;
   display:flex;
   flex-direction:column;
   break-after:page;
@@ -91,17 +92,17 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   break-before:page;
   page-break-before:always;
 }
-/* ─── Hero Banner: full house visible, fixed height so page 1 never overflows ─── */
+/* ─── Hero Banner: full width, no side gaps, stretches into available space ─── */
 .hero-container{
   position:relative;
   width:100%;
-  height:82mm;
-  flex:0 0 82mm;
+  flex:1 1 0;
+  min-height:85mm;
   overflow:hidden;
-  background:#fff;
+  background:#dfeaf5;
 }
-.hero{width:100%;height:100%;display:block;object-fit:contain;object-position:center center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:7%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:34px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
+.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:center 46%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-text{position:absolute;top:9%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:36px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -173,6 +174,7 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   .actions{display:none !important}
   .sheet{margin:0 !important;box-shadow:none !important;background:#fff !important}
   .page-one{
+    min-height:297mm !important;
     display:flex !important;
     flex-direction:column !important;
     break-inside:avoid !important;
@@ -188,12 +190,13 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   }
   .page-two{break-before:page !important;page-break-before:always !important}
   .hero-container{
-    flex:0 0 82mm !important;
+    flex:1 1 0 !important;
+    min-height:85mm !important;
     width:100% !important;
-    height:82mm !important;
+    height:auto !important;
     overflow:hidden !important;
   }
-  .hero{width:100% !important;height:100% !important;object-fit:contain !important;object-position:center center !important}
+  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:center 46% !important}
   .bottom,.summary,.party,.products,.doc-header,.status-bar{break-inside:avoid !important;page-break-inside:avoid !important}
 }
 `;
@@ -204,7 +207,7 @@ export function quotationDocument(row) {
   const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean7`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean8`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -415,7 +418,7 @@ export function invoiceDocument(row) {
 
   const balance = Math.max(0, Number(row.total || grandTotal || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean7`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean8`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
