@@ -86,22 +86,27 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   overflow:hidden;
 }
 .page-one-body{
-  flex:0 0 auto;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:0;
   break-inside:avoid;
   page-break-inside:avoid;
 }
-/* ─── Hero Banner ─── */
+/* ─── Hero Banner: full house image visible (no crop) ─── */
 .hero-container{
   position:relative;
   width:100%;
-  flex:1 1 0;
-  min-height:52mm;
+  flex:0 0 auto;
+  aspect-ratio:1024/682;
   overflow:hidden;
+  background:#fff;
 }
-.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:center 58%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:18%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:42px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.7);white-space:nowrap}
+.hero{width:100%;height:100%;display:block;object-fit:contain;object-position:center center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-text{position:absolute;top:10%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:40px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
 /* ─── Sub-header row ─── */
-.doc-header{display:grid;align-items:center;padding:4mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
+.doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
 .logo-brand{display:block;height:16mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -114,24 +119,24 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .meta{text-align:center;color:#8a95ae;font-size:10.5px;border-left:1px solid #dde1ea;padding-left:6mm}
 .meta b{display:block;color:#1a3a6b;font-size:12px;font-weight:800;margin-top:2px}
 /* ─── Party strip ─── */
-.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:5mm 14mm;gap:10mm;font-size:12px;line-height:1.5}
+.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:4mm 14mm;gap:8mm;font-size:12px;line-height:1.45}
 .party>div:last-child{text-align:right}
 .party b{font-size:13px;color:#1a3a6b}
 /* ─── Product table ─── */
-.products{padding:5mm 14mm 3mm}
+.products{padding:3mm 14mm 2mm}
 .products table{width:100%;border-collapse:collapse}
-.products th{color:#586bc5;text-transform:uppercase;font-size:10.5px;border-bottom:2px solid #586bc5;padding:7px 5px;text-align:left}
-.products td{padding:8px 5px;border-bottom:1px solid #dde1e6;font-size:12px}
+.products th{color:#586bc5;text-transform:uppercase;font-size:10.5px;border-bottom:2px solid #586bc5;padding:6px 5px;text-align:left}
+.products td{padding:6px 5px;border-bottom:1px solid #dde1e6;font-size:12px}
 .products th:nth-last-child(-n+3),.products td:nth-last-child(-n+3){text-align:right}
 /* ─── Totals ─── */
-.summary{display:flex;justify-content:flex-end;padding:3mm 14mm}
-.total-box{width:100mm;background:#1a3a6b;color:#fff;padding:5mm;font-size:13px}
+.summary{display:flex;justify-content:flex-end;padding:2mm 14mm}
+.total-box{width:100mm;background:#1a3a6b;color:#fff;padding:4mm;font-size:13px}
 .total-line,.words-line{display:flex;justify-content:space-between;gap:12px}
 .total-line{font-size:15px;font-weight:700}
 .words-line{margin-top:4px;font-weight:700;font-size:11px}
 .gst{text-align:right;margin-top:4px;font-size:10px;opacity:.85}
 /* ─── Bottom sections ─── */
-.bottom{display:grid;grid-template-columns:1fr 64mm;padding:5mm 14mm 6mm;gap:8mm;align-items:end}
+.bottom{display:grid;grid-template-columns:1fr 64mm;padding:4mm 14mm 5mm;gap:8mm;align-items:end}
 .payment h2{color:#586bc5;font-size:12px;margin:0 0 3px}
 .payment{font-size:11px;font-weight:700;line-height:1.5}
 .vsig{text-align:center}
@@ -180,17 +185,21 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
     page-break-inside:avoid !important;
   }
   .page-one-body{
-    flex:0 0 auto !important;
+    flex:1 1 auto !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:space-between !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
   .hero-container{
-    flex:1 1 0 !important;
-    min-height:52mm !important;
+    flex:0 0 auto !important;
+    width:100% !important;
+    aspect-ratio:1024/682 !important;
     height:auto !important;
     overflow:hidden !important;
   }
-  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:center 58% !important}
+  .hero{width:100% !important;height:100% !important;object-fit:contain !important;object-position:center center !important}
   .bottom,.summary,.party,.products,.doc-header,.status-bar{break-inside:avoid !important;page-break-inside:avoid !important}
 }
 `;
@@ -201,7 +210,7 @@ export function quotationDocument(row) {
   const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean4`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean5`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -412,7 +421,7 @@ export function invoiceDocument(row) {
 
   const balance = Math.max(0, Number(row.total || grandTotal || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean4`;
+  const header = `${origin}/document-assets/solar-document-header.png?v=clean5`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
