@@ -73,16 +73,15 @@ const sharedCss = () => `
 *{box-sizing:border-box}
 html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
 .sheet{width:210mm;margin:auto;background:#fff;color:#333}
-/* ─── Page 1: hero shrinks from bottom if needed, proprietor stays 1 inch above page bottom ─── */
+/* ─── Page 1: hero image fills all top space down to header, body extends to bottom ─── */
 .page-one{
   min-height:297mm;
   height:297mm;
   max-height:297mm;
-  padding-bottom:25.4mm;
+  padding-bottom:4mm;
   box-sizing:border-box;
   display:flex;
   flex-direction:column;
-  justify-content:space-between;
   break-after:page;
   page-break-after:always;
   break-inside:avoid;
@@ -96,31 +95,22 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 }
 .page-two{
   min-height:297mm;
-  height:297mm;
-  max-height:297mm;
-  padding-bottom:25.4mm;
-  box-sizing:border-box;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
   break-before:page;
   page-break-before:always;
   break-inside:avoid;
   page-break-inside:avoid;
-  overflow:hidden;
 }
-/* ─── Hero Banner: full width, no side gaps, shrinks height from bottom when content expands ─── */
+/* ─── Hero Banner: full width, flexes to fill all available top space with image ─── */
 .hero-container{
   position:relative;
   width:100%;
-  flex:1 1 auto;
-  min-height:30mm;
-  max-height:85mm;
+  flex:1 1 0;
+  min-height:40mm;
   overflow:hidden;
   background:#dfeaf5;
 }
-.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:top center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:12px;left:50%;transform:translateX(-50%);color:#ff0000;font-size:36px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
+.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:center 46%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-text{position:absolute;top:10%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:36px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -195,11 +185,10 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
     min-height:297mm !important;
     height:297mm !important;
     max-height:297mm !important;
-    padding-bottom:25.4mm !important;
+    padding-bottom:4mm !important;
     box-sizing:border-box !important;
     display:flex !important;
     flex-direction:column !important;
-    justify-content:space-between !important;
     break-after:page !important;
     page-break-after:always !important;
     break-inside:avoid !important;
@@ -213,28 +202,19 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   }
   .page-two{
     min-height:297mm !important;
-    height:297mm !important;
-    max-height:297mm !important;
-    padding-bottom:25.4mm !important;
-    box-sizing:border-box !important;
-    display:flex !important;
-    flex-direction:column !important;
-    justify-content:space-between !important;
     break-before:page !important;
     page-break-before:always !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
-    overflow:hidden !important;
   }
   .hero-container{
-    flex:1 1 auto !important;
-    min-height:30mm !important;
-    max-height:85mm !important;
+    flex:1 1 0 !important;
+    min-height:40mm !important;
     width:100% !important;
     height:auto !important;
     overflow:hidden !important;
   }
-  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:top center !important}
+  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:center 46% !important}
   .bottom,.summary,.party,.products,.doc-header,.status-bar{break-inside:avoid !important;page-break-inside:avoid !important}
 }
 `;
