@@ -73,15 +73,21 @@ const sharedCss = () => `
 *{box-sizing:border-box}
 html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e8e8e8;color-scheme:light}
 .sheet{width:210mm;margin:auto;background:#fff;color:#333}
-/* ─── Page 1: hero stretches down to use bottom gap, body stays intact ─── */
+/* ─── Page 1: hero shrinks from bottom if needed, proprietor stays 1 inch above page bottom ─── */
 .page-one{
   min-height:297mm;
+  height:297mm;
+  max-height:297mm;
+  padding-bottom:25.4mm;
+  box-sizing:border-box;
   display:flex;
   flex-direction:column;
+  justify-content:space-between;
   break-after:page;
   page-break-after:always;
   break-inside:avoid;
   page-break-inside:avoid;
+  overflow:hidden;
 }
 .page-one-body{
   flex:0 0 auto;
@@ -89,20 +95,32 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   page-break-inside:avoid;
 }
 .page-two{
+  min-height:297mm;
+  height:297mm;
+  max-height:297mm;
+  padding-bottom:25.4mm;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
   break-before:page;
   page-break-before:always;
+  break-inside:avoid;
+  page-break-inside:avoid;
+  overflow:hidden;
 }
-/* ─── Hero Banner: full width, no side gaps, stretches into available space ─── */
+/* ─── Hero Banner: full width, no side gaps, shrinks height from bottom when content expands ─── */
 .hero-container{
   position:relative;
   width:100%;
-  flex:1 1 0;
-  min-height:85mm;
+  flex:1 1 auto;
+  min-height:30mm;
+  max-height:85mm;
   overflow:hidden;
   background:#dfeaf5;
 }
-.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:center 46%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.hero-text{position:absolute;top:9%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:36px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
+.hero{width:100%;height:100%;display:block;object-fit:cover;object-position:top center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.hero-text{position:absolute;top:12px;left:50%;transform:translateX(-50%);color:#ff0000;font-size:36px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
@@ -117,14 +135,14 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .meta{text-align:center;color:#8a95ae;font-size:10.5px;border-left:1px solid #dde1ea;padding-left:6mm}
 .meta b{display:block;color:#1a3a6b;font-size:12px;font-weight:800;margin-top:2px}
 /* ─── Party strip ─── */
-.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:4mm 14mm;gap:8mm;font-size:12px;line-height:1.45}
+.party{display:grid;grid-template-columns:1fr 1fr;background:#f0f4fb;padding:3.5mm 14mm;gap:8mm;font-size:12px;line-height:1.4}
 .party>div:last-child{text-align:right}
 .party b{font-size:13px;color:#1a3a6b}
 /* ─── Product table ─── */
-.products{padding:3mm 14mm 2mm}
+.products{padding:2.5mm 14mm 1.5mm}
 .products table{width:100%;border-collapse:collapse}
-.products th{color:#586bc5;text-transform:uppercase;font-size:10.5px;border-bottom:2px solid #586bc5;padding:6px 5px;text-align:left}
-.products td{padding:6px 5px;border-bottom:1px solid #dde1e6;font-size:12px}
+.products th{color:#586bc5;text-transform:uppercase;font-size:10.5px;border-bottom:2px solid #586bc5;padding:5px 5px;text-align:left}
+.products td{padding:5px 5px;border-bottom:1px solid #dde1e6;font-size:11.5px}
 .products th:nth-last-child(-n+3),.products td:nth-last-child(-n+3){text-align:right}
 /* ─── Totals ─── */
 .summary{display:flex;justify-content:flex-end;padding:2mm 14mm}
@@ -134,18 +152,18 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .words-line{margin-top:4px;font-weight:700;font-size:11px}
 .gst{text-align:right;margin-top:4px;font-size:10px;opacity:.85}
 /* ─── Bottom sections ─── */
-.bottom{display:grid;grid-template-columns:1fr 64mm;padding:3mm 14mm 4mm;gap:8mm;align-items:end;break-inside:avoid;page-break-inside:avoid}
+.bottom{display:grid;grid-template-columns:1fr 64mm;padding:3mm 14mm 2mm;gap:8mm;align-items:end;break-inside:avoid;page-break-inside:avoid}
 .payment h2{color:#586bc5;font-size:12px;margin:0 0 3px}
-.payment{font-size:11px;font-weight:700;line-height:1.5}
+.payment{font-size:11px;font-weight:700;line-height:1.45}
 .vsig{text-align:center}
 .vsig img{width:44mm;height:16mm;object-fit:contain;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .vsig b{display:block;color:#1a3a6b;font-size:10.5px;margin-top:2px}
 .status-bar{background:#111;color:#fff;padding:6px 14mm;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;mix-blend-mode:normal;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Terms section (quotation page 2) ─── */
-.terms{padding:6mm 14mm;font-size:12px;line-height:1.6}
-.terms h2{font-size:13px;color:#1a3a6b;border-bottom:2px solid #586bc5;padding-bottom:3px;margin:10px 0 5px}
+.terms{padding:5mm 14mm;font-size:11.5px;line-height:1.55}
+.terms h2{font-size:12.5px;color:#1a3a6b;border-bottom:2px solid #586bc5;padding-bottom:3px;margin:8px 0 4px}
 .terms p{margin:4px 0}
-.sig-row{display:flex;justify-content:flex-end;padding:8mm 14mm 6mm;align-items:end}
+.sig-row{display:flex;justify-content:flex-end;padding:6mm 14mm 4mm;align-items:end}
 .sig-block{text-align:center}
 .sig-block img{display:block;width:54mm;height:21mm;object-fit:contain;margin:0 auto 4px;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .sig-line{border-top:1px solid #333;padding-top:5px;font-size:11px}
@@ -172,31 +190,51 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   html,body{background:#fff !important;color:#000 !important;color-scheme:light !important}
   *{mix-blend-mode:normal !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
   .actions{display:none !important}
-  .sheet{margin:0 !important;box-shadow:none !important;background:#fff !important}
+  .sheet{width:210mm !important;margin:0 !important;box-shadow:none !important;background:#fff !important}
   .page-one{
     min-height:297mm !important;
+    height:297mm !important;
+    max-height:297mm !important;
+    padding-bottom:25.4mm !important;
+    box-sizing:border-box !important;
     display:flex !important;
     flex-direction:column !important;
+    justify-content:space-between !important;
+    break-after:page !important;
+    page-break-after:always !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
-    overflow:visible !important;
-    height:auto !important;
-    max-height:none !important;
+    overflow:hidden !important;
   }
   .page-one-body{
     flex:0 0 auto !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
-  .page-two{break-before:page !important;page-break-before:always !important}
+  .page-two{
+    min-height:297mm !important;
+    height:297mm !important;
+    max-height:297mm !important;
+    padding-bottom:25.4mm !important;
+    box-sizing:border-box !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:space-between !important;
+    break-before:page !important;
+    page-break-before:always !important;
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+    overflow:hidden !important;
+  }
   .hero-container{
-    flex:1 1 0 !important;
-    min-height:85mm !important;
+    flex:1 1 auto !important;
+    min-height:30mm !important;
+    max-height:85mm !important;
     width:100% !important;
     height:auto !important;
     overflow:hidden !important;
   }
-  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:center 46% !important}
+  .hero{width:100% !important;height:100% !important;object-fit:cover !important;object-position:top center !important}
   .bottom,.summary,.party,.products,.doc-header,.status-bar{break-inside:avoid !important;page-break-inside:avoid !important}
 }
 `;
@@ -478,30 +516,30 @@ export function invoiceDocument(row) {
       <tbody>${itemRows}</tbody>
     </table>
   </section>
-  <section class="summary" style="margin-top:14px; display:flex; justify-content:flex-end;">
-    <div style="width: 320px; font-size: 12px; font-family: sans-serif;">
-      <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+  <section class="summary" style="margin-top:6px; display:flex; justify-content:flex-end;">
+    <div style="width: 320px; font-size: 11.5px; font-family: sans-serif;">
+      <div style="display:flex; justify-content:space-between; padding: 3px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
         <span>Taxable Amount:</span>
         <b style="color:#1e293b">Rs ${totalTaxable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
       </div>
-      <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+      <div style="display:flex; justify-content:space-between; padding: 3px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
         <span>CGST:</span>
         <b style="color:#1e293b">Rs ${totalCgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
       </div>
-      <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+      <div style="display:flex; justify-content:space-between; padding: 3px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
         <span>SGST:</span>
         <b style="color:#1e293b">Rs ${totalSgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
       </div>
       ${hasIgst || totalIgst > 0 ? `
-        <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
+        <div style="display:flex; justify-content:space-between; padding: 3px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">
           <span>IGST:</span>
           <b style="color:#1e293b">Rs ${totalIgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
         </div>
       ` : ""}
-      <div style="background:#5569c7; color:#fff; padding:10px 14px; margin-top:6px; border-radius:4px; text-align:right;">
-        <div style="font-size:15px; font-weight:700;">Total: Rs ${inr(grandTotal)}/-</div>
-        <div style="font-size:12px; margin-top:2px; font-weight:600;">In Words: ${esc(amountWords(grandTotal))}</div>
-        <div style="font-size:11px; opacity:0.9;">(Inclusive of GST)</div>
+      <div style="background:#5569c7; color:#fff; padding:8px 12px; margin-top:4px; border-radius:4px; text-align:right;">
+        <div style="font-size:14px; font-weight:700;">Total: Rs ${inr(grandTotal)}/-</div>
+        <div style="font-size:11px; margin-top:2px; font-weight:600;">In Words: ${esc(amountWords(grandTotal))}</div>
+        <div style="font-size:10px; opacity:0.9;">(Inclusive of GST)</div>
       </div>
     </div>
   </section>
