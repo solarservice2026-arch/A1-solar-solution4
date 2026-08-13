@@ -5,6 +5,19 @@ const esc = (value) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
 
+/** Browser uses document.title as default Save-as-PDF filename */
+const pdfSaveTitle = (customerName, docNumber) => {
+  const name =
+    String(customerName ?? "Customer")
+      .replace(/[\\/:*?"<>|]/g, "")
+      .replace(/\s+/g, " ")
+      .trim() || "Customer";
+  const num = String(docNumber ?? "")
+    .replace(/[\\/:*?"<>|]/g, "")
+    .trim();
+  return esc(`${name} ${num}`.trim());
+};
+
 export const formatDateDDMMYYYY = (val) => {
   if (val == null || val === "") return "—";
   const str = String(val).trim();
@@ -95,6 +108,8 @@ async function preparePrintImages(){
 async function printDocument(){
   await waitForImages();
   await preparePrintImages();
+  const suggested=document.body?.dataset?.pdfTitle;
+  if(suggested) document.title=suggested;
   window.print();
 }
 window.addEventListener("load",()=>{void waitForImages();});
@@ -314,8 +329,8 @@ export function quotationDocument(row) {
   const rawCap = row.capacity_kw || row.capacityKw || "3";
   const capStr = String(rawCap).toUpperCase().includes("KW") ? String(rawCap) : `${rawCap}KW`;
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(qNum)}</title>
-<style>${sharedCss()}</style></head><body>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${pdfSaveTitle(custName === "—" ? "Customer" : custName, qNum)}</title>
+<style>${sharedCss()}</style></head><body data-pdf-title="${pdfSaveTitle(custName === "—" ? "Customer" : custName, qNum)}">
 <main class="sheet">
   <div class="page-one has-page-two">
   <div class="hero-container">
@@ -493,8 +508,11 @@ export function invoiceDocument(row) {
   const bankAccNo = row.bank_details?.accountNo || row.bank_details?.account_no || row.account_no || row.payment_details?.account_no || "";
   const bankIfsc = row.bank_details?.ifscCode || row.bank_details?.ifsc_code || row.ifsc_code || row.payment_details?.ifsc_code || "";
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(row.invoice_number)}</title>
-<style>${sharedCss()}</style></head><body>
+  const invNum = row.invoice_number || row.invoiceNumber || "—";
+  const invCustName = customer.name || row.customer_name || row.customerName || "Customer";
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${pdfSaveTitle(invCustName, invNum)}</title>
+<style>${sharedCss()}</style></head><body data-pdf-title="${pdfSaveTitle(invCustName, invNum)}">
 <main class="sheet">
   <div class="page-one">
   <div class="hero-container">
@@ -610,6 +628,7 @@ export function agreementDocument(row) {
   const displayDate = formatDateDDMMYYYY(rawDate);
 
   const custName = row.customer_name || row.customerName || customer.name || merged.consumer_name || "ARJUN CHAUDHARY";
+  const agrNum = row.agreement_number || row.agreementNumber || "—";
   const custAddress =
     row.consumer_address ||
     row.consumerAddress ||
@@ -622,12 +641,12 @@ export function agreementDocument(row) {
     ? `<img style="height:18mm;max-width:55mm;object-fit:contain;display:block;margin:2mm 0;print-color-adjust:exact;-webkit-print-color-adjust:exact" src="${esc(String(row.customer_signature_url))}" alt="Customer signature">`
     : ``;
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Agreement ${esc(row.agreement_number)}</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${pdfSaveTitle(custName, agrNum)}</title>
 <style>
 ${sharedCss()}
 .agr-box-grid{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:5mm}
 .agr-sig-card{border:1px solid #333;padding:4mm;font-size:10.5px;min-height:48mm;display:flex;flex-direction:column;justify-content:space-between}
-</style></head><body>
+</style></head><body data-pdf-title="${pdfSaveTitle(custName, agrNum)}">
 <main class="sheet">
 
 <!-- PAGE 1 -->
