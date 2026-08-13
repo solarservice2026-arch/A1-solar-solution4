@@ -170,6 +170,24 @@ npm run dev
   npm start
   ```
 
+### Optimize Document Images (Smaller PDF Size)
+
+Quotation, Invoice, and Agreement PDFs stay under **2 MB** when document images are optimized. Run this after replacing banner, logo, signature, or stamp files in `client/public/`:
+
+```bash
+npm run optimize-assets
+```
+
+**Requires:** Python 3 with Pillow (`pip install pillow`).
+
+This command compresses:
+- `client/public/document-assets/solar-document-header.jpg`
+- `client/public/document-assets/vendor-authorized-signature.png`
+- `client/public/logo.jpg`
+- `client/public/document-assets/agreement-stamp-paper.jpg`
+
+Then hard-refresh the browser (`Ctrl + Shift + R`) before printing or saving PDF again.
+
 ---
 
 ## 🧪 Testing & Data Isolation Verification

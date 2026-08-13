@@ -11,7 +11,8 @@
     "build": "npm run build --prefix client",
     "start": "npm start --prefix server",
     "client": "npm run dev --prefix client",
-    "server": "npm run dev --prefix server"
+    "server": "npm run dev --prefix server",
+    "optimize-assets": "python scripts/optimize_document_assets.py"
   },
   "dependencies": {
     "vite": "^7.0.6",

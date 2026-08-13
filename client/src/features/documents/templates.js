@@ -67,6 +67,39 @@ export const amountWords = (value) => {
   return `${parts.join(" ") || "Zero"} Only`;
 };
 
+/** Downscale embedded images before print so Save-as-PDF stays under ~2 MB */
+const printOptimizerScript = `
+<script>
+async function waitForImages(){
+  await Promise.all([...document.images].map((img)=>img.complete?Promise.resolve():new Promise((resolve)=>{img.onload=img.onerror=resolve;})));
+}
+async function preparePrintImages(){
+  for(const img of document.images){
+    const w=img.naturalWidth||0,h=img.naturalHeight||0;
+    if(!w||!h) continue;
+    let maxW=1200;
+    if(img.classList.contains("logo-brand")) maxW=320;
+    else if(img.classList.contains("hero")) maxW=1200;
+    else if(img.closest(".vsig,.sig-block,.sig-row")||/signature|stamp/i.test(img.alt||"")) maxW=480;
+    if(w<=maxW) continue;
+    const nw=maxW,nh=Math.round(h*(maxW/w));
+    const canvas=document.createElement("canvas");
+    canvas.width=nw; canvas.height=nh;
+    const ctx=canvas.getContext("2d");
+    const keepPng=img.classList.contains("logo-brand")||img.closest(".vsig,.sig-block,.sig-row")||/signature|stamp/i.test(img.alt||"");
+    if(!keepPng){ctx.fillStyle="#fff";ctx.fillRect(0,0,nw,nh);}
+    ctx.drawImage(img,0,0,nw,nh);
+    try{img.src=keepPng?canvas.toDataURL("image/png"):canvas.toDataURL("image/jpeg",0.82);}catch(e){}
+  }
+}
+async function printDocument(){
+  await waitForImages();
+  await preparePrintImages();
+  window.print();
+}
+window.addEventListener("load",()=>{void waitForImages();});
+</script>`;
+
 /** Shared CSS for all three documents — invoice-style layout */
 const sharedCss = () => `
 @page{size:A4;margin:0}
@@ -82,21 +115,23 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   box-sizing:border-box;
   display:flex;
   flex-direction:column;
-  break-after:page;
-  page-break-after:always;
+  break-after:avoid;
+  page-break-after:avoid;
   break-inside:avoid;
   page-break-inside:avoid;
   overflow:hidden;
 }
-.page-one-body{
-  flex:0 0 auto;
-  break-inside:avoid;
-  page-break-inside:avoid;
+.page-one.has-page-two,
+.page-one:has(+ .page-two){
+  break-after:page;
+  page-break-after:always;
 }
 .page-two{
-  min-height:297mm;
-  break-before:page;
-  page-break-before:always;
+  break-after:avoid;
+  page-break-after:avoid;
+}
+.page-one-body{
+  flex:0 0 auto;
   break-inside:avoid;
   page-break-inside:avoid;
 }
@@ -189,11 +224,16 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
     box-sizing:border-box !important;
     display:flex !important;
     flex-direction:column !important;
-    break-after:page !important;
-    page-break-after:always !important;
+    break-after:avoid !important;
+    page-break-after:avoid !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
     overflow:hidden !important;
+  }
+  .page-one.has-page-two,
+  .page-one:has(+ .page-two){
+    break-after:page !important;
+    page-break-after:always !important;
   }
   .page-one-body{
     flex:0 0 auto !important;
@@ -201,11 +241,10 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
     page-break-inside:avoid !important;
   }
   .page-two{
-    min-height:297mm !important;
-    break-before:page !important;
-    page-break-before:always !important;
-    break-inside:avoid !important;
-    page-break-inside:avoid !important;
+    break-after:avoid !important;
+    page-break-after:avoid !important;
+    min-height:auto !important;
+    height:auto !important;
   }
   .hero-container{
     flex:1 1 0 !important;
@@ -225,7 +264,7 @@ export function quotationDocument(row) {
   const items = Array.isArray(row.quotation_items) ? row.quotation_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean8`;
+  const header = `${origin}/document-assets/solar-document-header.jpg?v=opt1`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -233,7 +272,7 @@ export function quotationDocument(row) {
   const companyPhone = row.company_phone || row.companyPhone || row.owner?.phone || row.owner?.mobile || "";
   const companyEmail = row.company_email || row.companyEmail || row.owner?.email || "";
   const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.jpg` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const itemRows = items.map((item, i) => {
@@ -278,7 +317,7 @@ export function quotationDocument(row) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Quotation ${esc(qNum)}</title>
 <style>${sharedCss()}</style></head><body>
 <main class="sheet">
-  <div class="page-one">
+  <div class="page-one has-page-two">
   <div class="hero-container">
     <img class="hero" src="${esc(header)}" alt="Header Banner">
     <div class="hero-text">${esc(primaryBrand)}</div>
@@ -331,7 +370,7 @@ export function quotationDocument(row) {
   </div>
 
   <div class="page-two">
-  <div class="doc-header cols-4" style="margin-top:8mm">
+  <div class="doc-header cols-4">
     ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">` : `<div style="width:44mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
     <div class="meta">Date<b>${esc(qDate)}</b></div>
@@ -358,7 +397,8 @@ export function quotationDocument(row) {
   </div>
   </div>
 </main>
-<button class="actions" onclick="window.print()">Print / Save PDF</button>
+${printOptimizerScript}
+<button class="actions" onclick="printDocument()">Print / Save PDF</button>
 </body></html>`;
 }
 
@@ -436,7 +476,7 @@ export function invoiceDocument(row) {
 
   const balance = Math.max(0, Number(row.total || grandTotal || 0) - Number(row.paid_amount || 0));
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const header = `${origin}/document-assets/solar-document-header.png?v=clean8`;
+  const header = `${origin}/document-assets/solar-document-header.jpg?v=opt1`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTION";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "";
@@ -444,7 +484,7 @@ export function invoiceDocument(row) {
   const companyPhone = row.company_phone || row.companyPhone || row.owner?.phone || row.owner?.mobile || "";
   const companyEmail = row.company_email || row.companyEmail || row.owner?.email || "";
   const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.png` : null);
+  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.jpg` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
@@ -544,7 +584,8 @@ export function invoiceDocument(row) {
   </div>
   </div>
 </main>
-<button class="actions" onclick="window.print()">Print / Save PDF</button>
+${printOptimizerScript}
+<button class="actions" onclick="printDocument()">Print / Save PDF</button>
 </body></html>`;
 }
 
@@ -553,7 +594,7 @@ export function agreementDocument(row) {
   const customer = row.customers ?? {};
   const merged = row.merged_data ?? {};
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const stamp = `${origin}/document-assets/agreement-stamp-paper.png`;
+  const stamp = `${origin}/document-assets/agreement-stamp-paper.jpg`;
 
   const companyName = row.company_name || row.companyName || row.owner?.company_name || "A1 SOLAR SOLUTIONS";
   const companyAddress = row.company_address || row.companyAddress || row.owner?.company_address || "VISHNUPUR KAIJU PATEHPUR VAISHALI BIHAR";
@@ -701,6 +742,7 @@ ${sharedCss()}
 </div>
 
 </main>
-<button class="actions" onclick="window.print()">Print / Save PDF</button>
+${printOptimizerScript}
+<button class="actions" onclick="printDocument()">Print / Save PDF</button>
 </body></html>`;
 }
