@@ -142,8 +142,19 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
   page-break-after:always;
 }
 .page-two{
+  min-height:297mm;
+  height:297mm;
+  max-height:297mm;
+  padding-top:12mm;
+  padding-bottom:8mm;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
   break-after:avoid;
   page-break-after:avoid;
+  break-inside:avoid;
+  page-break-inside:avoid;
+  overflow:hidden;
 }
 .page-one-body{
   flex:0 0 auto;
@@ -200,10 +211,10 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .vsig b{display:block;color:#1a3a6b;font-size:10.5px;margin-top:2px}
 .status-bar{background:#111;color:#fff;padding:6px 14mm;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;mix-blend-mode:normal;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Terms section (quotation page 2) ─── */
-.terms{padding:5mm 14mm;font-size:11.5px;line-height:1.55}
-.terms h2{font-size:12.5px;color:#1a3a6b;border-bottom:2px solid #586bc5;padding-bottom:3px;margin:8px 0 4px}
-.terms p{margin:4px 0}
-.sig-row{display:flex;justify-content:flex-end;padding:6mm 14mm 4mm;align-items:end}
+.terms{padding:6mm 14mm 2mm;font-size:12px;line-height:1.65;flex:1 1 auto}
+.terms h2{font-size:13.5px;color:#1a3a6b;border-bottom:2px solid #586bc5;padding-bottom:4px;margin:12px 0 6px}
+.terms p{margin:6px 0 10px}
+.sig-row{display:flex;justify-content:flex-end;padding:6mm 14mm 6mm;align-items:end;margin-top:auto}
 .sig-block{text-align:center}
 .sig-block img{display:block;width:54mm;height:21mm;object-fit:contain;margin:0 auto 4px;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .sig-line{border-top:1px solid #333;padding-top:5px;font-size:11px}
@@ -256,10 +267,19 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
     page-break-inside:avoid !important;
   }
   .page-two{
+    min-height:297mm !important;
+    height:297mm !important;
+    max-height:297mm !important;
+    padding-top:12mm !important;
+    padding-bottom:8mm !important;
+    box-sizing:border-box !important;
+    display:flex !important;
+    flex-direction:column !important;
     break-after:avoid !important;
     page-break-after:avoid !important;
-    min-height:auto !important;
-    height:auto !important;
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+    overflow:hidden !important;
   }
   .hero-container{
     flex:1 1 0 !important;
