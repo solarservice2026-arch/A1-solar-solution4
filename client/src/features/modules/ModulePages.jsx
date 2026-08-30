@@ -2,7 +2,7 @@ import { BarChart3, FileText, Package, Settings, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../lib/api.js";
-import { removeImageBackground } from "../../lib/imageUtils.js";
+import { removeImageBackground, compressLogoOrSignature, compressImage } from "../../lib/imageUtils.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import {
   agreementDocument,
@@ -150,8 +150,10 @@ function DataPage({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setQCustomerSignature(ev.target.result);
+      reader.onload = async (ev) => {
+        const raw = String(ev.target?.result || "");
+        const compressed = await compressLogoOrSignature(raw);
+        setQCustomerSignature(compressed);
       };
       reader.readAsDataURL(file);
     } else {
@@ -302,8 +304,10 @@ function DataPage({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setACustomerSignature(ev.target.result);
+      reader.onload = async (ev) => {
+        const raw = String(ev.target?.result || "");
+        const compressed = await compressLogoOrSignature(raw);
+        setACustomerSignature(compressed);
       };
       reader.readAsDataURL(file);
     } else {
@@ -1583,7 +1587,8 @@ export function ProfilePage() {
     reader.onload = async (ev) => {
       const raw = String(ev.target?.result || "");
       const clean = await removeImageBackground(raw);
-      setCompanyLogoUrl(clean);
+      const compressed = await compressLogoOrSignature(clean);
+      setCompanyLogoUrl(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -1595,7 +1600,8 @@ export function ProfilePage() {
     reader.onload = async (ev) => {
       const raw = String(ev.target?.result || "");
       const clean = await removeImageBackground(raw);
-      setCompanySignatureUrl(clean);
+      const compressed = await compressLogoOrSignature(clean);
+      setCompanySignatureUrl(compressed);
     };
     reader.readAsDataURL(file);
   };

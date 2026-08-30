@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
-import { removeImageBackground } from "../../lib/imageUtils.js";
+import { removeImageBackground, compressLogoOrSignature } from "../../lib/imageUtils.js";
 
 export function StaffList() {
   const { user } = useAuth();
@@ -127,7 +127,8 @@ export function StaffForm() {
     reader.onload = async (ev) => {
       const raw = String(ev.target?.result || "");
       const clean = await removeImageBackground(raw);
-      setCompanyLogoUrl(clean);
+      const compressed = await compressLogoOrSignature(clean);
+      setCompanyLogoUrl(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -139,7 +140,8 @@ export function StaffForm() {
     reader.onload = async (ev) => {
       const raw = String(ev.target?.result || "");
       const clean = await removeImageBackground(raw);
-      setCompanySignatureUrl(clean);
+      const compressed = await compressLogoOrSignature(clean);
+      setCompanySignatureUrl(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -427,7 +429,8 @@ export function StaffEdit() {
     reader.onload = async (ev) => {
       const raw = String(ev.target?.result || "");
       const clean = await removeImageBackground(raw);
-      setCompanyLogoUrl(clean);
+      const compressed = await compressLogoOrSignature(clean);
+      setCompanyLogoUrl(compressed);
     };
     reader.readAsDataURL(file);
   };

@@ -1,4 +1,87 @@
 /**
+ * Compress & resize an image dataURL to keep it lightweight.
+ * - Logos / signatures: max 400×400px, JPEG quality 0.6 (~15-30 KB)
+ * - Photos / general: max 800×800px, JPEG quality 0.7 (~40-80 KB)
+ *
+ * @param {string} dataUrl - raw base64 data URL from FileReader
+ * @param {object} [opts]
+ * @param {number} [opts.maxWidth=800]  - max pixel width
+ * @param {number} [opts.maxHeight=800] - max pixel height
+ * @param {number} [opts.quality=0.7]   - JPEG quality 0-1
+ * @param {boolean} [opts.keepTransparency=false] - if true output PNG (for bg-removed logos)
+ * @returns {Promise<string>} compressed data URL
+ */
+export function compressImage(dataUrl, opts = {}) {
+  const {
+    maxWidth = 800,
+    maxHeight = 800,
+    quality = 0.7,
+    keepTransparency = false,
+  } = opts;
+
+  return new Promise((resolve) => {
+    if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image")) {
+      return resolve(dataUrl);
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+
+        // Scale down proportionally if larger than max
+        if (w > maxWidth || h > maxHeight) {
+          const ratio = Math.min(maxWidth / w, maxHeight / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(dataUrl);
+
+        // White background for JPEG (no transparency support)
+        if (!keepTransparency) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, w, h);
+        }
+
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const outputType = keepTransparency ? "image/png" : "image/jpeg";
+        const compressed = canvas.toDataURL(outputType, quality);
+
+        // Only use compressed version if it's actually smaller
+        if (compressed.length < dataUrl.length) {
+          resolve(compressed);
+        } else {
+          resolve(dataUrl);
+        }
+      } catch {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+/**
+ * Convenience: compress specifically for logos & signatures (smaller, higher compression)
+ */
+export function compressLogoOrSignature(dataUrl) {
+  return compressImage(dataUrl, {
+    maxWidth: 400,
+    maxHeight: 400,
+    quality: 0.6,
+    keepTransparency: true,  // logos/signatures need transparency after bg removal
+  });
+}
+
+/**
  * Universal Image Background Removal Utility
  * Automatically detects and removes BOTH light/white paper backgrounds AND dark/black box backgrounds
  * from uploaded company logos and signatures, turning them into clean transparent PNGs.
