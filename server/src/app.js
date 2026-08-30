@@ -34,13 +34,12 @@ app.disable("x-powered-by");
 // Universal bulletproof CORS & OPTIONS preflight handler for any domain (Vercel, custom domain, local)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id, Accept, Origin, X-Requested-With");
-    res.setHeader("Access-Control-Expose-Headers", "x-request-id");
-  }
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id, Accept, Origin, X-Requested-With");
+  res.setHeader("Access-Control-Expose-Headers", "x-request-id");
+
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -48,7 +47,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: (origin, callback) => callback(null, true),
+  origin: true,
   credentials: true,
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept", "Origin", "X-Requested-With"],
