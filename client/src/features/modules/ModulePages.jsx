@@ -1162,29 +1162,47 @@ function DataPage({
                 onClick={async () => {
                   setPaying(true);
                   try {
-                    const cfData = await api(`/agreements/${payuRow.id}/cashfree-initiate`, {
+                    const targetId = payuRow.id || payuRow._id || payuRow.agreement_number;
+                    const cfData = await api(`/agreements/${targetId}/cashfree-initiate`, {
                       method: "POST",
                     });
 
                     if (cfData && cfData.payment_session_id) {
                       toast.success("Opening Cashfree Secure Checkout…");
+
+                      const startCheckout = () => {
+                        try {
+                          const cashfree = window.Cashfree({
+                            mode: cfData.environment || "sandbox",
+                          });
+                          cashfree.checkout({
+                            paymentSessionId: cfData.payment_session_id,
+                            redirectTarget: "_self",
+                          });
+                        } catch {
+                          const checkoutUrl = cfData.environment === "production"
+                            ? `https://api.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`
+                            : `https://sandbox.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`;
+                          window.location.href = checkoutUrl;
+                        }
+                      };
+
                       if (typeof window.Cashfree === "function") {
-                        const cashfree = window.Cashfree({
-                          mode: cfData.environment || "sandbox",
-                        });
-                        cashfree.checkout({
-                          paymentSessionId: cfData.payment_session_id,
-                          redirectTarget: "_self",
-                        });
+                        startCheckout();
                       } else {
-                        // Direct checkout redirection fallback
-                        const checkoutUrl = cfData.environment === "production"
-                          ? `https://api.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`
-                          : `https://sandbox.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`;
-                        window.location.href = checkoutUrl;
+                        const script = document.createElement("script");
+                        script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+                        script.onload = startCheckout;
+                        script.onerror = () => {
+                          const checkoutUrl = cfData.environment === "production"
+                            ? `https://api.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`
+                            : `https://sandbox.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`;
+                          window.location.href = checkoutUrl;
+                        };
+                        document.head.appendChild(script);
                       }
                     } else {
-                      throw new Error("Cashfree checkout initiation failed");
+                      throw new Error(cfData?.message || "Cashfree checkout initiation failed");
                     }
                   } catch (err) {
                     toast.error(err instanceof Error ? err.message : "Cashfree payment failed");

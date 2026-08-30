@@ -101,13 +101,18 @@ export async function api(
         continue;
       }
 
-      // No more localStorage fallback — return empty result
+      if (options.method && options.method !== "GET") {
+        throw new Error(body.message || body.error || `Request failed with status ${response.status}`);
+      }
+
       return [];
     } catch (err) {
+      if (options.method && options.method !== "GET") {
+        throw err;
+      }
       if (err.message && err.message.includes("Access denied")) {
         throw err;
       }
-      // No more localStorage fallback — return empty result
       return [];
     }
   }

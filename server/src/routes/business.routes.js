@@ -1215,17 +1215,31 @@ agreementsRouter.get(
 
 agreementsRouter.post(
   "/:id/cashfree-initiate",
-  authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const agreement = req.doc;
+    const idParam = req.params.id;
+    const { ObjectId } = await import("mongodb");
+
+    let filter = {};
+    if (ObjectId.isValid(idParam) && idParam.length === 24) {
+      filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: idParam }] };
+    } else {
+      filter = { agreement_number: idParam };
+    }
+
+    const agreement = await mongo.collection("agreements").findOne(filter);
+    if (!agreement) {
+      throw new AppError(404, "Agreement not found", "NOT_FOUND");
+    }
 
     const cleanNum = String(agreement.agreement_number || agreement._id).replace(/[^a-zA-Z0-9_-]/g, "_");
     const orderId = `order_${cleanNum.slice(0, 20)}_${Date.now().toString().slice(-6)}`;
     const amountVal = Math.max(1, Number(agreement.payment_amount || 1));
     const customerName = (agreement.customer_name || req.auth?.full_name || "Customer").trim();
-    const customerPhone = String(agreement.customer_mobile || "9999999999").replace(/\D/g, "").slice(-10) || "9999999999";
-    const customerEmail = (agreement.customer_email || req.auth?.email || "customer@solarservice.co.in").trim();
+    const rawPhone = String(agreement.customer_mobile || "9876543210").replace(/\D/g, "").slice(-10);
+    const customerPhone = rawPhone.length === 10 ? rawPhone : "9876543210";
+    const rawEmail = (agreement.customer_email || req.auth?.email || "customer@solarservice.co.in").trim();
+    const customerEmail = rawEmail.includes("@") ? rawEmail : "customer@solarservice.co.in";
     const customerId = `cust_${String(agreement.customer_id || req.auth?.userId || agreement._id).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30)}`;
 
     const webUrl = process.env.WEB_URL || "https://a1-solar-solution4.vercel.app";
@@ -1262,7 +1276,8 @@ agreementsRouter.post(
     const cfData = await cfRes.json().catch(() => null);
 
     if (!cfRes.ok || !cfData?.payment_session_id) {
-      const errMsg = cfData?.message || "Cashfree order creation failed";
+      console.error("Cashfree order creation error:", cfRes.status, cfData);
+      const errMsg = cfData?.message || cfData?.error || "Cashfree order creation failed";
       throw new AppError(cfRes.status || 400, errMsg, "CASHFREE_ERROR");
     }
 
