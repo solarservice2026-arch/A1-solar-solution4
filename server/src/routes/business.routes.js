@@ -1234,7 +1234,7 @@ agreementsRouter.post(
 
     const cleanNum = String(agreement.agreement_number || agreement._id).replace(/[^a-zA-Z0-9_-]/g, "_");
     const orderId = `order_${cleanNum.slice(0, 20)}_${Date.now().toString().slice(-6)}`;
-    const amountVal = Math.max(1, Number(agreement.payment_amount || 1));
+    const amountVal = 1.00; // Fixed ₹1 for live/test agreement unlock as requested
     const customerName = (agreement.customer_name || req.auth?.full_name || "Customer").trim();
     const rawPhone = String(agreement.customer_mobile || "9876543210").replace(/\D/g, "").slice(-10);
     const customerPhone = rawPhone.length === 10 ? rawPhone : "9876543210";

@@ -1142,7 +1142,7 @@ function DataPage({
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", color: "#059669", paddingTop: "8px", borderTop: "1px dashed #d1d5db", marginTop: "6px" }}>
                 <span>Total Amount Payable:</span>
-                <strong>₹{Number(payuRow.payment_amount || 1).toLocaleString("en-IN")}</strong>
+                <strong>₹1</strong>
               </div>
             </div>
 
