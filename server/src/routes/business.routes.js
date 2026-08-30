@@ -1051,6 +1051,40 @@ invoicesRouter.patch(
 // ----------------------------------------------------
 export const agreementsRouter = Router();
 
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || process.env.CASHFREE_CLIENT_ID || "";
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || process.env.CASHFREE_CLIENT_SECRET || "";
+const CASHFREE_API_VERSION = process.env.CASHFREE_API_VERSION || "2023-08-01";
+const isCashfreeTest = !CASHFREE_APP_ID.startsWith("PROD") && (CASHFREE_APP_ID.startsWith("TEST") || !process.env.CASHFREE_ENV || process.env.CASHFREE_ENV === "sandbox");
+const CASHFREE_BASE_URL = isCashfreeTest ? "https://sandbox.cashfree.com/pg" : "https://api.cashfree.com/pg";
+
+agreementsRouter.post(
+  "/cashfree-webhook",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const payload = req.body || {};
+    const orderData = payload.data?.order || payload.order || payload;
+    const paymentData = payload.data?.payment || payload.payment || {};
+    const orderId = orderData.order_id || payload.order_id;
+    const orderStatus = orderData.order_status || payload.order_status || paymentData.payment_status;
+
+    if (orderId && (orderStatus === "PAID" || orderStatus === "SUCCESS")) {
+      await mongo.collection("agreements").updateOne(
+        { $or: [{ cashfree_order_id: orderId }, { "payu_txnid": orderId }] },
+        {
+          $set: {
+            payment_status: "Paid",
+            paid_at: new Date().toISOString(),
+            payment_method: "Cashfree Online",
+            cashfree_payment_id: paymentData.cf_payment_id || null,
+          },
+        }
+      );
+    }
+
+    return success(res, "Webhook processed", { received: true });
+  })
+);
+
 agreementsRouter.post(
   "/payu-callback",
   asyncHandler(async (req, res) => {
@@ -1075,8 +1109,8 @@ agreementsRouter.post(
         $set: {
           payment_status: "Paid",
           paid_at: new Date().toISOString(),
-          payment_method: "PayU Online",
-          payu_txnid: mihpayid || txnid || `PAYU_${Date.now()}`
+          payment_method: "Online",
+          payu_txnid: mihpayid || txnid || `PAY_${Date.now()}`
         }
       });
     }
@@ -1084,7 +1118,7 @@ agreementsRouter.post(
     const webUrl = process.env.WEB_URL || "https://a1-solar-solution4.vercel.app";
     const redirectUrl = `${webUrl}/app/agreements?status=${status || "success"}`;
     res.setHeader("content-type", "text/html");
-    return res.send(`<!DOCTYPE html><html><head><title>PayU Payment Processing</title></head><body><h3>Payment Processing... Redirecting back to dashboard.</h3><script>window.location.href = ${JSON.stringify(redirectUrl)};</script></body></html>`);
+    return res.send(`<!DOCTYPE html><html><head><title>Payment Processing</title></head><body><h3>Payment Processing... Redirecting back to dashboard.</h3><script>window.location.href = ${JSON.stringify(redirectUrl)};</script></body></html>`);
   })
 );
 
@@ -1177,6 +1211,121 @@ agreementsRouter.get(
 );
 
 agreementsRouter.post(
+  "/:id/cashfree-initiate",
+  authorizeOwner("agreements"),
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const agreement = req.doc;
+
+    const cleanNum = String(agreement.agreement_number || agreement._id).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const orderId = `order_${cleanNum.slice(0, 20)}_${Date.now().toString().slice(-6)}`;
+    const amountVal = Math.max(1, Number(agreement.payment_amount || 1));
+    const customerName = (agreement.customer_name || req.auth?.full_name || "Customer").trim();
+    const customerPhone = String(agreement.customer_mobile || "9999999999").replace(/\D/g, "").slice(-10) || "9999999999";
+    const customerEmail = (agreement.customer_email || req.auth?.email || "customer@solarservice.co.in").trim();
+    const customerId = `cust_${String(agreement.customer_id || req.auth?.userId || agreement._id).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30)}`;
+
+    const webUrl = process.env.WEB_URL || "https://a1-solar-solution4.vercel.app";
+    const apiUrl = process.env.API_URL || "https://a1-solar-solution4.onrender.com/api/v1";
+
+    const payload = {
+      order_id: orderId,
+      order_amount: amountVal,
+      order_currency: "INR",
+      customer_details: {
+        customer_id: customerId,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+      },
+      order_meta: {
+        return_url: `${webUrl}/app/agreements?order_id={order_id}&status=success`,
+        notify_url: `${apiUrl}/agreements/cashfree-webhook`,
+      },
+      order_note: `Solar Agreement #${agreement.agreement_number || "A1"}`,
+    };
+
+    const cfRes = await fetch(`${CASHFREE_BASE_URL}/orders`, {
+      method: "POST",
+      headers: {
+        "x-api-version": CASHFREE_API_VERSION,
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const cfData = await cfRes.json().catch(() => null);
+
+    if (!cfRes.ok || !cfData?.payment_session_id) {
+      const errMsg = cfData?.message || "Cashfree order creation failed";
+      throw new AppError(cfRes.status || 400, errMsg, "CASHFREE_ERROR");
+    }
+
+    await mongo.collection("agreements").updateOne(
+      { _id: agreement._id },
+      { $set: { cashfree_order_id: orderId, updated_at: new Date().toISOString() } }
+    );
+
+    return success(res, "Cashfree payment initiated", {
+      payment_session_id: cfData.payment_session_id,
+      order_id: orderId,
+      environment: isCashfreeTest ? "sandbox" : "production",
+      amount: amountVal,
+      agreement_id: agreement._id.toString(),
+      agreement_number: agreement.agreement_number,
+    });
+  })
+);
+
+agreementsRouter.post(
+  "/cashfree-verify",
+  asyncHandler(async (req, res) => {
+    const mongo = await getMongoDb();
+    const { order_id } = req.body || {};
+    if (!order_id) {
+      throw new AppError(400, "order_id is required", "VALIDATION_ERROR");
+    }
+
+    const cfRes = await fetch(`${CASHFREE_BASE_URL}/orders/${encodeURIComponent(order_id)}`, {
+      method: "GET",
+      headers: {
+        "x-api-version": CASHFREE_API_VERSION,
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
+      },
+    });
+
+    const cfData = await cfRes.json().catch(() => null);
+
+    if (cfData && (cfData.order_status === "PAID" || cfData.order_status === "SUCCESS")) {
+      const filter = { $or: [{ cashfree_order_id: order_id }] };
+
+      await mongo.collection("agreements").updateOne(filter, {
+        $set: {
+          payment_status: "Paid",
+          paid_at: new Date().toISOString(),
+          payment_method: "Cashfree Online",
+          cashfree_order_id: order_id,
+        },
+      });
+
+      return success(res, "Payment verified successfully", {
+        verified: true,
+        payment_status: "Paid",
+        order_status: cfData.order_status,
+      });
+    }
+
+    return success(res, "Payment status checked", {
+      verified: false,
+      order_status: cfData?.order_status || "PENDING",
+    });
+  })
+);
+
+agreementsRouter.post(
   "/:id/payu-initiate",
   authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
@@ -1204,7 +1353,7 @@ agreementsRouter.post(
       { $set: { payu_txnid: txnid, updated_at: new Date().toISOString() } }
     );
 
-    return success(res, "PayU payment initiated", {
+    return success(res, "Payment initiated", {
       payu_url: process.env.PAYU_URL || "https://test.payu.in/_payment",
       key,
       txnid,

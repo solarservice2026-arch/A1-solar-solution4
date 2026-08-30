@@ -504,7 +504,29 @@ function DataPage({
   };
 
   useEffect(() => {
-    void load();
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("order_id");
+
+    if (orderId && path === "/agreements") {
+      const verify = async () => {
+        try {
+          const vRes = await api("/agreements/cashfree-verify", {
+            method: "POST",
+            body: JSON.stringify({ order_id: orderId }),
+          });
+          if (vRes?.verified || vRes?.payment_status === "Paid") {
+            toast.success("Payment verified successfully! Agreement unlocked.");
+          }
+        } catch {}
+        void load();
+        try {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch {}
+      };
+      void verify();
+    } else {
+      void load();
+    }
   }, [path]);
 
   const submit = async (e) => {
@@ -1100,9 +1122,9 @@ function DataPage({
         <div className="modal-backdrop">
           <div className="card modal-form" style={{ maxWidth: "480px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ margin: 0 }}>PayU Online Gateway</h2>
+              <h2 style={{ margin: 0 }}>Cashfree Payment Gateway</h2>
               <span style={{ background: "#ecfdf5", color: "#065f46", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
-                PayU Official
+                ⚡ Cashfree Secure
               </span>
             </div>
             <p style={{ margin: "8px 0 12px", color: "#4b5563", fontSize: "13px" }}>
@@ -1125,7 +1147,7 @@ function DataPage({
             </div>
 
             <div style={{ background: "#eff6ff", padding: "10px", borderRadius: "6px", border: "1px solid #bfdbfe", fontSize: "12px", color: "#1e40af", marginBottom: "16px" }}>
-              💳 <strong>Supported Methods:</strong> PayU UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, NetBanking &amp; Wallets.
+              💳 <strong>Supported Methods:</strong> Cashfree UPI (Google Pay, PhonePe, Paytm), QR Code, Credit/Debit Cards, NetBanking &amp; Wallets.
             </div>
 
             <div className="row-actions">
@@ -1140,50 +1162,37 @@ function DataPage({
                 onClick={async () => {
                   setPaying(true);
                   try {
-                    const payuData = await api(`/agreements/${payuRow.id}/payu-initiate`, {
+                    const cfData = await api(`/agreements/${payuRow.id}/cashfree-initiate`, {
                       method: "POST",
                     });
 
-                    if (payuData && payuData.payu_url && payuData.hash) {
-                      toast.success("Redirecting to PayU Payment Gateway…");
-                      const form = document.createElement("form");
-                      form.method = "POST";
-                      form.action = payuData.payu_url;
-
-                      const params = {
-                        key: payuData.key,
-                        txnid: payuData.txnid,
-                        amount: payuData.amount,
-                        productinfo: payuData.productinfo,
-                        firstname: payuData.firstname,
-                        email: payuData.email,
-                        phone: payuData.phone || "9999999999",
-                        surl: payuData.surl,
-                        furl: payuData.furl,
-                        hash: payuData.hash,
-                        service_provider: "payu_paisa"
-                      };
-
-                      Object.entries(params).forEach(([k, v]) => {
-                        const input = document.createElement("input");
-                        input.type = "hidden";
-                        input.name = k;
-                        input.value = String(v);
-                        form.appendChild(input);
-                      });
-
-                      document.body.appendChild(form);
-                      form.submit();
+                    if (cfData && cfData.payment_session_id) {
+                      toast.success("Opening Cashfree Secure Checkout…");
+                      if (typeof window.Cashfree === "function") {
+                        const cashfree = window.Cashfree({
+                          mode: cfData.environment || "sandbox",
+                        });
+                        cashfree.checkout({
+                          paymentSessionId: cfData.payment_session_id,
+                          redirectTarget: "_self",
+                        });
+                      } else {
+                        // Direct checkout redirection fallback
+                        const checkoutUrl = cfData.environment === "production"
+                          ? `https://api.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`
+                          : `https://sandbox.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`;
+                        window.location.href = checkoutUrl;
+                      }
                     } else {
-                      throw new Error("PayU checkout initiation failed");
+                      throw new Error("Cashfree checkout initiation failed");
                     }
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "PayU payment failed");
+                    toast.error(err instanceof Error ? err.message : "Cashfree payment failed");
                     setPaying(false);
                   }
                 }}
               >
-                {paying ? "Opening PayU Gateway…" : "Pay Now via PayU 🚀"}
+                {paying ? "Opening Cashfree Gateway…" : "Pay Now via Cashfree 🚀"}
               </button>
             </div>
           </div>
@@ -1236,7 +1245,7 @@ function DataPage({
                                 style={{ background: "#10b981", borderColor: "#059669", color: "#fff", fontWeight: 700, padding: "5px 10px", fontSize: "12px" }}
                                 onClick={() => setPayuRow(row)}
                               >
-                                🔒 Pay via PayU
+                                🔒 Pay via Cashfree
                               </button>
                             ) : (
                               <button

@@ -73,6 +73,8 @@ const agreementSchema = new mongoose.Schema({
   agreement_date: { type: String },
   customer_signature_url: { type: String },
   payu_txnid: { type: String },
+  cashfree_order_id: { type: String },
+  cashfree_payment_id: { type: String },
   paid_at: { type: String },
   payment_method: { type: String },
 }, { timestamps: true });
