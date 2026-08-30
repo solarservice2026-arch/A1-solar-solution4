@@ -827,6 +827,8 @@ invoicesRouter.get(
           mobile: item.customer_mobile || "",
           email: item.customer_email || "",
         },
+      };
+    });
     return success(res, "Invoices retrieved", formatted);
   }),
 );
