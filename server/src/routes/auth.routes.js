@@ -44,10 +44,11 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
 
   // 1. FIRST: Check MongoDB for disabled status for this email (in users or customers)
   const db = await getMongoDb();
+  let dbUser = null;
   if (db) {
     const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
     
-    const dbUser = await db.collection("users").findOne({
+    dbUser = await db.collection("users").findOne({
       $or: [{ email: normalizedEmail }, { email: regexEmail }]
     });
 
