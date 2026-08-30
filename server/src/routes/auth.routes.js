@@ -276,6 +276,10 @@ authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
   throw new AppError(401, "Not authenticated", "UNAUTHORIZED");
 }));
 
+authRouter.post("/logout", (_req, res) => {
+  return success(res, "Logged out successfully", { success: true });
+});
+
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
 usersRouter.use(requireRole("super_admin"));
