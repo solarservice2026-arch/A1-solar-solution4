@@ -30,6 +30,32 @@ import mongoose from "mongoose";
 
 export const app = express();
 app.disable("x-powered-by");
+
+// Universal bulletproof CORS & OPTIONS preflight handler for any domain (Vercel, custom domain, local)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id, Accept, Origin, X-Requested-With");
+    res.setHeader("Access-Control-Expose-Headers", "x-request-id");
+  }
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
+
+app.use(cors({
+  origin: (origin, callback) => callback(null, true),
+  credentials: true,
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept", "Origin", "X-Requested-With"],
+  exposedHeaders: ["x-request-id"],
+  optionsSuccessStatus: 200,
+}));
+
 app.use((req, res, next) => {
   res.setHeader(
     "x-request-id",
@@ -37,66 +63,7 @@ app.use((req, res, next) => {
   );
   next();
 });
-app.use(helmet({ contentSecurityPolicy: false }));
-
-const allowedOrigins = new Set(
-  [
-    process.env.WEB_URL ?? "http://localhost:5173",
-    process.env.CLIENT_URL,
-    "https://www.solarservice.co.in",
-    "https://solarservice.co.in",
-    "https://a1-solor-solution.vercel.app",
-    "https://a1-solor-solution-668f.vercel.app",
-    ...(process.env.CORS_ALLOWED_ORIGINS ?? "").split(","),
-  ]
-    .map((origin) => origin?.trim().replace(/\/$/, ""))
-    .filter(Boolean),
-);
-
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  try {
-    const url = new URL(origin);
-    const host = url.hostname.toLowerCase();
-    return (
-      host.endsWith(".vercel.app") ||
-      host.endsWith(".onrender.com") ||
-      host.endsWith("solarservice.co.in") ||
-      host === "solarservice.co.in" ||
-      host === "www.solarservice.co.in" ||
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host.includes("solarservice") ||
-      host.includes("solar") ||
-      host.includes("a1-solor-solution") ||
-      host.includes("a1solar")
-    );
-  } catch {
-    return true;
-  }
-};
-
-if (process.env.NODE_ENV !== "production") {
-  allowedOrigins.add("http://localhost:5173");
-  allowedOrigins.add("http://localhost:5174");
-  allowedOrigins.add("http://127.0.0.1:4173");
-}
-
-const corsOptions = {
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin) || isAllowedOrigin(origin)) {
-      return callback(null, true);
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept"],
-  exposedHeaders: ["x-request-id"],
-  optionsSuccessStatus: 200,
-};
-
-app.use(cors(corsOptions));
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
 app.use(compression());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "10mb" }));
