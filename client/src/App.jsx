@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BadgeIndianRupee,
@@ -18,34 +18,36 @@ import { Link, NavLink, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
 import { estimateSolar } from "./calculator.js";
 import logo from "./assets/a1-solar-logo-transparent.png";
-import {
-  ForgotPasswordPage,
-  LoginPage,
-  ResetPasswordPage,
-} from "./features/auth/AuthPages.jsx";
 import { ProtectedRoute } from "./features/auth/ProtectedRoute.jsx";
 import { useAuth } from "./features/auth/AuthProvider.jsx";
-import {
-  AgreementsPage,
-  CustomersPage,
-  InvoicesPage,
-  ProductsPage,
-  ProfilePage,
-  ProjectsPage,
-  QuotationsPage,
-  SettingsPage,
-  TicketsPage,
-  WorkspaceNotFound,
-} from "./features/modules/ModulePages.jsx";
-import { AppShell, Dashboard, Forbidden } from "./features/shell/AppShell.jsx";
-import {
-  RoleDetail,
-  RolesPage,
-  StaffDetail,
-  StaffEdit,
-  StaffForm,
-  StaffList,
-} from "./features/staff/StaffPages.jsx";
+import { apiBaseUrl } from "./lib/api-base.js";
+
+// Lazy-loaded routes to minimize initial bundle size and speed up public page load
+const LoginPage = lazy(() => import("./features/auth/AuthPages.jsx").then((m) => ({ default: m.LoginPage })));
+const ForgotPasswordPage = lazy(() => import("./features/auth/AuthPages.jsx").then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./features/auth/AuthPages.jsx").then((m) => ({ default: m.ResetPasswordPage })));
+
+const AppShell = lazy(() => import("./features/shell/AppShell.jsx").then((m) => ({ default: m.AppShell })));
+const Dashboard = lazy(() => import("./features/shell/AppShell.jsx").then((m) => ({ default: m.Dashboard })));
+const Forbidden = lazy(() => import("./features/shell/AppShell.jsx").then((m) => ({ default: m.Forbidden })));
+
+const CustomersPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.CustomersPage })));
+const ProductsPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.ProductsPage })));
+const ProjectsPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.ProjectsPage })));
+const TicketsPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.TicketsPage })));
+const QuotationsPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.QuotationsPage })));
+const InvoicesPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.InvoicesPage })));
+const AgreementsPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.AgreementsPage })));
+const SettingsPage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.SettingsPage })));
+const ProfilePage = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.ProfilePage })));
+const WorkspaceNotFound = lazy(() => import("./features/modules/ModulePages.jsx").then((m) => ({ default: m.WorkspaceNotFound })));
+
+const StaffList = lazy(() => import("./features/staff/StaffPages.jsx").then((m) => ({ default: m.StaffList })));
+const StaffForm = lazy(() => import("./features/staff/StaffPages.jsx").then((m) => ({ default: m.StaffForm })));
+const StaffDetail = lazy(() => import("./features/staff/StaffPages.jsx").then((m) => ({ default: m.StaffDetail })));
+const StaffEdit = lazy(() => import("./features/staff/StaffPages.jsx").then((m) => ({ default: m.StaffEdit })));
+const RolesPage = lazy(() => import("./features/staff/StaffPages.jsx").then((m) => ({ default: m.RolesPage })));
+const RoleDetail = lazy(() => import("./features/staff/StaffPages.jsx").then((m) => ({ default: m.RoleDetail })));
 
 const nav = [
   ["Solutions", "/#solutions"],
@@ -468,64 +470,83 @@ function PublicLayout() {
   );
 }
 
-export function App() {
+function RouteLoader() {
   return (
-    <Routes>
-      <Route path="/*" element={<PublicLayout />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/forbidden" element={<Forbidden />} />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/app" element={<AppShell />}>
-          <Route index element={<Dashboard />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route element={<ProtectedRoute permission="customers:view" />}>
-            <Route path="customers" element={<CustomersPage />} />
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", flexDirection: "column", gap: "14px" }}>
+      <div className="spinner" />
+      <span style={{ fontSize: "14px", color: "var(--muted)", fontWeight: 500 }}>Loading workspace…</span>
+    </div>
+  );
+}
+
+export function App() {
+  useEffect(() => {
+    // Non-blocking silent background wake-up ping to Render backend
+    const timer = setTimeout(() => {
+      fetch(`${apiBaseUrl}/ping`, { mode: "cors" }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Suspense fallback={<RouteLoader />}>
+      <Routes>
+        <Route path="/*" element={<PublicLayout />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forbidden" element={<Forbidden />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/app" element={<AppShell />}>
+            <Route index element={<Dashboard />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route element={<ProtectedRoute permission="customers:view" />}>
+              <Route path="customers" element={<CustomersPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="products:view" />}>
+              <Route path="products" element={<ProductsPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="projects:view" />}>
+              <Route path="projects" element={<ProjectsPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="tickets:view" />}>
+              <Route path="tickets" element={<TicketsPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="quotations:view" />}>
+              <Route path="quotations" element={<QuotationsPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="invoices:view" />}>
+              <Route path="invoices" element={<InvoicesPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="agreements:view" />}>
+              <Route path="agreements" element={<AgreementsPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="settings:view" />}>
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="users:view" requireSuperAdmin />}>
+              <Route path="staff" element={<StaffList />} />
+              <Route path="staff/new" element={<StaffForm />} />
+              <Route path="staff/:id" element={<StaffDetail />} />
+              <Route path="staff/:id/edit" element={<StaffEdit />} />
+            </Route>
+            <Route element={<ProtectedRoute permission="roles:view" requireSuperAdmin />}>
+              <Route path="roles" element={<RolesPage />} />
+              <Route path="roles/:id" element={<RoleDetail />} />
+            </Route>
+            <Route path="*" element={<WorkspaceNotFound />} />
           </Route>
-          <Route element={<ProtectedRoute permission="products:view" />}>
-            <Route path="products" element={<ProductsPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="projects:view" />}>
-            <Route path="projects" element={<ProjectsPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="tickets:view" />}>
-            <Route path="tickets" element={<TicketsPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="quotations:view" />}>
-            <Route path="quotations" element={<QuotationsPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="invoices:view" />}>
-            <Route path="invoices" element={<InvoicesPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="agreements:view" />}>
-            <Route path="agreements" element={<AgreementsPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="settings:view" />}>
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="users:view" requireSuperAdmin />}>
-            <Route path="staff" element={<StaffList />} />
-            <Route path="staff/new" element={<StaffForm />} />
-            <Route path="staff/:id" element={<StaffDetail />} />
-            <Route path="staff/:id/edit" element={<StaffEdit />} />
-          </Route>
-          <Route element={<ProtectedRoute permission="roles:view" requireSuperAdmin />}>
-            <Route path="roles" element={<RolesPage />} />
-            <Route path="roles/:id" element={<RoleDetail />} />
-          </Route>
-          <Route path="*" element={<WorkspaceNotFound />} />
         </Route>
-      </Route>
-      <Route
-        path="*"
-        element={
-          <main className="page">
-            <h1>Page not found</h1>
-            <Link to="/">Return home</Link>
-          </main>
-        }
-      />
-    </Routes>
+        <Route
+          path="*"
+          element={
+            <main className="page">
+              <h1>Page not found</h1>
+              <Link to="/">Return home</Link>
+            </main>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }

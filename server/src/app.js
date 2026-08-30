@@ -130,7 +130,16 @@ app.use("/api/v1/next-number", nextNumberRouter);
 const ok = (res, message, data, meta = {}) =>
   res.json({ success: true, message, data, meta });
 
-app.get("/api/v1/health", async (_req, res) => {
+app.get(["/ping", "/api/v1/ping"], (_req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "pong",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get(["/health", "/api/v1/health"], async (_req, res) => {
   let mongoStatus = "disconnected";
   try {
     if (process.env.MONGODB_URI) {

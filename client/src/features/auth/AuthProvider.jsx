@@ -120,7 +120,7 @@ async function fetchCurrent(token) {
   }
   const promise = (async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     try {
       const response = await fetch(`${apiBaseUrl}/auth/me`, {
         credentials: "include",
