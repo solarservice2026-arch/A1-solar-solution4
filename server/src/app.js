@@ -43,6 +43,8 @@ const allowedOrigins = new Set(
   [
     process.env.WEB_URL ?? "http://localhost:5173",
     process.env.CLIENT_URL,
+    "https://www.solarservice.co.in",
+    "https://solarservice.co.in",
     "https://a1-solor-solution.vercel.app",
     "https://a1-solor-solution-668f.vercel.app",
     ...(process.env.CORS_ALLOWED_ORIGINS ?? "").split(","),
@@ -52,19 +54,25 @@ const allowedOrigins = new Set(
 );
 
 const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
   try {
     const url = new URL(origin);
     const host = url.hostname.toLowerCase();
     return (
       host.endsWith(".vercel.app") ||
       host.endsWith(".onrender.com") ||
+      host.endsWith("solarservice.co.in") ||
+      host === "solarservice.co.in" ||
+      host === "www.solarservice.co.in" ||
       host === "localhost" ||
       host === "127.0.0.1" ||
+      host.includes("solarservice") ||
+      host.includes("solar") ||
       host.includes("a1-solor-solution") ||
       host.includes("a1solar")
     );
   } catch {
-    return false;
+    return true;
   }
 };
 
@@ -74,18 +82,22 @@ if (process.env.NODE_ENV !== "production") {
   allowedOrigins.add("http://127.0.0.1:4173");
 }
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.has(origin) || isAllowedOrigin(origin))
-        return callback(null, true);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin) || isAllowedOrigin(origin)) {
       return callback(null, true);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
-  }),
-);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept"],
+  exposedHeaders: ["x-request-id"],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(compression());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "10mb" }));
