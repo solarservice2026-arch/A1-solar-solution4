@@ -77,6 +77,30 @@ const getTestCredentialUser = (email, _pass) => {
   return null;
 };
 
+function getInitialAuth() {
+  try {
+    const token = localStorage.getItem("accessToken") || localStorage.getItem("a1_mongo_access_token");
+    const rawUser = localStorage.getItem("user");
+    const storedAdmin = localStorage.getItem("a1_admin_auth_email");
+
+    if (rawUser && token) {
+      const parsed = JSON.parse(rawUser);
+      return {
+        user: parsed,
+        session: { access_token: token },
+      };
+    }
+    if (storedAdmin) {
+      const testUser = createTestUser(storedAdmin);
+      return {
+        user: testUser,
+        session: { access_token: token || "local-admin-token" },
+      };
+    }
+  } catch {}
+  return { user: null, session: null };
+}
+
 function clearStoredAuthData() {
   try {
     localStorage.removeItem("accessToken");
@@ -95,14 +119,18 @@ async function fetchCurrent(token) {
     return await request.promise;
   }
   const promise = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     try {
       const response = await fetch(`${apiBaseUrl}/auth/me`, {
         credentials: "include",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
+      clearTimeout(timeoutId);
       const body = await response.json().catch(() => null);
 
       if (!response.ok || !body?.data) {
@@ -113,7 +141,7 @@ async function fetchCurrent(token) {
         throw new Error(body?.message || "Failed to fetch user profile");
       }
 
-      return {
+      const userData = {
         id: body.data.user.id,
         email: body.data.user.email,
         fullName: body.data.user.full_name,
@@ -127,12 +155,20 @@ async function fetchCurrent(token) {
         roles: body.data.roles,
         permissions: body.data.permissions,
       };
+      try {
+        localStorage.setItem("user", JSON.stringify(userData));
+      } catch {}
+      return userData;
     } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && (err.name === "AbortError" || err.message.includes("aborted"))) {
+        return null;
+      }
       if (err instanceof Error && err.message.includes("401")) {
         clearStoredAuthData();
         return null;
       }
-      throw err;
+      return null;
     }
   })();
 
@@ -147,13 +183,14 @@ async function fetchCurrent(token) {
 }
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialAuth = useMemo(() => getInitialAuth(), []);
+  const [session, setSession] = useState(initialAuth.session);
+  const [user, setUser] = useState(initialAuth.user);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const restoreSession = useCallback(async () => {
-    setLoading(true);
+  const restoreSession = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem("accessToken") || localStorage.getItem("a1_mongo_access_token");
@@ -162,28 +199,40 @@ export function AuthProvider({ children }) {
         if (fetchedUser) {
           setUser(fetchedUser);
           setSession({ access_token: token });
-          setLoading(false);
+          if (showLoading) setLoading(false);
           return;
         }
+      }
+      const rawUser = localStorage.getItem("user");
+      if (rawUser && token) {
+        try {
+          const parsed = JSON.parse(rawUser);
+          setUser(parsed);
+          setSession({ access_token: token });
+          if (showLoading) setLoading(false);
+          return;
+        } catch {}
       }
       const storedAdmin = localStorage.getItem("a1_admin_auth_email");
       if (storedAdmin) {
         const testUser = createTestUser(storedAdmin);
         setUser(testUser);
         setSession({ access_token: "local-admin-token" });
-        setLoading(false);
+        if (showLoading) setLoading(false);
         return;
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to restore session");
     }
-    setUser(null);
-    setSession(null);
-    setLoading(false);
+    if (showLoading) {
+      setUser(null);
+      setSession(null);
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    void restoreSession();
+    void restoreSession(false);
   }, [restoreSession]);
 
   const login = useCallback(async (email, password) => {
