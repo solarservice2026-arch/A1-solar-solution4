@@ -72,18 +72,38 @@ const getTodayDateStr = () => {
 const printRecord = async (title, row, user) => {
   const isQuotation = String(title || "").toLowerCase().includes("quotation");
   const isAgreement = String(title || "").toLowerCase().includes("agreement");
+  const isInvoice = String(title || "").toLowerCase().includes("invoice");
 
   if (isAgreement && user?.roles?.includes("customer") && (row.locked || row.payment_status !== "Paid")) {
     return toast.error("PayU Payment required before viewing/downloading agreement.");
   }
-  let recordData = row;
-  if (isAgreement) {
+
+  let recordData = { ...row };
+  const targetId = row.id || row._id;
+
+  if (targetId && String(targetId).length === 24) {
     try {
-      const docRes = await api(`/agreements/${row.id || row._id}/document`);
-      recordData = docRes;
-    } catch (err) {
-      return toast.error(err instanceof Error ? err.message : "Document fetch failed");
-    }
+      if (isAgreement) {
+        const docRes = await api(`/agreements/${targetId}/document`);
+        if (docRes && (docRes.id || docRes._id)) recordData = docRes;
+      } else if (isQuotation) {
+        const docRes = await api(`/quotations/${targetId}`);
+        if (docRes && (docRes.id || docRes._id)) recordData = docRes;
+      } else if (isInvoice) {
+        const docRes = await api(`/invoices/${targetId}`);
+        if (docRes && (docRes.id || docRes._id)) recordData = docRes;
+      }
+    } catch {}
+  }
+
+  // Ensure current company logo and details are attached if missing on row
+  if (user && (!recordData.company_logo_url && !recordData.companyLogoUrl)) {
+    recordData.company_logo_url = user.company_logo_url || user.companyLogoUrl;
+    recordData.company_name = recordData.company_name || user.company_name || user.companyName;
+    recordData.company_address = recordData.company_address || user.company_address || user.companyAddress;
+    recordData.company_gstin = recordData.company_gstin || user.company_gstin || user.companyGstin;
+    recordData.company_signature_url = recordData.company_signature_url || user.company_signature_url || user.companySignatureUrl;
+    recordData.bank_details = recordData.bank_details || user.bank_details || user.bankDetails;
   }
 
   try {
