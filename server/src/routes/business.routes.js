@@ -518,25 +518,46 @@ quotationsRouter.get(
 
     const items = await mongo.collection("quotations")
       .find(query)
-      .project({
-        customer_signature_url: 0,
-        company_signature_url: 0,
-        company_logo_url: 0,
-      })
+      .project({ customer_signature_url: 0 })
       .sort({ created_at: -1 })
       .toArray();
 
-    const formatted = items.map((q) => ({
-      id: q._id.toString(),
-      ...q,
-      customer_name: q.customer_name || q.customers?.name || "Customer",
-      customers: q.customers || {
-        name: q.customer_name || "Customer",
-        mobile: q.customer_mobile || "",
-        email: q.customer_email || "",
-      },
-      quotation_items: q.quotation_items || q.items || [],
-    }));
+    const users = await mongo.collection("users").find({}, { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }).toArray();
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+
+    const formatted = items.map((q) => {
+      const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by)) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
+      return {
+        id: q._id.toString(),
+        ...q,
+        company_name: owner?.company_name || q.company_name || q.companyName || null,
+        company_address: owner?.company_address || q.company_address || q.companyAddress || null,
+        company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
+        company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
+        company_email: owner?.email || q.company_email || q.companyEmail || null,
+        company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
+        company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
+        bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
+        owner: owner ? {
+          name: owner.name, phone: owner.phone, email: owner.email,
+          company_name: owner.company_name, company_address: owner.company_address,
+          company_gstin: owner.company_gstin, company_logo_url: owner.company_logo_url,
+          company_signature_url: owner.company_signature_url,
+        } : null,
+        customer_name: q.customer_name || q.customers?.name || "Customer",
+        customers: q.customers || {
+          name: q.customer_name || "Customer",
+          mobile: q.customer_mobile || "",
+          email: q.customer_email || "",
+          gst_number: q.customer_gst || "",
+        },
+        quotation_items: q.quotation_items || q.items || [],
+      };
+    });
     return success(res, "Quotations retrieved", formatted);
   }),
 );
@@ -795,22 +816,25 @@ invoicesRouter.get(
 
     const items = await mongo.collection("invoices")
       .find(query)
-      .project({
-        customer_signature_url: 0,
-        company_signature_url: 0,
-        company_logo_url: 0,
-      })
+      .project({ customer_signature_url: 0 })
       .sort({ created_at: -1 })
       .toArray();
 
+    const users = await mongo.collection("users").find({}, { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }).toArray();
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+
     const formatted = items.map((item, idx) => {
+      const owner = userMap.get(String(item.ownerId || item.createdBy || item.created_by)) || (item.ownerEmail ? userMap.get(String(item.ownerEmail).toLowerCase()) : null);
       let invNum = item.invoice_number;
       if (!invNum || invNum.includes("/") || !invNum.startsWith("INV-")) {
         const numMatch = String(invNum || "").match(/\d+$/);
         const seqVal = numMatch ? parseInt(numMatch[0], 10) : (items.length - idx);
         const padSeq = String(seqVal > 0 ? seqVal : 1).padStart(4, "0");
         invNum = `INV-A1S-2026-${padSeq}`;
-        
         void mongo.collection("invoices").updateOne(
           { _id: item._id },
           { $set: { invoice_number: invNum } }
@@ -820,12 +844,27 @@ invoicesRouter.get(
       return {
         id: item._id.toString(),
         ...item,
+        company_name: owner?.company_name || item.company_name || item.companyName || null,
+        company_address: owner?.company_address || item.company_address || item.companyAddress || null,
+        company_gstin: owner?.company_gstin || item.company_gstin || item.companyGstin || null,
+        company_phone: owner?.phone || item.company_phone || item.companyPhone || null,
+        company_email: owner?.email || item.company_email || item.companyEmail || null,
+        company_logo_url: owner?.company_logo_url || item.company_logo_url || item.companyLogoUrl || null,
+        company_signature_url: owner?.company_signature_url || item.company_signature_url || item.companySignatureUrl || null,
+        bank_details: owner?.bank_details || item.bank_details || item.bankDetails || null,
+        owner: owner ? {
+          name: owner.name, phone: owner.phone, email: owner.email,
+          company_name: owner.company_name, company_address: owner.company_address,
+          company_gstin: owner.company_gstin, company_logo_url: owner.company_logo_url,
+          company_signature_url: owner.company_signature_url,
+        } : null,
         invoice_number: invNum,
         customer_name: item.customer_name || item.customers?.name || "Customer",
         customers: item.customers || {
           name: item.customer_name || "Customer",
           mobile: item.customer_mobile || "",
           email: item.customer_email || "",
+          gst_number: item.customer_gst || "",
         },
       };
     });
@@ -1099,18 +1138,36 @@ agreementsRouter.get(
 
     const items = await mongo.collection("agreements")
       .find(filter)
-      .project({
-        customer_signature_url: 0,
-        company_signature_url: 0,
-        company_logo_url: 0,
-      })
+      .project({ customer_signature_url: 0 })
       .sort({ created_at: -1 })
       .toArray();
 
+    const users = await mongo.collection("users").find({}, { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }).toArray();
+    const userMap = new Map();
+    users.forEach((u) => {
+      if (u._id) userMap.set(u._id.toString(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+
     const formatted = items.map((a) => {
+      const owner = userMap.get(String(a.ownerId || a.createdBy || a.created_by)) || (a.ownerEmail ? userMap.get(String(a.ownerEmail).toLowerCase()) : null);
       const base = {
         id: a._id.toString(),
         ...a,
+        company_name: owner?.company_name || a.company_name || a.companyName || null,
+        company_address: owner?.company_address || a.company_address || a.companyAddress || null,
+        company_gstin: owner?.company_gstin || a.company_gstin || a.companyGstin || null,
+        company_phone: owner?.phone || a.company_phone || a.companyPhone || null,
+        company_email: owner?.email || a.company_email || a.companyEmail || null,
+        company_logo_url: owner?.company_logo_url || a.company_logo_url || a.companyLogoUrl || null,
+        company_signature_url: owner?.company_signature_url || a.company_signature_url || a.companySignatureUrl || null,
+        bank_details: owner?.bank_details || a.bank_details || a.bankDetails || null,
+        owner: owner ? {
+          name: owner.name, phone: owner.phone, email: owner.email,
+          company_name: owner.company_name, company_address: owner.company_address,
+          company_gstin: owner.company_gstin, company_logo_url: owner.company_logo_url,
+          company_signature_url: owner.company_signature_url,
+        } : null,
         customer_name: a.customer_name || a.customers?.name || "Customer",
         customers: a.customers || {
           name: a.customer_name || "Customer",
