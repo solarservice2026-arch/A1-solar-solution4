@@ -76,30 +76,41 @@ async function resolveEffectiveOwner(mongo, userId, userRole, userEmail) {
 export async function getScopedQuery(req, extraFilter = {}, collectionName = null) {
   const userId = req.user?._id || req.auth?.userId;
   const userRoles = req.user?.roles || req.auth?.roles || [];
-  const isSuperAdmin = userRoles.includes("super_admin") || userRoles.includes("superadmin");
+  const userRole = req.user?.role || userRoles[0] || "admin";
+  const userEmail = (req.user?.email || req.auth?.email || "").trim().toLowerCase();
+  const isSuperAdmin =
+    userRoles.includes("super_admin") ||
+    userRoles.includes("superadmin") ||
+    userRole === "super_admin" ||
+    userRole === "superadmin" ||
+    req.auth?.roles?.includes("super_admin");
 
   if (isSuperAdmin) {
     if (req.query?.ownerId) {
-      return { ...extraFilter, ownerId: String(req.query.ownerId) };
+      const qOwner = String(req.query.ownerId);
+      const ors = [{ ownerId: qOwner }];
+      if (ObjectId.isValid(qOwner)) ors.push({ ownerId: new ObjectId(qOwner) });
+      return { ...extraFilter, $or: ors };
     }
     return { ...extraFilter };
   }
 
-  const isCustomer = userRoles.includes("customer") || userRoles.includes("vendor");
+  const mongo = await getMongoDb();
+  const validObjId = userId && ObjectId.isValid(String(userId)) ? new ObjectId(String(userId)) : null;
+
+  const isCustomer = userRoles.includes("customer") || userRoles.includes("vendor") || userRole === "customer";
   if (isCustomer) {
-    const mongo = await getMongoDb();
-    const userEmail = (req.user?.email || req.auth?.email || "").trim().toLowerCase();
     const custObj = await mongo.collection("customers").findOne({
       $or: [
         ...(userEmail ? [{ email: userEmail }] : []),
-        ...(userId ? [{ profile_id: userId }, { ownerId: userId }] : [])
+        ...(userId ? [{ profile_id: String(userId) }, { ownerId: String(userId) }] : []),
+        ...(validObjId ? [{ profile_id: validObjId }, { ownerId: validObjId }] : [])
       ]
     });
 
     const customerOrs = [
-      { ownerId: userId },
-      { createdBy: userId },
-      { created_by: userId }
+      ...(userId ? [{ ownerId: String(userId) }, { createdBy: String(userId) }, { created_by: String(userId) }] : []),
+      ...(validObjId ? [{ ownerId: validObjId }, { createdBy: validObjId }, { created_by: validObjId }] : [])
     ];
 
     if (custObj) {
@@ -110,6 +121,7 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
     if (userEmail) {
       customerOrs.push({ customer_email: userEmail });
       customerOrs.push({ email: userEmail });
+      customerOrs.push({ ownerEmail: userEmail });
     }
 
     return {
@@ -118,14 +130,40 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
     };
   }
 
-  // Admin / Staff query rule: find({ ownerId: req.user._id })
+  // Admin / Staff query: include ownerId as string & ObjectId, staff users, email, and legacy docs
+  const staffDocs = await mongo.collection("users").find({
+    $or: [
+      ...(userId ? [{ ownerId: String(userId) }, { createdBy: String(userId) }] : []),
+      ...(validObjId ? [{ ownerId: validObjId }, { createdBy: validObjId }] : [])
+    ]
+  }).project({ _id: 1 }).toArray();
+
+  const relatedUserIds = [
+    ...(userId ? [String(userId)] : []),
+    ...staffDocs.map((s) => s._id.toString())
+  ];
+  const relatedObjectIds = [
+    ...(validObjId ? [validObjId] : []),
+    ...staffDocs.map((s) => s._id)
+  ];
+
+  const adminOrs = [
+    { ownerId: { $in: relatedUserIds } },
+    { ownerId: { $in: relatedObjectIds } },
+    { createdBy: { $in: relatedUserIds } },
+    { createdBy: { $in: relatedObjectIds } },
+    { created_by: { $in: relatedUserIds } },
+    { created_by: { $in: relatedObjectIds } },
+    ...(userEmail ? [{ ownerEmail: userEmail }] : []),
+    { ownerId: null },
+    { ownerId: { $exists: false } },
+    { createdBy: null },
+    { createdBy: { $exists: false } }
+  ];
+
   return {
     ...extraFilter,
-    $or: [
-      { ownerId: userId },
-      { created_by: userId },
-      { createdBy: userId }
-    ]
+    $or: adminOrs
   };
 }
 
