@@ -178,8 +178,8 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .doc-header.cols-4{grid-template-columns:46mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:46mm 1fr 60mm}
 .logo-brand{display:block;height:15mm;width:auto;max-width:48mm;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.doc-header-invoice{grid-template-columns:68mm 1fr 34mm 36mm}
-.logo-invoice{height:36mm !important;max-width:66mm !important}
+.doc-header-invoice{grid-template-columns:50mm 1fr 34mm 36mm}
+.logo-invoice{height:25mm !important;max-width:50mm !important}
 /* ─── Agreement logo header ─── */
 .agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:3mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:2mm}
 .agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -546,7 +546,7 @@ export function invoiceDocument(row) {
   </div>
   <div class="page-one-body">
   <div class="doc-header cols-4 doc-header-invoice">
-    ${logoUrl ? `<img class="logo-brand logo-invoice" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:54mm"></div>`}
+    ${logoUrl ? `<img class="logo-brand logo-invoice" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:50mm"></div>`}
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
     <div class="meta">Date<b>${esc(formatDateDDMMYYYY(row.invoice_date || row.invoiceDate || row.created_at))}</b></div>
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
