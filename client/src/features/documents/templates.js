@@ -176,10 +176,10 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
-.logo-brand{display:block;height:29mm;width:auto;max-width:60mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.logo-brand{display:block;height:29mm;width:auto;max-width:60mm;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Agreement logo header ─── */
 .agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:3mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:2mm}
-.agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .doc-title{text-align:center}
 .doc-title h1{margin:0;font-size:20px;font-weight:900;letter-spacing:.06em;color:#1a3a6b}
 .doc-title b{display:block;color:#586bc5;font-size:11.5px;margin-top:2px}
@@ -307,7 +307,8 @@ export function quotationDocument(row) {
   const companyPhone = row.company_phone || row.companyPhone || row.owner?.phone || row.owner?.mobile || "";
   const companyEmail = row.company_email || row.companyEmail || row.owner?.email || "";
   const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.jpg` : null);
+  const rawLogo = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url;
+  const logoUrl = rawLogo ? (rawLogo.endsWith("/logo.jpg") ? rawLogo.replace("/logo.jpg", "/logo.png") : rawLogo) : (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const itemRows = items.map((item, i) => {
@@ -519,7 +520,8 @@ export function invoiceDocument(row) {
   const companyPhone = row.company_phone || row.companyPhone || row.owner?.phone || row.owner?.mobile || "";
   const companyEmail = row.company_email || row.companyEmail || row.owner?.email || "";
   const isSuperAdmin = row.ownerRole === "super_admin" || row.owner_role === "super_admin" || (!row.company_name && !row.companyName && !row.owner?.company_name);
-  const logoUrl = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url || (isSuperAdmin ? `${origin}/logo.jpg` : null);
+  const rawLogo = row.company_logo_url || row.companyLogoUrl || row.owner?.company_logo_url;
+  const logoUrl = rawLogo ? (rawLogo.endsWith("/logo.jpg") ? rawLogo.replace("/logo.jpg", "/logo.png") : rawLogo) : (isSuperAdmin ? `${origin}/logo.png` : null);
   const signature = row.company_signature_url || row.companySignatureUrl || row.owner?.company_signature_url || `${origin}/document-assets/vendor-authorized-signature.png`;
 
   const bankAccHolder = row.bank_details?.accountHolder || row.bank_details?.account_holder || row.account_holder || row.payment_details?.account_holder || companyName;
