@@ -174,10 +174,9 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .hero-text{position:absolute;top:10%;left:50%;transform:translateX(-50%);color:#ff0000;font-size:36px;font-weight:900;font-family:'Arial Black',Arial,sans-serif;letter-spacing:-0.5px;z-index:2;text-shadow:0 1px 4px rgba(255,255,255,0.85);white-space:nowrap}
 /* ─── Sub-header row ─── */
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
-.doc-header.cols-4{grid-template-columns:50mm 1fr 34mm 36mm}
-.doc-header.cols-3{grid-template-columns:50mm 1fr 60mm}
-.logo-brand{display:block;height:26mm;width:auto;max-width:60mm;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.logo-invoice{height:28mm;max-width:60mm}
+.doc-header.cols-4{grid-template-columns:46mm 1fr 34mm 36mm}
+.doc-header.cols-3{grid-template-columns:46mm 1fr 60mm}
+.logo-brand{display:block;height:21mm;width:auto;max-width:48mm;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Agreement logo header ─── */
 .agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:3mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:2mm}
 .agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -361,7 +360,7 @@ export function quotationDocument(row) {
   </div>
   <div class="page-one-body">
   <div class="doc-header cols-4">
-    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:50mm"></div>`}
+    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:46mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>${esc(qCap)} kW ${esc(qType)}</b></div>
     <div class="meta">Date<b>${esc(qDate)}</b></div>
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
@@ -408,7 +407,7 @@ export function quotationDocument(row) {
 
   <div class="page-two">
   <div class="doc-header cols-4">
-    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">` : `<div style="width:50mm"></div>`}
+    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="A1 Solar Solution" onerror="this.style.display='none'">` : `<div style="width:46mm"></div>`}
     <div class="doc-title"><h1>QUOTATION</h1><b>Terms &amp; Conditions</b></div>
     <div class="meta">Date<b>${esc(qDate)}</b></div>
     <div class="meta">Quotation #<b>${esc(qNum)}</b></div>
@@ -544,7 +543,7 @@ export function invoiceDocument(row) {
   </div>
   <div class="page-one-body">
   <div class="doc-header cols-4">
-    ${logoUrl ? `<img class="logo-brand logo-invoice" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:50mm"></div>`}
+    ${logoUrl ? `<img class="logo-brand" src="${esc(logoUrl)}" alt="Logo" onerror="this.style.display='none'">` : `<div style="width:46mm"></div>`}
     <div class="doc-title"><h1>INVOICE</h1><b>${esc(row.title ?? "SOLAR POWER SYSTEM")}</b></div>
     <div class="meta">Date<b>${esc(formatDateDDMMYYYY(row.invoice_date || row.invoiceDate || row.created_at))}</b></div>
     <div class="meta">Invoice #<b>${esc(row.invoice_number)}</b></div>
