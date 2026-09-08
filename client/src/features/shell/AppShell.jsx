@@ -154,7 +154,7 @@ export function AppShell() {
             <img
               src={cleanLogo || userLogo || logo}
               alt={user?.company_name || "A1 Solar Solution"}
-              style={{ height: "55px", maxWidth: "180px", width: "auto", objectFit: "contain", maxHeight: "55px" }}
+              style={{ height: "65px", maxWidth: "200px", width: "auto", objectFit: "contain", maxHeight: "65px" }}
             />
           </Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu">

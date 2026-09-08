@@ -91,7 +91,8 @@ async function preparePrintImages(){
     const w=img.naturalWidth||0,h=img.naturalHeight||0;
     if(!w||!h) continue;
     let maxW=1200;
-    if(img.classList.contains("logo-brand")) maxW=320;
+    if(img.classList.contains("logo-invoice")) maxW=600;
+    else if(img.classList.contains("logo-brand")) maxW=400;
     else if(img.classList.contains("hero")) maxW=1200;
     else if(img.closest(".vsig,.sig-block,.sig-row")||/signature|stamp/i.test(img.alt||"")) maxW=480;
     if(w<=maxW) continue;
@@ -99,7 +100,7 @@ async function preparePrintImages(){
     const canvas=document.createElement("canvas");
     canvas.width=nw; canvas.height=nh;
     const ctx=canvas.getContext("2d");
-    const keepPng=img.classList.contains("logo-brand")||img.closest(".vsig,.sig-block,.sig-row")||/signature|stamp/i.test(img.alt||"");
+    const keepPng=img.classList.contains("logo-brand")||img.classList.contains("logo-invoice")||img.closest(".vsig,.sig-block,.sig-row")||/signature|stamp/i.test(img.alt||"");
     if(!keepPng){ctx.fillStyle="#fff";ctx.fillRect(0,0,nw,nh);}
     ctx.drawImage(img,0,0,nw,nh);
     try{img.src=keepPng?canvas.toDataURL("image/png"):canvas.toDataURL("image/jpeg",0.82);}catch(e){}
@@ -177,8 +178,8 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .doc-header.cols-4{grid-template-columns:46mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:46mm 1fr 60mm}
 .logo-brand{display:block;height:21mm;width:auto;max-width:48mm;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.doc-header-invoice{grid-template-columns:54mm 1fr 34mm 36mm}
-.logo-invoice{height:28mm !important;max-width:54mm !important}
+.doc-header-invoice{grid-template-columns:68mm 1fr 34mm 36mm}
+.logo-invoice{height:36mm !important;max-width:66mm !important}
 /* ─── Agreement logo header ─── */
 .agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:3mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:2mm}
 .agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:0;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}

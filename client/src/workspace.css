@@ -268,13 +268,13 @@ button, .primary, .secondary, .back-button, .row-actions button, .toolbar button
 }
 
 .user-profile-badge span {
-  font-weight: 700 !important;
-  font-size: 13px !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
   color: #0a2e36 !important;
 }
 
 .user-profile-badge small {
-  font-size: 11px !important;
+  font-size: 12.5px !important;
   color: #647478 !important;
   text-transform: capitalize !important;
 }
