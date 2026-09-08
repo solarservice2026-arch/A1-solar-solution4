@@ -63,11 +63,11 @@ export const amountWords = (value) => {
     "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
     "Sixteen", "Seventeen", "Eighteen", "Nineteen",
   ],
-  tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
   const under100 = (x) =>
     x < 20 ? (ones[x] ?? "") : `${tens[Math.floor(x / 10)] ?? ""}${x % 10 ? ` ${ones[x % 10] ?? ""}` : ""}`,
-  under1000 = (x) =>
-    x < 100 ? under100(x) : `${ones[Math.floor(x / 100)] ?? ""} Hundred${x % 100 ? ` ${under100(x % 100)}` : ""}`;
+    under1000 = (x) =>
+      x < 100 ? under100(x) : `${ones[Math.floor(x / 100)] ?? ""} Hundred${x % 100 ? ` ${under100(x % 100)}` : ""}`;
   const parts = [];
   let left = n;
   const crore = Math.floor(left / 10000000); left %= 10000000;
@@ -176,7 +176,7 @@ html,body{margin:0;font:12px Arial,Helvetica,sans-serif;color:#333;background:#e
 .doc-header{display:grid;align-items:center;padding:3mm 14mm;border-bottom:1px solid #dde1ea;gap:0}
 .doc-header.cols-4{grid-template-columns:44mm 1fr 34mm 36mm}
 .doc-header.cols-3{grid-template-columns:44mm 1fr 60mm}
-.logo-brand{display:block;height:16mm;width:auto;max-width:42mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.logo-brand{display:block;height:22mm;width:auto;max-width:60mm;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 /* ─── Agreement logo header ─── */
 .agr-logo-header{display:flex;align-items:center;justify-content:flex-start;padding:3mm 14mm 2mm;border-bottom:1px solid #dde1ea;margin-bottom:2mm}
 .agr-logo-header img{height:15mm;width:auto;object-fit:contain;background:transparent;border-radius:50%;mix-blend-mode:multiply;filter:contrast(100%) brightness(100%);print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -442,7 +442,7 @@ export function invoiceDocument(row) {
   const customer = row.customers ?? {};
   const items = Array.isArray(row.invoice_items) ? row.invoice_items : (row.items || []);
   const primaryBrand = items[0]?.brand || items[0]?.products?.brand || items[0]?.brand_model || items[0]?.products?.model || "LivFast";
-  
+
   let totalTaxable = 0;
   let totalCgst = 0;
   let totalSgst = 0;
