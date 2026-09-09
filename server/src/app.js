@@ -85,6 +85,7 @@ app.use(async (_req, _res, next) => {
 });
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/staff", usersRouter);
 app.use("/api/v1/roles", rolesRouter);
