@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { resetPasswordSchema } from "../../lib/validation.js";
 import { useAuth } from "./AuthProvider.jsx";
@@ -141,8 +141,9 @@ export function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  const params = useParams();
   const queryParams = new URLSearchParams(location.search);
-  const token = queryParams.get("token");
+  const token = params.token || queryParams.get("token");
 
   const submit = async (e) => {
     e.preventDefault();

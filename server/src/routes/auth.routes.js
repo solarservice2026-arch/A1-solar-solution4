@@ -318,8 +318,10 @@ authRouter.post("/forgot-password", asyncHandler(async (req, res) => {
   });
 }));
 
-authRouter.post("/reset-password", asyncHandler(async (req, res) => {
-  const { token, password, confirmation } = req.body;
+const handleResetPassword = async (req, res) => {
+  const token = req.params?.token || req.body?.token;
+  const { password, confirmation } = req.body || {};
+
   if (!token) {
     throw new AppError(400, "Reset token is required", "VALIDATION_ERROR");
   }
@@ -377,7 +379,10 @@ authRouter.post("/reset-password", asyncHandler(async (req, res) => {
   return success(res, "Password updated successfully. You can now sign in with your new password.", {
     success: true,
   });
-}));
+};
+
+authRouter.post("/reset-password", asyncHandler(handleResetPassword));
+authRouter.post("/reset-password/:token", asyncHandler(handleResetPassword));
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);

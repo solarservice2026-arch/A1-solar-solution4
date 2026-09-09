@@ -495,6 +495,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/forbidden" element={<Forbidden />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<AppShell />}>
