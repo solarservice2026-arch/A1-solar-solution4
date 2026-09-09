@@ -3,6 +3,10 @@ import request from "supertest";
 import jwt from "jsonwebtoken";
 import { app } from "../app.js";
 
+if (!process.env.MONGODB_URI) {
+  process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/a1_solar_test";
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || "a1-solar-secret-key-2026-safe";
 
 // Generate test tokens with distinct owner identities
