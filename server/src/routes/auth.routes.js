@@ -2,11 +2,12 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 import mongoose from "mongoose";
-import { paginationSchema, staffSchema } from "../validation/index.js";
+import { paginationSchema, staffSchema, resetPasswordSchema } from "../validation/index.js";
 import { asyncHandler, AppError, success } from "../lib/http.js";
 import { requireAuth, requirePermission, requireRole } from "../middleware/auth.js";
 import { testAccountMap, fullPermissions } from "../lib/provider.js";
 import { connectMongoDB } from "../config/db.js";
+import { sendPasswordResetEmail } from "../lib/email.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "a1-solar-secret-key-2026-safe";
 
@@ -279,6 +280,104 @@ authRouter.get("/me", requireAuth, asyncHandler(async (req, res) => {
 authRouter.post("/logout", (_req, res) => {
   return success(res, "Logged out successfully", { success: true });
 });
+
+authRouter.post("/forgot-password", asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new AppError(400, "Email is required", "VALIDATION_ERROR");
+  }
+  const normalizedEmail = String(email).trim().toLowerCase();
+
+  const token = jwt.sign(
+    { email: normalizedEmail, purpose: "password_reset" },
+    JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+
+  const db = await getMongoDb();
+  if (db) {
+    const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+    await db.collection("users").updateOne(
+      { $or: [{ email: normalizedEmail }, { email: regexEmail }] },
+      { $set: { reset_password_token: token, reset_password_expires: Date.now() + 3600000 } }
+    );
+    await db.collection("customers").updateOne(
+      { $or: [{ email: normalizedEmail }, { email: regexEmail }] },
+      { $set: { reset_password_token: token, reset_password_expires: Date.now() + 3600000 } }
+    );
+  }
+
+  const origin = req.get("origin") || req.get("referer") || "http://localhost:5173";
+  const clientBase = origin.endsWith("/") ? origin.slice(0, -1) : origin;
+  const resetUrl = `${clientBase}/reset-password?token=${encodeURIComponent(token)}`;
+
+  await sendPasswordResetEmail(normalizedEmail, resetUrl);
+
+  return success(res, "If an account exists for this email, password reset instructions have been sent.", {
+    success: true,
+  });
+}));
+
+authRouter.post("/reset-password", asyncHandler(async (req, res) => {
+  const { token, password, confirmation } = req.body;
+  if (!token) {
+    throw new AppError(400, "Reset token is required", "VALIDATION_ERROR");
+  }
+
+  const parsed = resetPasswordSchema.safeParse({ password, confirmation: confirmation || password });
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message || "Invalid password";
+    throw new AppError(400, msg, "VALIDATION_ERROR");
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    throw new AppError(400, "Invalid or expired password reset token. Please request a new link.", "INVALID_TOKEN");
+  }
+
+  if (decoded.purpose !== "password_reset" || !decoded.email) {
+    throw new AppError(400, "Invalid token payload", "INVALID_TOKEN");
+  }
+
+  const normalizedEmail = decoded.email.trim().toLowerCase();
+  const passwordHash = bcryptjs.hashSync(password, 10);
+
+  const db = await getMongoDb();
+  let updated = false;
+
+  if (db) {
+    const regexEmail = new RegExp(`^${normalizedEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i');
+    
+    const userRes = await db.collection("users").updateOne(
+      { $or: [{ email: normalizedEmail }, { email: regexEmail }] },
+      { 
+        $set: { password_hash: passwordHash, password: password },
+        $unset: { reset_password_token: "", reset_password_expires: "" }
+      }
+    );
+    if (userRes.matchedCount > 0) updated = true;
+
+    const custRes = await db.collection("customers").updateOne(
+      { $or: [{ email: normalizedEmail }, { email: regexEmail }] },
+      { 
+        $set: { password_hash: passwordHash, password: password },
+        $unset: { reset_password_token: "", reset_password_expires: "" }
+      }
+    );
+    if (custRes.matchedCount > 0) updated = true;
+  }
+
+  if (testAccountMap[normalizedEmail]) {
+    testAccountMap[normalizedEmail].pass = password;
+    updated = true;
+  }
+
+  return success(res, "Password updated successfully. You can now sign in with your new password.", {
+    success: true,
+  });
+}));
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
