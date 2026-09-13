@@ -569,7 +569,7 @@ quotationsRouter.get(
         ownerId: 1, createdBy: 1, created_by: 1, ownerEmail: 1,
         company_name: 1, companyName: 1, company_address: 1, companyAddress: 1,
         company_gstin: 1, companyGstin: 1, company_phone: 1, companyPhone: 1, company_email: 1, companyEmail: 1,
-        items: 1, customers: 1, notes: 1, remarks: 1
+        customers: 1, notes: 1, remarks: 1
       };
 
       console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
