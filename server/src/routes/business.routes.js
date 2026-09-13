@@ -551,17 +551,14 @@ quotationsRouter.get(
   asyncHandler(async (req, res) => {
     const _t0 = Date.now();
     console.log(`[QUOTATIONS] request-start`);
-    try {
+      const tStart = Date.now();
+      console.log(`[QUOTATIONS DIAG] 1. Request start t=0ms`);
       const mongo = await getMongoDb();
-      console.log(`[QUOTATIONS] auth-complete +${Date.now() - _t0}ms`);
+      console.log(`[QUOTATIONS DIAG] 2. MongoDB handle acquired +${Date.now() - tStart}ms`);
 
       const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
-      console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms`);
+      console.log(`[QUOTATIONS DIAG] 3. getScopedQuery completed +${Date.now() - tStart}ms. Query: ${JSON.stringify(query)}`);
 
-      console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
-
-      // Projection: inclusion projection for list view fields only.
-      // Explicitly includes scalar metadata fields and prevents loading heavy HTML/PDF/Base64/images off disk.
       const listProjection = {
         _id: 1,
         quotation_number: 1, quotationNumber: 1, quote_number: 1, quoteNumber: 1,
@@ -578,27 +575,28 @@ quotationsRouter.get(
         items: 1, customers: 1, notes: 1, remarks: 1
       };
 
+      const tQueryStart = Date.now();
       const items = await mongo.collection("quotations")
         .find(query)
         .project(listProjection)
         .sort({ created_at: -1 })
         .limit(200)
         .toArray();
-      console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${Date.now() - _t0}ms`);
+      const tQueryEnd = Date.now();
+      console.log(`[QUOTATIONS DIAG] 4. mongo.find().toArray() took ${tQueryEnd - tQueryStart}ms (total +${tQueryEnd - tStart}ms), fetched count=${items.length}`);
 
-      if (req.query?.explain === "true") {
-        try {
-          const exp = await mongo.collection("quotations")
-            .find(query)
-            .project(listProjection)
-            .sort({ created_at: -1 })
-            .limit(200)
-            .explain("executionStats");
-          const s = exp.executionStats;
-          console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
-        } catch (expErr) {
-          console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
-        }
+      try {
+        const exp = await mongo.collection("quotations")
+          .find(query)
+          .project(listProjection)
+          .sort({ created_at: -1 })
+          .limit(200)
+          .explain("executionStats");
+        const s = exp.executionStats;
+        console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
+        console.log(`[QUOTATIONS EXPLAIN PLAN] winningPlan: ${JSON.stringify(exp.queryPlanner?.winningPlan || {})}`);
+      } catch (expErr) {
+        console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
       }
 
       // --- FIX: Targeted user lookup using only ownerIds present in fetched quotations ---
