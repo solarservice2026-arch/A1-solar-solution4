@@ -543,7 +543,8 @@ quotationsRouter.get(
   "/",
   requirePermission("quotations:view"),
   asyncHandler(async (req, res) => {
-    const _t0 = Date.now();
+    try {
+      const _t0 = Date.now();
     console.log(`[QUOTATIONS] request-start`);
       const tStart = Date.now();
       console.log(`[QUOTATIONS DIAG] 1. Request start t=0ms`);
