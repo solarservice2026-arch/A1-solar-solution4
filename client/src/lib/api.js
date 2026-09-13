@@ -65,8 +65,9 @@ export async function api(
   options = {},
 ) {
   let token = await sessionToken();
+  const maxAttempts = options.method && options.method !== "GET" ? 2 : 4;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       const response = await fetch(`${apiBaseUrl}${path}`, {
         ...options,
@@ -95,9 +96,10 @@ export async function api(
         throw new Error(body.message || "Access denied: You do not have permission to access this resource");
       }
 
-      if (attempt === 0 && transientStatuses.has(response.status)) {
+      if (attempt < maxAttempts - 1 && transientStatuses.has(response.status)) {
         if (response.status === 401) token = await sessionToken(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        const delay = (attempt + 1) * 3000;
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
         continue;
       }
 
@@ -112,6 +114,11 @@ export async function api(
       }
       if (err.message && err.message.includes("Access denied")) {
         throw err;
+      }
+      if (attempt < maxAttempts - 1) {
+        const delay = (attempt + 1) * 3000;
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
+        continue;
       }
       return [];
     }
