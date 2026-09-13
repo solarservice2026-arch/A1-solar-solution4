@@ -481,11 +481,31 @@ function RouteLoader() {
 
 export function App() {
   useEffect(() => {
-    // Non-blocking silent background wake-up ping to Render backend
+    // Non-blocking silent background wake-up ping with automatic retry for Render cold starts
+    let active = true;
+    let attempts = 0;
+    const maxPings = 6;
+
+    const wakeUp = async () => {
+      while (active && attempts < maxPings) {
+        attempts += 1;
+        try {
+          const res = await fetch(`${apiBaseUrl}/ping`, { mode: "cors" });
+          if (res.ok) break;
+        } catch {}
+        if (!active) break;
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+    };
+
     const timer = setTimeout(() => {
-      fetch(`${apiBaseUrl}/ping`, { mode: "cors" }).catch(() => {});
-    }, 1500);
-    return () => clearTimeout(timer);
+      void wakeUp();
+    }, 1000);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
