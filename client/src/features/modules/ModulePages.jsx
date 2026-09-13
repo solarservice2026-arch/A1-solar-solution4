@@ -506,24 +506,30 @@ function DataPage({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("order_id");
+    const status = params.get("status");
 
-    if (orderId && path === "/agreements") {
-      const verify = async () => {
-        try {
-          const vRes = await api("/agreements/cashfree-verify", {
-            method: "POST",
-            body: JSON.stringify({ order_id: orderId }),
-          });
-          if (vRes?.verified || vRes?.payment_status === "Paid") {
-            toast.success("Payment verified successfully! Agreement unlocked.");
-          }
-        } catch {}
-        void load();
-        try {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch {}
-      };
-      void verify();
+    if (path === "/agreements" && (status || orderId)) {
+      if (status && (status.toLowerCase() === "success" || status === "SUCCESS")) {
+        toast.success("Payment verified successfully! Agreement unlocked.");
+      } else if (orderId) {
+        const verify = async () => {
+          try {
+            const vRes = await api("/agreements/cashfree-verify", {
+              method: "POST",
+              body: JSON.stringify({ order_id: orderId }),
+            });
+            if (vRes?.verified || vRes?.payment_status === "Paid") {
+              toast.success("Payment verified successfully! Agreement unlocked.");
+            }
+          } catch {}
+          void load();
+        };
+        void verify();
+      }
+      void load();
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch {}
     } else {
       void load();
     }
@@ -1122,9 +1128,9 @@ function DataPage({
         <div className="modal-backdrop">
           <div className="card modal-form" style={{ maxWidth: "480px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ margin: 0 }}>Cashfree Payment Gateway</h2>
+              <h2 style={{ margin: 0 }}>PayU Payment Gateway</h2>
               <span style={{ background: "#ecfdf5", color: "#065f46", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold" }}>
-                ⚡ Cashfree Secure
+                ⚡ PayU Secure
               </span>
             </div>
             <p style={{ margin: "8px 0 12px", color: "#4b5563", fontSize: "13px" }}>
@@ -1147,7 +1153,7 @@ function DataPage({
             </div>
 
             <div style={{ background: "#eff6ff", padding: "10px", borderRadius: "6px", border: "1px solid #bfdbfe", fontSize: "12px", color: "#1e40af", marginBottom: "16px" }}>
-              💳 <strong>Supported Methods:</strong> Cashfree UPI (Google Pay, PhonePe, Paytm), QR Code, Credit/Debit Cards, NetBanking &amp; Wallets.
+              💳 <strong>Supported Methods:</strong> PayU UPI (Google Pay, PhonePe, Paytm), QR Code, Credit/Debit Cards, NetBanking &amp; Wallets.
             </div>
 
             <div className="row-actions">
@@ -1163,54 +1169,52 @@ function DataPage({
                   setPaying(true);
                   try {
                     const targetId = payuRow.id || payuRow._id || payuRow.agreement_number;
-                    const cfData = await api(`/agreements/${targetId}/cashfree-initiate`, {
+                    const payuData = await api(`/agreements/${targetId}/payu-initiate`, {
                       method: "POST",
                     });
 
-                    if (cfData && cfData.payment_session_id) {
-                      toast.success("Opening Cashfree Secure Checkout…");
+                    if (payuData && payuData.payu_url) {
+                      toast.success("Redirecting to PayU Payment Gateway…");
 
-                      const startCheckout = () => {
-                        try {
-                          const cashfree = window.Cashfree({
-                            mode: cfData.environment || "sandbox",
-                          });
-                          cashfree.checkout({
-                            paymentSessionId: cfData.payment_session_id,
-                            redirectTarget: "_self",
-                          });
-                        } catch {
-                          const checkoutUrl = cfData.environment === "production"
-                            ? `https://api.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`
-                            : `https://sandbox.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`;
-                          window.location.href = checkoutUrl;
+                      const form = document.createElement("form");
+                      form.method = "POST";
+                      form.action = payuData.payu_url;
+
+                      const fields = [
+                        "key",
+                        "txnid",
+                        "amount",
+                        "productinfo",
+                        "firstname",
+                        "email",
+                        "phone",
+                        "surl",
+                        "furl",
+                        "hash"
+                      ];
+
+                      fields.forEach((field) => {
+                        if (payuData[field] !== undefined && payuData[field] !== null) {
+                          const input = document.createElement("input");
+                          input.type = "hidden";
+                          input.name = field;
+                          input.value = String(payuData[field]);
+                          form.appendChild(input);
                         }
-                      };
+                      });
 
-                      if (typeof window.Cashfree === "function") {
-                        startCheckout();
-                      } else {
-                        const script = document.createElement("script");
-                        script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-                        script.onload = startCheckout;
-                        script.onerror = () => {
-                          const checkoutUrl = cfData.environment === "production"
-                            ? `https://api.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`
-                            : `https://sandbox.cashfree.com/pg/orders?payment_session_id=${cfData.payment_session_id}`;
-                          window.location.href = checkoutUrl;
-                        };
-                        document.head.appendChild(script);
-                      }
+                      document.body.appendChild(form);
+                      form.submit();
                     } else {
-                      throw new Error(cfData?.message || "Cashfree checkout initiation failed");
+                      throw new Error(payuData?.message || "PayU checkout initiation failed");
                     }
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Cashfree payment failed");
+                    toast.error(err instanceof Error ? err.message : "PayU payment failed");
                     setPaying(false);
                   }
                 }}
               >
-                {paying ? "Opening Cashfree Gateway…" : "Pay Now via Cashfree 🚀"}
+                {paying ? "Redirecting to PayU…" : "Pay Now via PayU 🚀"}
               </button>
             </div>
           </div>
@@ -1263,7 +1267,7 @@ function DataPage({
                                 style={{ background: "#10b981", borderColor: "#059669", color: "#fff", fontWeight: 700, padding: "5px 10px", fontSize: "12px" }}
                                 onClick={() => setPayuRow(row)}
                               >
-                                🔒 Pay via Cashfree
+                                🔒 Pay via PayU
                               </button>
                             ) : (
                               <button
