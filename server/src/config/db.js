@@ -134,6 +134,8 @@ export async function connectMongoDB() {
               await safeIdx(q, { ownerEmail: 1, created_at: -1 }, { sparse: true });
               await safeIdx(q, { status: 1, created_at: -1 });
               await safeIdx(q, { status: 1, createdAt: -1 });
+              // Compound index to support status $ne filter + sort _id -1 without COLLSCAN
+              await safeIdx(q, { status: 1, _id: -1 });
               await safeIdx(q, { created_at: -1 });
               await safeIdx(q, { createdAt: -1 });
 

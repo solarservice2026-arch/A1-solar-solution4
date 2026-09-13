@@ -546,143 +546,166 @@ quotationsRouter.get(
   asyncHandler(async (req, res) => {
     const _t0 = Date.now();
     console.log(`[QUOTATIONS] request-start +0ms`);
-    console.log(`[QUOTATIONS] auth-start +0ms`);
-    console.log(`[QUOTATIONS] auth-complete +${Date.now() - _t0}ms`);
-    console.log(`[QUOTATIONS] permission-complete +${Date.now() - _t0}ms`);
+
+    // ─── 25-second server-side timeout guard ────────────────────────────────
+    // Render's gateway kills the connection after 30s and returns 502 with no CORS headers.
+    // We race against a 25s timeout so that *we* send the response with proper CORS headers.
+    const timeoutGuard = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("QUOTATIONS_TIMEOUT")), 25_000)
+    );
 
     try {
-      console.log(`[QUOTATIONS] scoped-query-start +${Date.now() - _t0}ms`);
-      const mongo = await getMongoDb();
-      const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
-      console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms. Query: ${JSON.stringify(query)}`);
+      const result = await Promise.race([
+        (async () => {
+          console.log(`[QUOTATIONS] scoped-query-start +${Date.now() - _t0}ms`);
+          const mongo = await getMongoDb();
+          const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
+          console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms. Query: ${JSON.stringify(query)}`);
 
-      const listProjection = {
-        _id: 1,
-        quotation_number: 1, quotationNumber: 1, quote_number: 1, quoteNumber: 1,
-        customer_name: 1, customerName: 1, consumer_name: 1,
-        customer_id: 1, customerId: 1, profile_id: 1,
-        customer_email: 1, customerEmail: 1, customer_phone: 1, customerPhone: 1, customer_mobile: 1,
-        status: 1,
-        total_amount: 1, totalAmount: 1, amount: 1, subtotal: 1, tax_amount: 1, taxAmount: 1, discount: 1,
-        system_size_kw: 1, systemSizeKw: 1, kw: 1, capacity_kw: 1,
-        created_at: 1, createdAt: 1, date: 1, valid_until: 1, validUntil: 1, expiry_date: 1,
-        ownerId: 1, createdBy: 1, created_by: 1, ownerEmail: 1,
-        company_name: 1, companyName: 1, company_address: 1, companyAddress: 1,
-        company_gstin: 1, companyGstin: 1, company_phone: 1, companyPhone: 1, company_email: 1, companyEmail: 1,
-        customers: 1, notes: 1, remarks: 1
-      };
+          const listProjection = {
+            _id: 1,
+            quotation_number: 1, quotationNumber: 1, quote_number: 1, quoteNumber: 1,
+            customer_name: 1, customerName: 1, consumer_name: 1,
+            customer_id: 1, customerId: 1, profile_id: 1,
+            customer_email: 1, customerEmail: 1, customer_phone: 1, customerPhone: 1, customer_mobile: 1,
+            status: 1,
+            total_amount: 1, totalAmount: 1, amount: 1, subtotal: 1, tax_amount: 1, taxAmount: 1, discount: 1,
+            system_size_kw: 1, systemSizeKw: 1, kw: 1, capacity_kw: 1,
+            created_at: 1, createdAt: 1, date: 1, valid_until: 1, validUntil: 1, expiry_date: 1,
+            ownerId: 1, createdBy: 1, created_by: 1, ownerEmail: 1,
+            company_name: 1, companyName: 1, company_address: 1, companyAddress: 1,
+            company_gstin: 1, companyGstin: 1, company_phone: 1, companyPhone: 1, company_email: 1, companyEmail: 1,
+            customers: 1, notes: 1, remarks: 1
+          };
 
-      const pageSize = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
-      console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms pageSize=${pageSize}`);
-      const tQueryStart = Date.now();
-      const items = await mongo.collection("quotations")
-        .find(query)
-        .project(listProjection)
-        .sort({ _id: -1 })
-        .limit(pageSize)
-        .toArray();
-      const tQueryEnd = Date.now();
-      console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${tQueryEnd - _t0}ms (took ${tQueryEnd - tQueryStart}ms)`);
-
-      if (req.query?.explain === "true") {
-        try {
-          const exp = await mongo.collection("quotations")
+          const pageSize = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
+          console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms pageSize=${pageSize}`);
+          const tQueryStart = Date.now();
+          const items = await mongo.collection("quotations")
             .find(query)
             .project(listProjection)
-            .sort({ created_at: -1 })
-            .limit(200)
-            .explain("executionStats");
-          const s = exp.executionStats || {};
-          console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
-          console.log(`[QUOTATIONS EXPLAIN PLAN] winningPlan: ${JSON.stringify(exp.queryPlanner?.winningPlan || {})}`);
-          return res.json({ success: true, explain: exp });
-        } catch (expErr) {
-          console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
-          return res.status(500).json({ success: false, error: expErr.message });
-        }
-      }
-
-      // --- FIX: Targeted user lookup using only ownerIds present in fetched quotations ---
-      // Previously: mongo.collection("users").find({}) — full collection scan, caused 15s timeout
-      // Now: only fetch users whose IDs are referenced in the returned quotation documents
-      console.log(`[QUOTATIONS] mapping-start +${Date.now() - _t0}ms`);
-      const ownerIdSet = new Set();
-      const ownerEmailSet = new Set();
-      for (const q of items) {
-        const oid = String(q.ownerId || q.createdBy || q.created_by || "").trim();
-        if (oid) ownerIdSet.add(oid);
-        if (q.ownerEmail) ownerEmailSet.add(String(q.ownerEmail).trim().toLowerCase());
-      }
-
-      const userMap = new Map();
-      if (ownerIdSet.size > 0 || ownerEmailSet.size > 0) {
-        const ownerIdStrings = [...ownerIdSet];
-        const ownerObjectIds = ownerIdStrings
-          .filter((id) => ObjectId.isValid(id))
-          .map((id) => new ObjectId(id));
-
-        const userOrs = [];
-        if (ownerObjectIds.length > 0) {
-          userOrs.push({ _id: { $in: ownerObjectIds } });
-        }
-        if (ownerEmailSet.size > 0) {
-          userOrs.push({ email: { $in: [...ownerEmailSet] } });
-        }
-
-        if (userOrs.length > 0) {
-          const userFilter = { $or: userOrs };
-          const users = await mongo.collection("users")
-            .find(userFilter)
-            .project({ name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 })
+            .sort({ _id: -1 })
+            .limit(pageSize)
             .toArray();
+          const tQueryEnd = Date.now();
+          console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${tQueryEnd - _t0}ms (took ${tQueryEnd - tQueryStart}ms)`);
 
-          users.forEach((u) => {
-            if (u._id) userMap.set(u._id.toString(), u);
-            if (u.id) userMap.set(String(u.id), u);
-            if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+          if (req.query?.explain === "true") {
+            try {
+              const exp = await mongo.collection("quotations")
+                .find(query)
+                .project(listProjection)
+                .sort({ _id: -1 })
+                .limit(pageSize)
+                .explain("executionStats");
+              const s = exp.executionStats || {};
+              console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
+              console.log(`[QUOTATIONS EXPLAIN PLAN] winningPlan: ${JSON.stringify(exp.queryPlanner?.winningPlan || {})}`);
+              return { explain: exp };
+            } catch (expErr) {
+              console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
+              throw expErr;
+            }
+          }
+
+          // --- Targeted user lookup using only ownerIds present in fetched quotations ---
+          console.log(`[QUOTATIONS] mapping-start +${Date.now() - _t0}ms`);
+          const ownerIdSet = new Set();
+          const ownerEmailSet = new Set();
+          for (const q of items) {
+            const oid = String(q.ownerId || q.createdBy || q.created_by || "").trim();
+            if (oid) ownerIdSet.add(oid);
+            if (q.ownerEmail) ownerEmailSet.add(String(q.ownerEmail).trim().toLowerCase());
+          }
+
+          const userMap = new Map();
+          if (ownerIdSet.size > 0 || ownerEmailSet.size > 0) {
+            const ownerIdStrings = [...ownerIdSet];
+            const ownerObjectIds = ownerIdStrings
+              .filter((id) => ObjectId.isValid(id))
+              .map((id) => new ObjectId(id));
+
+            const userOrs = [];
+            if (ownerObjectIds.length > 0) {
+              userOrs.push({ _id: { $in: ownerObjectIds } });
+            }
+            if (ownerEmailSet.size > 0) {
+              userOrs.push({ email: { $in: [...ownerEmailSet] } });
+            }
+
+            if (userOrs.length > 0) {
+              const users = await mongo.collection("users")
+                .find({ $or: userOrs })
+                .project({ name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 })
+                .toArray();
+
+              users.forEach((u) => {
+                if (u._id) userMap.set(u._id.toString(), u);
+                if (u.id) userMap.set(String(u.id), u);
+                if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+              });
+            }
+          }
+
+          const formatted = items.map((q) => {
+            const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by || "")) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
+            return {
+              id: q._id.toString(),
+              ...q,
+              company_name: owner?.company_name || q.company_name || q.companyName || null,
+              company_address: owner?.company_address || q.company_address || q.companyAddress || null,
+              company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
+              company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
+              company_email: owner?.email || q.company_email || q.companyEmail || null,
+              company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
+              company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
+              bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
+              owner: owner ? {
+                name: owner.name,
+                phone: owner.phone,
+                email: owner.email,
+                company_name: owner.company_name,
+                company_address: owner.company_address,
+                company_gstin: owner.company_gstin,
+                company_logo_url: owner.company_logo_url,
+                company_signature_url: owner.company_signature_url,
+              } : null,
+              customer_name: q.customer_name || q.customers?.name || "Customer",
+              customers: q.customers || {
+                name: q.customer_name || "Customer",
+                mobile: q.customer_mobile || "",
+                email: q.customer_email || "",
+                gst_number: q.customer_gst || "",
+              },
+              quotation_items: q.quotation_items || q.items || [],
+            };
           });
-        }
-      }
 
-      const formatted = items.map((q) => {
-        const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by || "")) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
-        return {
-          id: q._id.toString(),
-          ...q,
-          company_name: owner?.company_name || q.company_name || q.companyName || null,
-          company_address: owner?.company_address || q.company_address || q.companyAddress || null,
-          company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
-          company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
-          company_email: owner?.email || q.company_email || q.companyEmail || null,
-          company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
-          company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
-          bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
-          owner: owner ? {
-            name: owner.name,
-            phone: owner.phone,
-            email: owner.email,
-            company_name: owner.company_name,
-            company_address: owner.company_address,
-            company_gstin: owner.company_gstin,
-            company_logo_url: owner.company_logo_url,
-            company_signature_url: owner.company_signature_url,
-          } : null,
-          customer_name: q.customer_name || q.customers?.name || "Customer",
-          customers: q.customers || {
-            name: q.customer_name || "Customer",
-            mobile: q.customer_mobile || "",
-            email: q.customer_email || "",
-            gst_number: q.customer_gst || "",
-          },
-          quotation_items: q.quotation_items || q.items || [],
-        };
-      });
+          console.log(`[QUOTATIONS] mapping-complete +${Date.now() - _t0}ms`);
+          return { formatted };
+        })(),
+        timeoutGuard,
+      ]);
 
-      console.log(`[QUOTATIONS] mapping-complete +${Date.now() - _t0}ms`);
       console.log(`[QUOTATIONS] response-sent total=${Date.now() - _t0}ms`);
-      return success(res, "Quotations retrieved", formatted);
+
+      if (result.explain) {
+        return res.json({ success: true, explain: result.explain });
+      }
+      return success(res, "Quotations retrieved", result.formatted);
+
     } catch (err) {
-      console.error(`[QUOTATIONS] ERROR after +${Date.now() - _t0}ms:`, err?.message || err);
+      const elapsed = Date.now() - _t0;
+      if (err.message === "QUOTATIONS_TIMEOUT") {
+        console.error(`[QUOTATIONS] TIMEOUT after ${elapsed}ms — returning 503 to prevent Render 502`);
+        return res.status(503).json({
+          success: false,
+          message: "Server is waking up. Please retry in a few seconds.",
+          code: "SERVICE_WARMING_UP",
+          retryAfter: 5,
+        });
+      }
+      console.error(`[QUOTATIONS] ERROR after +${elapsed}ms:`, err?.message || err);
       return res.status(500).json({
         success: false,
         message: "Failed to fetch quotations",
@@ -692,6 +715,7 @@ quotationsRouter.get(
   }),
 );
 
+
 quotationsRouter.get(
   "/:id",
   requirePermission("quotations:view"),
@@ -699,13 +723,24 @@ quotationsRouter.get(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const q = req.doc;
-    const users = await mongo.collection("users").find().toArray();
-    const userMap = new Map();
-    users.forEach((u) => {
-      if (u._id) userMap.set(u._id.toString(), u);
-      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-    });
-    const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by)) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
+
+    // Targeted single-user lookup — avoids full collection scan
+    const ownerId = q.ownerId || q.createdBy || q.created_by;
+    const ownerEmail = q.ownerEmail ? String(q.ownerEmail).trim().toLowerCase() : null;
+    let owner = null;
+    if (ownerId && ObjectId.isValid(String(ownerId))) {
+      owner = await mongo.collection("users").findOne(
+        { _id: new ObjectId(String(ownerId)) },
+        { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+      );
+    }
+    if (!owner && ownerEmail) {
+      owner = await mongo.collection("users").findOne(
+        { email: ownerEmail },
+        { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+      );
+    }
+
     return success(res, "Quotation retrieved", {
       id: q._id.toString(),
       ...q,
@@ -730,6 +765,7 @@ quotationsRouter.get(
     });
   }),
 );
+
 
 quotationsRouter.post(
   "/",
