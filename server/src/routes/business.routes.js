@@ -576,12 +576,23 @@ quotationsRouter.get(
       };
 
       const tQueryStart = Date.now();
-      const items = await mongo.collection("quotations")
-        .find(query)
-        .project(listProjection)
-        .sort({ created_at: -1 })
-        .limit(200)
-        .toArray();
+      let items;
+      try {
+        items = await mongo.collection("quotations")
+          .find(query)
+          .project(listProjection)
+          .sort({ created_at: -1 })
+          .hint({ created_at: -1 })
+          .limit(200)
+          .toArray();
+      } catch {
+        items = await mongo.collection("quotations")
+          .find(query)
+          .project(listProjection)
+          .sort({ created_at: -1 })
+          .limit(200)
+          .toArray();
+      }
       const tQueryEnd = Date.now();
       console.log(`[QUOTATIONS DIAG] 4. mongo.find().toArray() took ${tQueryEnd - tQueryStart}ms (total +${tQueryEnd - tStart}ms), fetched count=${items.length}`);
 
