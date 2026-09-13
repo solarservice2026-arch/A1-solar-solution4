@@ -577,7 +577,7 @@ quotationsRouter.get(
       const items = await mongo.collection("quotations")
         .find(query)
         .project(listProjection)
-        .sort({ created_at: -1 })
+        .sort({ _id: -1 })
         .limit(200)
         .toArray();
       const tQueryEnd = Date.now();
