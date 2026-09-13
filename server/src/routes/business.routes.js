@@ -149,16 +149,14 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
 
   const adminOrs = [
     { ownerId: { $in: relatedUserIds } },
-    { ownerId: { $in: relatedObjectIds } },
+    ...(relatedObjectIds.length ? [{ ownerId: { $in: relatedObjectIds } }] : []),
     { createdBy: { $in: relatedUserIds } },
-    { createdBy: { $in: relatedObjectIds } },
+    ...(relatedObjectIds.length ? [{ createdBy: { $in: relatedObjectIds } }] : []),
     { created_by: { $in: relatedUserIds } },
-    { created_by: { $in: relatedObjectIds } },
+    ...(relatedObjectIds.length ? [{ created_by: { $in: relatedObjectIds } }] : []),
     ...(userEmail ? [{ ownerEmail: userEmail }] : []),
     { ownerId: null },
-    { ownerId: { $exists: false } },
-    { createdBy: null },
-    { createdBy: { $exists: false } }
+    { createdBy: null }
   ];
 
   return {
@@ -588,6 +586,21 @@ quotationsRouter.get(
         .toArray();
       console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${Date.now() - _t0}ms`);
 
+      if (req.query?.explain === "true") {
+        try {
+          const exp = await mongo.collection("quotations")
+            .find(query)
+            .project(listProjection)
+            .sort({ created_at: -1 })
+            .limit(200)
+            .explain("executionStats");
+          const s = exp.executionStats;
+          console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
+        } catch (expErr) {
+          console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
+        }
+      }
+
       // --- FIX: Targeted user lookup using only ownerIds present in fetched quotations ---
       // Previously: mongo.collection("users").find({}) — full collection scan, caused 15s timeout
       // Now: only fetch users whose IDs are referenced in the returned quotation documents
@@ -607,21 +620,31 @@ quotationsRouter.get(
           .filter((id) => ObjectId.isValid(id))
           .map((id) => new ObjectId(id));
 
-        const userFilter = {
-          $or: [
-            ...(ownerIdStrings.length ? [{ _id: { $in: ownerObjectIds } }] : []),
-            ...(ownerEmailSet.size ? [{ email: { $in: [...ownerEmailSet] } }] : []),
-          ],
-        };
+        const userOrs = [];
+        if (ownerIdStrings.length > 0) {
+          userOrs.push({ _id: { $in: ownerIdStrings } });
+          userOrs.push({ id: { $in: ownerIdStrings } });
+        }
+        if (ownerObjectIds.length > 0) {
+          userOrs.push({ _id: { $in: ownerObjectIds } });
+        }
+        if (ownerEmailSet.size > 0) {
+          userOrs.push({ email: { $in: [...ownerEmailSet] } });
+        }
 
-        const users = await mongo.collection("users").find(userFilter, {
-          projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 },
-        }).toArray();
+        if (userOrs.length > 0) {
+          const userFilter = { $or: userOrs };
+          const users = await mongo.collection("users")
+            .find(userFilter)
+            .project({ name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 })
+            .toArray();
 
-        users.forEach((u) => {
-          if (u._id) userMap.set(u._id.toString(), u);
-          if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-        });
+          users.forEach((u) => {
+            if (u._id) userMap.set(u._id.toString(), u);
+            if (u.id) userMap.set(String(u.id), u);
+            if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+          });
+        }
       }
 
       const formatted = items.map((q) => {
