@@ -31,75 +31,76 @@ import mongoose from "mongoose";
 export const app = express();
 app.disable("x-powered-by");
 
-// ─── Allowed origins allowlist ───────────────────────────────────────────────
-const ALLOWED_ORIGINS = new Set([
-  // Production custom domain
+// ─── Single Authoritative CORS Configuration ────────────────────────────────
+const allowedOrigins = [
   "https://www.solarservice.co.in",
   "https://solarservice.co.in",
-  // Vercel deployments (exact + wildcard pattern handled below)
-  "https://a1-solar-solution4-4demnamip-a1-solar-solution.vercel.app",
+  "https://www.a1-solar-solution4.vercel.app",
   "https://a1-solar-solution4.vercel.app",
-  // Local development
+  "https://a1-solar-solution4-hlothfp1b-a1-solar-solution.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:5000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:3000",
-]);
+];
+
+const vercelPreviewRegex =
+  /^https:\/\/(a1-solar-solution4-[a-z0-9]+-a1-solar-solution|a1-solar-solution4.*)\.vercel\.app\/?$/i;
 
 function isOriginAllowed(origin) {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.has(origin)) return true;
-  // Allow any *.vercel.app deployment preview for this project
+  if (!origin) return true;
+  const cleanOrigin = origin.replace(/\/$/, "");
+  if (allowedOrigins.includes(cleanOrigin)) return true;
+  if (vercelPreviewRegex.test(cleanOrigin)) return true;
   try {
-    const url = new URL(origin);
-    if (url.hostname.endsWith(".vercel.app")) return true;
+    const url = new URL(cleanOrigin);
+    if (url.hostname.endsWith(".vercel.app") && url.hostname.includes("a1-solar-solution")) return true;
     if (url.hostname.endsWith(".onrender.com")) return true;
   } catch {}
   return false;
 }
 
-// Universal CORS + OPTIONS preflight handler
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin) {
-    if (isOriginAllowed(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    } else {
-      // Log rejected origins to Render logs for debugging
-      console.warn(`[CORS] Rejected origin: ${origin} ${req.method} ${req.path}`);
-      // Still set headers so the error is visible in browser (not a network failure)
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    }
-  }
-
-  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id, Accept, Origin, X-Requested-With");
-  res.setHeader("Access-Control-Expose-Headers", "x-request-id");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  next();
-});
-
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (server-to-server, curl, Render health checks)
+    // Allow requests with no origin (server-to-server, health checks, curl)
     if (!origin) return callback(null, true);
-    if (isOriginAllowed(origin)) return callback(null, true);
-    callback(null, true); // Keep permissive for now; logging above tracks rejects
+
+    const cleanOrigin = origin.replace(/\/$/, "");
+    if (isOriginAllowed(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`[CORS] Rejected origin: ${origin}`);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept", "Origin", "X-Requested-With"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+    "x-request-id"
+  ],
   exposedHeaders: ["x-request-id"],
-  optionsSuccessStatus: 200,
-}));
+  optionsSuccessStatus: 204
+};
 
+// Apply CORS middleware BEFORE all routes
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+// Fast Ping endpoint (does not require DB connection)
+app.get(["/ping", "/api/v1/ping"], (_req, res) => {
+  return res.status(200).json({
+    ok: true,
+    message: "pong",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.use((req, res, next) => {
   res.setHeader(
@@ -119,12 +120,9 @@ app.use(
     standardHeaders: "draft-7",
     legacyHeaders: false,
     handler: (req, res) => {
-      const origin = req.headers.origin;
+      const origin = req.headers?.origin;
       if (origin && isOriginAllowed(origin)) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-      } else if (origin) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Origin", origin.replace(/\/$/, ""));
         res.setHeader("Access-Control-Allow-Credentials", "true");
       }
       res.status(429).json({
@@ -168,15 +166,6 @@ app.use("/api/v1/next-number", nextNumberRouter);
 
 const ok = (res, message, data, meta = {}) =>
   res.json({ success: true, message, data, meta });
-
-app.get(["/ping", "/api/v1/ping"], (_req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "pong",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  });
-});
 
 app.get(["/health", "/api/v1/health"], async (_req, res) => {
   let mongoStatus = "disconnected";
