@@ -559,7 +559,19 @@ quotationsRouter.get(
         (async () => {
           console.log(`[QUOTATIONS] scoped-query-start +${Date.now() - _t0}ms`);
           const mongo = await getMongoDb();
-          const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
+          const page = Math.max(Number(req.query?.page) || 1, 1);
+          const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 100);
+          const skip = (page - 1) * limit;
+
+          const baseFilter = { status: { $ne: "Archived" } };
+          if (req.query?.search) {
+            const s = String(req.query.search).trim();
+            baseFilter.$or = [
+              { quotation_number: { $regex: s, $options: "i" } },
+              { customer_name: { $regex: s, $options: "i" } },
+            ];
+          }
+          const query = await getScopedQuery(req, baseFilter);
           console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms. Query: ${JSON.stringify(query)}`);
 
           const listProjection = {
@@ -578,14 +590,14 @@ quotationsRouter.get(
             customers: 1, notes: 1, remarks: 1
           };
 
-          const pageSize = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
-          console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms pageSize=${pageSize}`);
+          console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms page=${page} limit=${limit}`);
           const tQueryStart = Date.now();
           const items = await mongo.collection("quotations")
             .find(query)
             .project(listProjection)
             .sort({ _id: -1 })
-            .limit(pageSize)
+            .skip(skip)
+            .limit(limit)
             .toArray();
           const tQueryEnd = Date.now();
           console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${tQueryEnd - _t0}ms (took ${tQueryEnd - tQueryStart}ms)`);
@@ -596,7 +608,8 @@ quotationsRouter.get(
                 .find(query)
                 .project(listProjection)
                 .sort({ _id: -1 })
-                .limit(pageSize)
+                .skip(skip)
+                .limit(limit)
                 .explain("executionStats");
               const s = exp.executionStats || {};
               console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
@@ -682,7 +695,7 @@ quotationsRouter.get(
           });
 
           console.log(`[QUOTATIONS] mapping-complete +${Date.now() - _t0}ms`);
-          return { formatted };
+          return { formatted, page, limit };
         })(),
         timeoutGuard,
       ]);
@@ -692,7 +705,11 @@ quotationsRouter.get(
       if (result.explain) {
         return res.json({ success: true, explain: result.explain });
       }
-      return success(res, "Quotations retrieved", result.formatted);
+      return success(res, "Quotations retrieved", result.formatted, {
+        page: result.page,
+        limit: result.limit,
+        count: result.formatted.length,
+      });
 
     } catch (err) {
       const elapsed = Date.now() - _t0;
@@ -978,22 +995,72 @@ invoicesRouter.get(
   requirePermission("invoices:view"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const query = await getScopedQuery(req);
+    const page = Math.max(Number(req.query?.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 100);
+    const skip = (page - 1) * limit;
+
+    let searchFilter = {};
+    if (req.query?.search) {
+      const s = String(req.query.search).trim();
+      searchFilter.$or = [
+        { invoice_number: { $regex: s, $options: "i" } },
+        { customer_name: { $regex: s, $options: "i" } },
+        { title: { $regex: s, $options: "i" } },
+      ];
+    }
+    const query = await getScopedQuery(req, searchFilter);
+
+    const invProjection = {
+      _id: 1,
+      invoice_number: 1, invoiceNumber: 1,
+      customer_name: 1, customerName: 1, customer_id: 1,
+      customer_mobile: 1, customerMobile: 1, customer_email: 1, customerEmail: 1,
+      customer_gst: 1, consumer_address: 1, installation_address: 1,
+      title: 1, status: 1,
+      total: 1, total_amount: 1, subtotal: 1, tax: 1, tax_amount: 1,
+      paid_amount: 1, paidAmount: 1,
+      created_at: 1, createdAt: 1, invoice_date: 1, due_date: 1,
+      ownerId: 1, createdBy: 1, created_by: 1, ownerEmail: 1,
+      company_name: 1, companyName: 1, company_address: 1, companyAddress: 1,
+      company_gstin: 1, companyGstin: 1, company_phone: 1, companyPhone: 1,
+      company_email: 1, companyEmail: 1, bank_details: 1,
+      customers: 1
+    };
 
     const items = await mongo.collection("invoices")
       .find(query)
-      .project({
-        customer_signature_url: 0,
-      })
-      .sort({ created_at: -1 })
+      .project(invProjection)
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray();
 
-    const users = await mongo.collection("users").find({}, { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }).toArray();
+    // Targeted user lookup only for owners of returned paginated invoices
+    const ownerIdSet = new Set();
+    const ownerEmailSet = new Set();
+    for (const item of items) {
+      const oid = String(item.ownerId || item.createdBy || item.created_by || "").trim();
+      if (oid) ownerIdSet.add(oid);
+      if (item.ownerEmail) ownerEmailSet.add(String(item.ownerEmail).trim().toLowerCase());
+    }
+
     const userMap = new Map();
-    users.forEach((u) => {
-      if (u._id) userMap.set(u._id.toString(), u);
-      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-    });
+    if (ownerIdSet.size > 0 || ownerEmailSet.size > 0) {
+      const userOrs = [];
+      const objIds = [...ownerIdSet].filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+      if (objIds.length > 0) userOrs.push({ _id: { $in: objIds } });
+      if (ownerEmailSet.size > 0) userOrs.push({ email: { $in: [...ownerEmailSet] } });
+      if (userOrs.length > 0) {
+        const users = await mongo.collection("users").find(
+          { $or: userOrs },
+          { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+        ).toArray();
+        users.forEach(u => {
+          if (u._id) userMap.set(u._id.toString(), u);
+          if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+        });
+      }
+    }
 
     const formatted = items.map((item, idx) => {
       const owner = userMap.get(String(item.ownerId || item.createdBy || item.created_by)) || (item.ownerEmail ? userMap.get(String(item.ownerEmail).toLowerCase()) : null);
@@ -1003,10 +1070,6 @@ invoicesRouter.get(
         const seqVal = numMatch ? parseInt(numMatch[0], 10) : (items.length - idx);
         const padSeq = String(seqVal > 0 ? seqVal : 1).padStart(4, "0");
         invNum = `INV-A1S-2026-${padSeq}`;
-        void mongo.collection("invoices").updateOne(
-          { _id: item._id },
-          { $set: { invoice_number: invNum } }
-        );
       }
 
       return {
@@ -1040,7 +1103,7 @@ invoicesRouter.get(
         },
       };
     });
-    return success(res, "Invoices retrieved", formatted);
+    return success(res, "Invoices retrieved", formatted, { page, limit, count: formatted.length });
   }),
 );
 
@@ -1050,14 +1113,21 @@ invoicesRouter.get(
   authorizeOwner("invoices"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const inv = req.doc;
-    const users = await mongo.collection("users").find().toArray();
-    const userMap = new Map();
-    users.forEach((u) => {
-      if (u._id) userMap.set(u._id.toString(), u);
-      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-    });
-    const owner = userMap.get(String(inv.ownerId || inv.createdBy || inv.created_by)) || (inv.ownerEmail ? userMap.get(String(inv.ownerEmail).toLowerCase()) : null);
+    const ownerId = inv.ownerId || inv.createdBy || inv.created_by;
+    const ownerEmail = inv.ownerEmail ? String(inv.ownerEmail).trim().toLowerCase() : null;
+    let owner = null;
+    if (ownerId && ObjectId.isValid(String(ownerId))) {
+      owner = await mongo.collection("users").findOne(
+        { _id: new ObjectId(String(ownerId)) },
+        { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+      );
+    }
+    if (!owner && ownerEmail) {
+      owner = await mongo.collection("users").findOne(
+        { email: ownerEmail },
+        { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+      );
+    }
     return success(res, "Invoice retrieved", {
       id: inv._id.toString(),
       ...inv,
@@ -1343,22 +1413,70 @@ agreementsRouter.get(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const isCustomer = req.user?.roles?.includes("customer");
-    const filter = await getScopedQuery(req);
+    const page = Math.max(Number(req.query?.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 100);
+    const skip = (page - 1) * limit;
+
+    let searchFilter = {};
+    if (req.query?.search) {
+      const s = String(req.query.search).trim();
+      searchFilter.$or = [
+        { agreement_number: { $regex: s, $options: "i" } },
+        { customer_name: { $regex: s, $options: "i" } },
+      ];
+    }
+    const filter = await getScopedQuery(req, searchFilter);
+
+    const agrProjection = {
+      _id: 1,
+      agreement_number: 1, agreementNumber: 1,
+      customer_name: 1, customerName: 1, customer_id: 1,
+      customer_mobile: 1, customerMobile: 1, customer_email: 1, customerEmail: 1,
+      consumer_address: 1, installation_address: 1,
+      system_size_kw: 1, capacity_kw: 1,
+      total_amount: 1, payment_amount: 1, payment_status: 1, status: 1,
+      created_at: 1, createdAt: 1, agreement_date: 1,
+      ownerId: 1, createdBy: 1, created_by: 1, ownerEmail: 1,
+      company_name: 1, companyName: 1, company_address: 1, companyAddress: 1,
+      company_gstin: 1, companyGstin: 1, company_phone: 1, companyPhone: 1,
+      company_email: 1, companyEmail: 1, bank_details: 1,
+      customers: 1
+    };
 
     const items = await mongo.collection("agreements")
       .find(filter)
-      .project({
-        customer_signature_url: 0,
-      })
-      .sort({ created_at: -1 })
+      .project(agrProjection)
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray();
 
-    const users = await mongo.collection("users").find({}, { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }).toArray();
+    // Targeted user lookup only for owners of returned paginated agreements
+    const ownerIdSet = new Set();
+    const ownerEmailSet = new Set();
+    for (const a of items) {
+      const oid = String(a.ownerId || a.createdBy || a.created_by || "").trim();
+      if (oid) ownerIdSet.add(oid);
+      if (a.ownerEmail) ownerEmailSet.add(String(a.ownerEmail).trim().toLowerCase());
+    }
+
     const userMap = new Map();
-    users.forEach((u) => {
-      if (u._id) userMap.set(u._id.toString(), u);
-      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-    });
+    if (ownerIdSet.size > 0 || ownerEmailSet.size > 0) {
+      const userOrs = [];
+      const objIds = [...ownerIdSet].filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+      if (objIds.length > 0) userOrs.push({ _id: { $in: objIds } });
+      if (ownerEmailSet.size > 0) userOrs.push({ email: { $in: [...ownerEmailSet] } });
+      if (userOrs.length > 0) {
+        const users = await mongo.collection("users").find(
+          { $or: userOrs },
+          { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+        ).toArray();
+        users.forEach(u => {
+          if (u._id) userMap.set(u._id.toString(), u);
+          if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+        });
+      }
+    }
 
     const formatted = items.map((a) => {
       const owner = userMap.get(String(a.ownerId || a.createdBy || a.created_by)) || (a.ownerEmail ? userMap.get(String(a.ownerEmail).toLowerCase()) : null);
@@ -1404,7 +1522,7 @@ agreementsRouter.get(
       }
       return base;
     });
-    return success(res, "Agreements retrieved", formatted);
+    return success(res, "Agreements retrieved", formatted, { page, limit, count: formatted.length });
   }),
 );
 
@@ -1415,13 +1533,21 @@ agreementsRouter.get(
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
     const agreement = req.doc;
-    const users = await mongo.collection("users").find().toArray();
-    const userMap = new Map();
-    users.forEach((u) => {
-      if (u._id) userMap.set(u._id.toString(), u);
-      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-    });
-    const owner = userMap.get(String(agreement.ownerId || agreement.createdBy || agreement.created_by)) || (agreement.ownerEmail ? userMap.get(String(agreement.ownerEmail).toLowerCase()) : null);
+    const ownerId = agreement.ownerId || agreement.createdBy || agreement.created_by;
+    const ownerEmail = agreement.ownerEmail ? String(agreement.ownerEmail).trim().toLowerCase() : null;
+    let owner = null;
+    if (ownerId && ObjectId.isValid(String(ownerId))) {
+      owner = await mongo.collection("users").findOne(
+        { _id: new ObjectId(String(ownerId)) },
+        { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+      );
+    }
+    if (!owner && ownerEmail) {
+      owner = await mongo.collection("users").findOne(
+        { email: ownerEmail },
+        { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }
+      );
+    }
     return success(res, "Agreement details retrieved", {
       id: agreement._id.toString(),
       ...agreement,

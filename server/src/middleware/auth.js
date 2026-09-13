@@ -160,9 +160,6 @@ export const authorizeOwner = (ModelOrCollectionName) => async (req, _res, next)
       if (doc.createdBy && String(doc.createdBy) === String(userId)) {
         isCustomerMatch = true;
       }
-      if (ModelOrCollectionName === "agreements" || ModelOrCollectionName === "quotations" || ModelOrCollectionName === "invoices") {
-        isCustomerMatch = true;
-      }
     }
 
     if (matchesOwner || isCustomerMatch) {

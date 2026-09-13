@@ -65,7 +65,7 @@ export async function api(
   options = {},
 ) {
   let token = await sessionToken();
-  const maxAttempts = options.method && options.method !== "GET" ? 2 : 4;
+  const maxAttempts = 2;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
@@ -98,7 +98,7 @@ export async function api(
 
       if (attempt < maxAttempts - 1 && transientStatuses.has(response.status)) {
         if (response.status === 401) token = await sessionToken(true);
-        const delay = (attempt + 1) * 3000;
+        const delay = (attempt + 1) * 1000;
         await new Promise((resolve) => window.setTimeout(resolve, delay));
         continue;
       }
@@ -117,7 +117,7 @@ export async function api(
         throw err;
       }
       if (attempt < maxAttempts - 1) {
-        const delay = (attempt + 1) * 3000;
+        const delay = (attempt + 1) * 1000;
         await new Promise((resolve) => window.setTimeout(resolve, delay));
         continue;
       }
