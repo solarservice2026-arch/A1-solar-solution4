@@ -572,13 +572,14 @@ quotationsRouter.get(
         customers: 1, notes: 1, remarks: 1
       };
 
-      console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
+      const pageSize = Math.min(Math.max(Number(req.query?.limit) || 50, 1), 100);
+      console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms pageSize=${pageSize}`);
       const tQueryStart = Date.now();
       const items = await mongo.collection("quotations")
         .find(query)
         .project(listProjection)
         .sort({ _id: -1 })
-        .limit(200)
+        .limit(pageSize)
         .toArray();
       const tQueryEnd = Date.now();
       console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${tQueryEnd - _t0}ms (took ${tQueryEnd - tQueryStart}ms)`);
