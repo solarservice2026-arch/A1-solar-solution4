@@ -117,54 +117,48 @@ export async function connectMongoDB() {
 
             // ─── 1. Create performance indexes FIRST ───────────────────────────────
             try {
-              const indexOpts = { background: true };
-              const sparseOpts = { background: true, sparse: true };
+              const safeIdx = async (col, keys, opts = {}) => {
+                try {
+                  await col.createIndex(keys, { background: true, ...opts });
+                } catch (e) {
+                  // Ignore index errors (e.g. index already exists with different options)
+                }
+              };
 
-              // quotations — covers ownerId, createdBy, created_by, ownerEmail, status, created_at
               const q = db.collection("quotations");
-              await Promise.all([
-                q.createIndex({ ownerId: 1, created_at: -1 }, indexOpts),
-                q.createIndex({ createdBy: 1, created_at: -1 }, indexOpts),
-                q.createIndex({ created_by: 1, created_at: -1 }, indexOpts),
-                q.createIndex({ ownerEmail: 1, created_at: -1 }, sparseOpts),
-                q.createIndex({ status: 1, created_at: -1 }, indexOpts),
-                q.createIndex({ created_at: -1 }, indexOpts),
-              ]);
+              await safeIdx(q, { ownerId: 1, created_at: -1 });
+              await safeIdx(q, { ownerId: 1, createdAt: -1 });
+              await safeIdx(q, { createdBy: 1, created_at: -1 });
+              await safeIdx(q, { createdBy: 1, createdAt: -1 });
+              await safeIdx(q, { created_by: 1, created_at: -1 });
+              await safeIdx(q, { ownerEmail: 1, created_at: -1 }, { sparse: true });
+              await safeIdx(q, { status: 1, created_at: -1 });
+              await safeIdx(q, { status: 1, createdAt: -1 });
+              await safeIdx(q, { created_at: -1 });
+              await safeIdx(q, { createdAt: -1 });
 
-              // invoices — same pattern
               const inv = db.collection("invoices");
-              await Promise.all([
-                inv.createIndex({ ownerId: 1, created_at: -1 }, indexOpts),
-                inv.createIndex({ createdBy: 1, created_at: -1 }, indexOpts),
-                inv.createIndex({ created_by: 1, created_at: -1 }, indexOpts),
-                inv.createIndex({ created_at: -1 }, indexOpts),
-              ]);
+              await safeIdx(inv, { ownerId: 1, created_at: -1 });
+              await safeIdx(inv, { createdBy: 1, created_at: -1 });
+              await safeIdx(inv, { created_by: 1, created_at: -1 });
+              await safeIdx(inv, { created_at: -1 });
 
-              // agreements
               const agr = db.collection("agreements");
-              await Promise.all([
-                agr.createIndex({ ownerId: 1, created_at: -1 }, indexOpts),
-                agr.createIndex({ createdBy: 1, created_at: -1 }, indexOpts),
-                agr.createIndex({ created_at: -1 }, indexOpts),
-              ]);
+              await safeIdx(agr, { ownerId: 1, created_at: -1 });
+              await safeIdx(agr, { createdBy: 1, created_at: -1 });
+              await safeIdx(agr, { created_at: -1 });
 
-              // customers
               const cust = db.collection("customers");
-              await Promise.all([
-                cust.createIndex({ ownerId: 1 }, indexOpts),
-                cust.createIndex({ createdBy: 1 }, indexOpts),
-                cust.createIndex({ email: 1 }, sparseOpts),
-                cust.createIndex({ profile_id: 1 }, sparseOpts),
-              ]);
+              await safeIdx(cust, { ownerId: 1 });
+              await safeIdx(cust, { createdBy: 1 });
+              await safeIdx(cust, { email: 1 }, { sparse: true });
+              await safeIdx(cust, { profile_id: 1 }, { sparse: true });
 
-              // users — covers targeted user lookup by _id/email and staffDocs query
               const usr = db.collection("users");
-              await Promise.all([
-                usr.createIndex({ email: 1 }, { ...sparseOpts, unique: false }),
-                usr.createIndex({ ownerId: 1 }, sparseOpts),
-                usr.createIndex({ createdBy: 1 }, sparseOpts),
-                usr.createIndex({ role: 1 }, indexOpts),
-              ]);
+              await safeIdx(usr, { email: 1 });
+              await safeIdx(usr, { ownerId: 1 }, { sparse: true });
+              await safeIdx(usr, { createdBy: 1 }, { sparse: true });
+              await safeIdx(usr, { role: 1 });
 
               console.log("[MongoDB] Performance indexes ensured on quotations, invoices, agreements, customers, users");
             } catch (idxErr) {

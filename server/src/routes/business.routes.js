@@ -562,32 +562,22 @@ quotationsRouter.get(
 
       console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
 
-      // Projection: fetch only list-view summary fields.
-      // Explicitly exclude large embedded content (HTML, base64, PDFs, templates)
-      // that bloat documents and cause the 9-10s full-scan slowness on the list endpoint.
+      // Projection: inclusion projection for list view fields only.
+      // Explicitly includes scalar metadata fields and prevents loading heavy HTML/PDF/Base64/images off disk.
       const listProjection = {
-        // Exclude heavy/large fields not needed for the quotation list table
-        customer_signature_url: 0,
-        html_content: 0,
-        htmlContent: 0,
-        pdf_content: 0,
-        pdfContent: 0,
-        pdf_base64: 0,
-        pdfBase64: 0,
-        generated_html: 0,
-        generatedHtml: 0,
-        template_html: 0,
-        templateHtml: 0,
-        raw_html: 0,
-        rawHtml: 0,
-        signature_image: 0,
-        signatureImage: 0,
-        attachment_data: 0,
-        attachmentData: 0,
-        base64_pdf: 0,
-        base64Pdf: 0,
-        document_content: 0,
-        documentContent: 0,
+        _id: 1,
+        quotation_number: 1, quotationNumber: 1, quote_number: 1, quoteNumber: 1,
+        customer_name: 1, customerName: 1, consumer_name: 1,
+        customer_id: 1, customerId: 1, profile_id: 1,
+        customer_email: 1, customerEmail: 1, customer_phone: 1, customerPhone: 1, customer_mobile: 1,
+        status: 1,
+        total_amount: 1, totalAmount: 1, amount: 1, subtotal: 1, tax_amount: 1, taxAmount: 1, discount: 1,
+        system_size_kw: 1, systemSizeKw: 1, kw: 1, capacity_kw: 1,
+        created_at: 1, createdAt: 1, date: 1, valid_until: 1, validUntil: 1, expiry_date: 1,
+        ownerId: 1, createdBy: 1, created_by: 1, ownerEmail: 1,
+        company_name: 1, companyName: 1, company_address: 1, companyAddress: 1,
+        company_gstin: 1, companyGstin: 1, company_phone: 1, companyPhone: 1, company_email: 1, companyEmail: 1,
+        items: 1, customers: 1, notes: 1, remarks: 1
       };
 
       const items = await mongo.collection("quotations")
