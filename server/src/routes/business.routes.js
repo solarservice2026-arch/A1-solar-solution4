@@ -138,25 +138,19 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
     ]
   }).project({ _id: 1 }).toArray();
 
-  const relatedUserIds = [
+  const allRelatedIds = [
     ...(userId ? [String(userId)] : []),
-    ...staffDocs.map((s) => s._id.toString())
-  ];
-  const relatedObjectIds = [
     ...(validObjId ? [validObjId] : []),
-    ...staffDocs.map((s) => s._id)
+    ...staffDocs.map((s) => s._id.toString()),
+    ...staffDocs.map((s) => s._id),
+    null
   ];
 
   const adminOrs = [
-    { ownerId: { $in: relatedUserIds } },
-    ...(relatedObjectIds.length ? [{ ownerId: { $in: relatedObjectIds } }] : []),
-    { createdBy: { $in: relatedUserIds } },
-    ...(relatedObjectIds.length ? [{ createdBy: { $in: relatedObjectIds } }] : []),
-    { created_by: { $in: relatedUserIds } },
-    ...(relatedObjectIds.length ? [{ created_by: { $in: relatedObjectIds } }] : []),
-    ...(userEmail ? [{ ownerEmail: userEmail }] : []),
-    { ownerId: null },
-    { createdBy: null }
+    { ownerId: { $in: allRelatedIds } },
+    { createdBy: { $in: allRelatedIds } },
+    { created_by: { $in: allRelatedIds } },
+    ...(userEmail ? [{ ownerEmail: userEmail }] : [])
   ];
 
   return {
