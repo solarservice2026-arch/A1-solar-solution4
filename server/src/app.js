@@ -90,6 +90,12 @@ const corsOptions = {
 
 // Apply CORS middleware BEFORE all routes
 app.use(cors(corsOptions));
+app.use((req, _res, next) => {
+  if (req.method === "OPTIONS" && req.path.includes("quotations")) {
+    console.log(`[QUOTATIONS] OPTIONS received origin=${req.headers.origin || "none"}`);
+  }
+  next();
+});
 
 // Fast Ping endpoint (does not require DB connection)
 app.get(["/ping", "/api/v1/ping"], (_req, res) => {

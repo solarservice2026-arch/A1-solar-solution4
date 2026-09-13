@@ -100,13 +100,14 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
 
   const isCustomer = userRoles.includes("customer") || userRoles.includes("vendor") || userRole === "customer";
   if (isCustomer) {
-    const custObj = await mongo.collection("customers").findOne({
-      $or: [
-        ...(userEmail ? [{ email: userEmail }] : []),
-        ...(userId ? [{ profile_id: String(userId) }, { ownerId: String(userId) }] : []),
-        ...(validObjId ? [{ profile_id: validObjId }, { ownerId: validObjId }] : [])
-      ]
-    });
+    const custOrs = [
+      ...(userEmail ? [{ email: userEmail }] : []),
+      ...(userId ? [{ profile_id: String(userId) }, { ownerId: String(userId) }] : []),
+      ...(validObjId ? [{ profile_id: validObjId }, { ownerId: validObjId }] : [])
+    ];
+    const custObj = custOrs.length > 0
+      ? await mongo.collection("customers").findOne({ $or: custOrs })
+      : null;
 
     const customerOrs = [
       ...(userId ? [{ ownerId: String(userId) }, { createdBy: String(userId) }, { created_by: String(userId) }] : []),
@@ -124,39 +125,39 @@ export async function getScopedQuery(req, extraFilter = {}, collectionName = nul
       customerOrs.push({ ownerEmail: userEmail });
     }
 
-    return {
-      ...extraFilter,
-      $or: customerOrs
-    };
+    return customerOrs.length > 0
+      ? { ...extraFilter, $or: customerOrs }
+      : { ...extraFilter };
   }
 
   // Admin / Staff query: include ownerId as string & ObjectId, staff users, email, and legacy docs
-  const staffDocs = await mongo.collection("users").find({
-    $or: [
-      ...(userId ? [{ ownerId: String(userId) }, { createdBy: String(userId) }] : []),
-      ...(validObjId ? [{ ownerId: validObjId }, { createdBy: validObjId }] : [])
-    ]
-  }).project({ _id: 1 }).toArray();
+  const staffOrs = [
+    ...(userId ? [{ ownerId: String(userId) }, { createdBy: String(userId) }] : []),
+    ...(validObjId ? [{ ownerId: validObjId }, { createdBy: validObjId }] : [])
+  ];
+  const staffDocs = staffOrs.length > 0
+    ? await mongo.collection("users").find({ $or: staffOrs }).project({ _id: 1 }).toArray()
+    : [];
 
-  const allRelatedIds = [
+  const allRelatedIds = Array.from(new Set([
     ...(userId ? [String(userId)] : []),
     ...(validObjId ? [validObjId] : []),
     ...staffDocs.map((s) => s._id.toString()),
     ...staffDocs.map((s) => s._id),
-    null
-  ];
+  ]));
 
   const adminOrs = [
-    { ownerId: { $in: allRelatedIds } },
-    { createdBy: { $in: allRelatedIds } },
-    { created_by: { $in: allRelatedIds } },
+    ...(allRelatedIds.length > 0 ? [
+      { ownerId: { $in: allRelatedIds } },
+      { createdBy: { $in: allRelatedIds } },
+      { created_by: { $in: allRelatedIds } }
+    ] : []),
     ...(userEmail ? [{ ownerEmail: userEmail }] : [])
   ];
 
-  return {
-    ...extraFilter,
-    $or: adminOrs
-  };
+  return adminOrs.length > 0
+    ? { ...extraFilter, $or: adminOrs }
+    : { ...extraFilter };
 }
 
 // ----------------------------------------------------
@@ -543,16 +544,17 @@ quotationsRouter.get(
   "/",
   requirePermission("quotations:view"),
   asyncHandler(async (req, res) => {
-    try {
-      const _t0 = Date.now();
-    console.log(`[QUOTATIONS] request-start`);
-      const tStart = Date.now();
-      console.log(`[QUOTATIONS DIAG] 1. Request start t=0ms`);
-      const mongo = await getMongoDb();
-      console.log(`[QUOTATIONS DIAG] 2. MongoDB handle acquired +${Date.now() - tStart}ms`);
+    const _t0 = Date.now();
+    console.log(`[QUOTATIONS] request-start +0ms`);
+    console.log(`[QUOTATIONS] auth-start +0ms`);
+    console.log(`[QUOTATIONS] auth-complete +${Date.now() - _t0}ms`);
+    console.log(`[QUOTATIONS] permission-complete +${Date.now() - _t0}ms`);
 
+    try {
+      console.log(`[QUOTATIONS] scoped-query-start +${Date.now() - _t0}ms`);
+      const mongo = await getMongoDb();
       const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
-      console.log(`[QUOTATIONS DIAG] 3. getScopedQuery completed +${Date.now() - tStart}ms. Query: ${JSON.stringify(query)}`);
+      console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms. Query: ${JSON.stringify(query)}`);
 
       const listProjection = {
         _id: 1,
@@ -570,26 +572,16 @@ quotationsRouter.get(
         items: 1, customers: 1, notes: 1, remarks: 1
       };
 
+      console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
       const tQueryStart = Date.now();
-      let items;
-      try {
-        items = await mongo.collection("quotations")
-          .find(query)
-          .project(listProjection)
-          .sort({ created_at: -1 })
-          .hint({ created_at: -1 })
-          .limit(200)
-          .toArray();
-      } catch {
-        items = await mongo.collection("quotations")
-          .find(query)
-          .project(listProjection)
-          .sort({ created_at: -1 })
-          .limit(200)
-          .toArray();
-      }
+      const items = await mongo.collection("quotations")
+        .find(query)
+        .project(listProjection)
+        .sort({ created_at: -1 })
+        .limit(200)
+        .toArray();
       const tQueryEnd = Date.now();
-      console.log(`[QUOTATIONS DIAG] 4. mongo.find().toArray() took ${tQueryEnd - tQueryStart}ms (total +${tQueryEnd - tStart}ms), fetched count=${items.length}`);
+      console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${tQueryEnd - _t0}ms (took ${tQueryEnd - tQueryStart}ms)`);
 
       if (req.query?.explain === "true") {
         try {
