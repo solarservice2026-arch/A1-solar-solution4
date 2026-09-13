@@ -551,58 +551,105 @@ quotationsRouter.get(
   "/",
   requirePermission("quotations:view"),
   asyncHandler(async (req, res) => {
-    const mongo = await getMongoDb();
-    const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
+    const _t0 = Date.now();
+    console.log(`[QUOTATIONS] request-start`);
+    try {
+      const mongo = await getMongoDb();
+      console.log(`[QUOTATIONS] auth-complete +${Date.now() - _t0}ms`);
 
-    const items = await mongo.collection("quotations")
-      .find(query)
-      .project({
-        customer_signature_url: 0,
-      })
-      .sort({ created_at: -1 })
-      .toArray();
+      const query = await getScopedQuery(req, { status: { $ne: "Archived" } });
+      console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms`);
 
-    const users = await mongo.collection("users").find({}, { projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 } }).toArray();
-    const userMap = new Map();
-    users.forEach((u) => {
-      if (u._id) userMap.set(u._id.toString(), u);
-      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
-    });
+      console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
+      const items = await mongo.collection("quotations")
+        .find(query)
+        .project({ customer_signature_url: 0 })
+        .sort({ created_at: -1 })
+        .limit(200)
+        .toArray();
+      console.log(`[QUOTATIONS] mongo-query-complete count=${items.length} +${Date.now() - _t0}ms`);
 
-    const formatted = items.map((q) => {
-      const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by)) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
-      return {
-        id: q._id.toString(),
-        ...q,
-        company_name: owner?.company_name || q.company_name || q.companyName || null,
-        company_address: owner?.company_address || q.company_address || q.companyAddress || null,
-        company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
-        company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
-        company_email: owner?.email || q.company_email || q.companyEmail || null,
-        company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
-        company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
-        bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
-        owner: owner ? {
-          name: owner.name,
-          phone: owner.phone,
-          email: owner.email,
-          company_name: owner.company_name,
-          company_address: owner.company_address,
-          company_gstin: owner.company_gstin,
-          company_logo_url: owner.company_logo_url,
-          company_signature_url: owner.company_signature_url,
-        } : null,
-        customer_name: q.customer_name || q.customers?.name || "Customer",
-        customers: q.customers || {
-          name: q.customer_name || "Customer",
-          mobile: q.customer_mobile || "",
-          email: q.customer_email || "",
-          gst_number: q.customer_gst || "",
-        },
-        quotation_items: q.quotation_items || q.items || [],
-      };
-    });
-    return success(res, "Quotations retrieved", formatted);
+      // --- FIX: Targeted user lookup using only ownerIds present in fetched quotations ---
+      // Previously: mongo.collection("users").find({}) — full collection scan, caused 15s timeout
+      // Now: only fetch users whose IDs are referenced in the returned quotation documents
+      console.log(`[QUOTATIONS] mapping-start +${Date.now() - _t0}ms`);
+      const ownerIdSet = new Set();
+      const ownerEmailSet = new Set();
+      for (const q of items) {
+        const oid = String(q.ownerId || q.createdBy || q.created_by || "").trim();
+        if (oid) ownerIdSet.add(oid);
+        if (q.ownerEmail) ownerEmailSet.add(String(q.ownerEmail).trim().toLowerCase());
+      }
+
+      const userMap = new Map();
+      if (ownerIdSet.size > 0 || ownerEmailSet.size > 0) {
+        const ownerIdStrings = [...ownerIdSet];
+        const ownerObjectIds = ownerIdStrings
+          .filter((id) => ObjectId.isValid(id))
+          .map((id) => new ObjectId(id));
+
+        const userFilter = {
+          $or: [
+            ...(ownerIdStrings.length ? [{ _id: { $in: ownerObjectIds } }] : []),
+            ...(ownerEmailSet.size ? [{ email: { $in: [...ownerEmailSet] } }] : []),
+          ],
+        };
+
+        const users = await mongo.collection("users").find(userFilter, {
+          projection: { name: 1, phone: 1, email: 1, company_name: 1, company_address: 1, company_gstin: 1, company_logo_url: 1, company_signature_url: 1, bank_details: 1 },
+        }).toArray();
+
+        users.forEach((u) => {
+          if (u._id) userMap.set(u._id.toString(), u);
+          if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+        });
+      }
+
+      const formatted = items.map((q) => {
+        const owner = userMap.get(String(q.ownerId || q.createdBy || q.created_by || "")) || (q.ownerEmail ? userMap.get(String(q.ownerEmail).toLowerCase()) : null);
+        return {
+          id: q._id.toString(),
+          ...q,
+          company_name: owner?.company_name || q.company_name || q.companyName || null,
+          company_address: owner?.company_address || q.company_address || q.companyAddress || null,
+          company_gstin: owner?.company_gstin || q.company_gstin || q.companyGstin || null,
+          company_phone: owner?.phone || q.company_phone || q.companyPhone || null,
+          company_email: owner?.email || q.company_email || q.companyEmail || null,
+          company_logo_url: owner?.company_logo_url || q.company_logo_url || q.companyLogoUrl || null,
+          company_signature_url: owner?.company_signature_url || q.company_signature_url || q.companySignatureUrl || null,
+          bank_details: owner?.bank_details || q.bank_details || q.bankDetails || null,
+          owner: owner ? {
+            name: owner.name,
+            phone: owner.phone,
+            email: owner.email,
+            company_name: owner.company_name,
+            company_address: owner.company_address,
+            company_gstin: owner.company_gstin,
+            company_logo_url: owner.company_logo_url,
+            company_signature_url: owner.company_signature_url,
+          } : null,
+          customer_name: q.customer_name || q.customers?.name || "Customer",
+          customers: q.customers || {
+            name: q.customer_name || "Customer",
+            mobile: q.customer_mobile || "",
+            email: q.customer_email || "",
+            gst_number: q.customer_gst || "",
+          },
+          quotation_items: q.quotation_items || q.items || [],
+        };
+      });
+
+      console.log(`[QUOTATIONS] mapping-complete +${Date.now() - _t0}ms`);
+      console.log(`[QUOTATIONS] response-sent total=${Date.now() - _t0}ms`);
+      return success(res, "Quotations retrieved", formatted);
+    } catch (err) {
+      console.error(`[QUOTATIONS] ERROR after +${Date.now() - _t0}ms:`, err?.message || err);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch quotations",
+        code: "QUOTATIONS_FETCH_FAILED",
+      });
+    }
   }),
 );
 

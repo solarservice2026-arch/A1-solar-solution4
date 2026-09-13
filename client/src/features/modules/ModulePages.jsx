@@ -141,6 +141,7 @@ function DataPage({
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [open, setOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [payuRow, setPayuRow] = useState(null);
@@ -491,13 +492,17 @@ function DataPage({
 
   const load = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await api(
         `${path}${search ? `?search=${encodeURIComponent(search)}` : ""}`,
       );
       setRows(Array.isArray(res) ? res : []);
+      setFetchError(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Unable to load");
+      const msg = e instanceof Error ? e.message : "Unable to load";
+      setFetchError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -1223,6 +1228,12 @@ function DataPage({
 
       {loading ? (
         <div className="skeleton">Loading {title.toLowerCase()}…</div>
+      ) : fetchError ? (
+        <div className="empty-state">
+          {icon}
+          <h2>Unable to load {title.toLowerCase()}. Please try again.</h2>
+          <button className="secondary" style={{ marginTop: "12px" }} onClick={load}>Retry</button>
+        </div>
       ) : rows.length === 0 ? (
         <div className="empty-state">
           {icon}

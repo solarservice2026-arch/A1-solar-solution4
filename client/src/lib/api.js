@@ -107,7 +107,8 @@ export async function api(
         throw new Error(body.message || body.error || `Request failed with status ${response.status}`);
       }
 
-      return [];
+      // GET final failure after retries — throw so caller can show error state
+      throw new Error(body.message || `Request failed with status ${response.status}`);
     } catch (err) {
       if (options.method && options.method !== "GET") {
         throw err;
@@ -120,7 +121,8 @@ export async function api(
         await new Promise((resolve) => window.setTimeout(resolve, delay));
         continue;
       }
-      return [];
+      // GET failed after all retries — re-throw so callers can show error state
+      throw err;
     }
   }
 
