@@ -561,9 +561,38 @@ quotationsRouter.get(
       console.log(`[QUOTATIONS] scoped-query-complete +${Date.now() - _t0}ms`);
 
       console.log(`[QUOTATIONS] mongo-query-start +${Date.now() - _t0}ms`);
+
+      // Projection: fetch only list-view summary fields.
+      // Explicitly exclude large embedded content (HTML, base64, PDFs, templates)
+      // that bloat documents and cause the 9-10s full-scan slowness on the list endpoint.
+      const listProjection = {
+        // Exclude heavy/large fields not needed for the quotation list table
+        customer_signature_url: 0,
+        html_content: 0,
+        htmlContent: 0,
+        pdf_content: 0,
+        pdfContent: 0,
+        pdf_base64: 0,
+        pdfBase64: 0,
+        generated_html: 0,
+        generatedHtml: 0,
+        template_html: 0,
+        templateHtml: 0,
+        raw_html: 0,
+        rawHtml: 0,
+        signature_image: 0,
+        signatureImage: 0,
+        attachment_data: 0,
+        attachmentData: 0,
+        base64_pdf: 0,
+        base64Pdf: 0,
+        document_content: 0,
+        documentContent: 0,
+      };
+
       const items = await mongo.collection("quotations")
         .find(query)
-        .project({ customer_signature_url: 0 })
+        .project(listProjection)
         .sort({ created_at: -1 })
         .limit(200)
         .toArray();

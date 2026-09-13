@@ -158,6 +158,53 @@ export async function connectMongoDB() {
               { $or: [{ role: "vendor" }, { roles: "vendor" }] },
               { $set: { role: "customer", roles: ["customer"] } }
             );
+            // ─── Create performance indexes ───────────────────────────────────
+            // These cover the exact fields used by getScopedQuery $or filter
+            // and the created_at sort on quotations/invoices/agreements/customers
+            try {
+              const indexOpts = { background: true };
+              const sparseOpts = { background: true, sparse: true };
+
+              // quotations — covers ownerId, createdBy, created_by, ownerEmail, status, created_at
+              const q = db.collection("quotations");
+              await q.createIndex({ ownerId: 1, created_at: -1 }, indexOpts);
+              await q.createIndex({ createdBy: 1, created_at: -1 }, indexOpts);
+              await q.createIndex({ created_by: 1, created_at: -1 }, indexOpts);
+              await q.createIndex({ ownerEmail: 1, created_at: -1 }, sparseOpts);
+              await q.createIndex({ status: 1, created_at: -1 }, indexOpts);
+              await q.createIndex({ created_at: -1 }, indexOpts);
+
+              // invoices — same pattern
+              const inv = db.collection("invoices");
+              await inv.createIndex({ ownerId: 1, created_at: -1 }, indexOpts);
+              await inv.createIndex({ createdBy: 1, created_at: -1 }, indexOpts);
+              await inv.createIndex({ created_by: 1, created_at: -1 }, indexOpts);
+              await inv.createIndex({ created_at: -1 }, indexOpts);
+
+              // agreements
+              const agr = db.collection("agreements");
+              await agr.createIndex({ ownerId: 1, created_at: -1 }, indexOpts);
+              await agr.createIndex({ createdBy: 1, created_at: -1 }, indexOpts);
+              await agr.createIndex({ created_at: -1 }, indexOpts);
+
+              // customers
+              const cust = db.collection("customers");
+              await cust.createIndex({ ownerId: 1 }, indexOpts);
+              await cust.createIndex({ createdBy: 1 }, indexOpts);
+              await cust.createIndex({ email: 1 }, sparseOpts);
+              await cust.createIndex({ profile_id: 1 }, sparseOpts);
+
+              // users — covers targeted user lookup by _id/email and staffDocs query
+              const usr = db.collection("users");
+              await usr.createIndex({ email: 1 }, { ...sparseOpts, unique: false });
+              await usr.createIndex({ ownerId: 1 }, sparseOpts);
+              await usr.createIndex({ createdBy: 1 }, sparseOpts);
+              await usr.createIndex({ role: 1 }, indexOpts);
+
+              console.log("[MongoDB] Performance indexes ensured on quotations, invoices, agreements, customers, users");
+            } catch (idxErr) {
+              console.warn("[MongoDB] Index creation warning (non-fatal):", idxErr.message);
+            }
           }
         } catch (err) {
           console.error("[MongoDB] Seeding/Purge error:", err.message);
