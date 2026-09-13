@@ -585,18 +585,20 @@ quotationsRouter.get(
       const tQueryEnd = Date.now();
       console.log(`[QUOTATIONS DIAG] 4. mongo.find().toArray() took ${tQueryEnd - tQueryStart}ms (total +${tQueryEnd - tStart}ms), fetched count=${items.length}`);
 
-      try {
-        const exp = await mongo.collection("quotations")
-          .find(query)
-          .project(listProjection)
-          .sort({ created_at: -1 })
-          .limit(200)
-          .explain("executionStats");
-        const s = exp.executionStats;
-        console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
-        console.log(`[QUOTATIONS EXPLAIN PLAN] winningPlan: ${JSON.stringify(exp.queryPlanner?.winningPlan || {})}`);
-      } catch (expErr) {
-        console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
+      if (req.query?.explain === "true") {
+        try {
+          const exp = await mongo.collection("quotations")
+            .find(query)
+            .project(listProjection)
+            .sort({ created_at: -1 })
+            .limit(200)
+            .explain("executionStats");
+          const s = exp.executionStats;
+          console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
+          console.log(`[QUOTATIONS EXPLAIN PLAN] winningPlan: ${JSON.stringify(exp.queryPlanner?.winningPlan || {})}`);
+        } catch (expErr) {
+          console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
+        }
       }
 
       // --- FIX: Targeted user lookup using only ownerIds present in fetched quotations ---
