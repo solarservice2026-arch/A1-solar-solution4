@@ -33,9 +33,18 @@ app.disable("x-powered-by");
 
 // Universal bulletproof CORS & OPTIONS preflight handler for any domain (Vercel, custom domain, local)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  res.setHeader("Access-Control-Allow-Origin", origin || "*");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  const origin = req.headers.origin || req.headers.referer;
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      res.setHeader("Access-Control-Allow-Origin", url.origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    } catch {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id, Accept, Origin, X-Requested-With");
   res.setHeader("Access-Control-Expose-Headers", "x-request-id");
@@ -49,7 +58,7 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: true,
   credentials: true,
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  methods: ["GET", "HEAD", "PUT, PATCH, POST, DELETE, OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept", "Origin", "X-Requested-With"],
   exposedHeaders: ["x-request-id"],
   optionsSuccessStatus: 200,
@@ -201,13 +210,26 @@ app.use((_req, res) =>
   }),
 );
 
-app.use((error, _req, res, _next) => {
+app.use((error, req, res, _next) => {
+  const origin = req.headers?.origin || req.headers?.referer;
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      res.setHeader("Access-Control-Allow-Origin", url.origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    } catch {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+
   const errObj = typeof error === "object" && error !== null ? error : {};
   const isZod = errObj.name === "ZodError" || Array.isArray(errObj.issues);
-  const status = typeof errObj.status === "number" && errObj.status >= 400 && errObj.status < 600 ? errObj.status : 400;
+  const status = typeof errObj.status === "number" && errObj.status >= 400 && errObj.status < 600 ? errObj.status : 500;
   const rawMsg = typeof errObj.message === "string" ? errObj.message.trim() : error instanceof Error ? error.message : "";
-  const message = rawMsg || "Invalid request parameters";
-  const code = typeof errObj.code === "string" ? errObj.code : isZod ? "VALIDATION_ERROR" : "BAD_REQUEST";
+  const message = rawMsg || "Internal server error";
+  const code = typeof errObj.code === "string" ? errObj.code : isZod ? "VALIDATION_ERROR" : "INTERNAL_SERVER_ERROR";
   const errors = Array.isArray(errObj.errors) ? errObj.errors : Array.isArray(errObj.issues) ? errObj.issues : [];
 
   return res.status(status).json({
