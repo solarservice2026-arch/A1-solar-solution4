@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: true,
   credentials: true,
-  methods: ["GET", "HEAD", "PUT, PATCH, POST, DELETE, OPTIONS"],
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept", "Origin", "X-Requested-With"],
   exposedHeaders: ["x-request-id"],
   optionsSuccessStatus: 200,
@@ -78,9 +78,28 @@ app.use(express.json({ limit: "10mb" }));
 app.use(
   rateLimit({
     windowMs: 60_000,
-    limit: process.env.NODE_ENV === "production" ? 120 : 1_000,
+    limit: 5_000,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    handler: (req, res) => {
+      const origin = req.headers.origin || req.headers.referer;
+      if (origin) {
+        try {
+          const url = new URL(origin);
+          res.setHeader("Access-Control-Allow-Origin", url.origin);
+          res.setHeader("Access-Control-Allow-Credentials", "true");
+        } catch {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+        }
+      } else {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      }
+      res.status(429).json({
+        success: false,
+        message: "Too many requests, please try again later.",
+        code: "TOO_MANY_REQUESTS",
+      });
+    },
   }),
 );
 app.use(morgan("combined", { skip: () => process.env.NODE_ENV === "test" }));
