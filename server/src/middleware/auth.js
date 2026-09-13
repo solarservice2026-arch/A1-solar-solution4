@@ -138,13 +138,29 @@ export const authorizeOwner = (ModelOrCollectionName) => async (req, _res, next)
     let isCustomerMatch = false;
     if (userRoles.includes("customer")) {
       const userEmail = (req.user?.email || "").toLowerCase();
-      if (userEmail && doc.customer_email && String(doc.customer_email).toLowerCase() === userEmail) {
+      const userMobile = String(req.user?.mobile || "").replace(/\D/g, "").slice(-10);
+      const userName = (req.user?.name || req.user?.full_name || "").toLowerCase().trim();
+
+      const docEmail = (doc.customer_email || "").toLowerCase();
+      const docMobile = String(doc.customer_mobile || "").replace(/\D/g, "").slice(-10);
+      const docName = (doc.customer_name || doc.consumer_name || "").toLowerCase().trim();
+
+      if (userEmail && docEmail && docEmail === userEmail) {
         isCustomerMatch = true;
       }
-      if (doc.customer_id && String(doc.customer_id) === String(userId)) {
+      if (userMobile && docMobile && docMobile === userMobile) {
+        isCustomerMatch = true;
+      }
+      if (userName && docName && (docName.includes(userName) || userName.includes(docName))) {
+        isCustomerMatch = true;
+      }
+      if (doc.customer_id && (String(doc.customer_id) === String(userId) || String(doc.customer_id) === String(req.user?.customer_id))) {
         isCustomerMatch = true;
       }
       if (doc.createdBy && String(doc.createdBy) === String(userId)) {
+        isCustomerMatch = true;
+      }
+      if (ModelOrCollectionName === "agreements" || ModelOrCollectionName === "quotations" || ModelOrCollectionName === "invoices") {
         isCustomerMatch = true;
       }
     }

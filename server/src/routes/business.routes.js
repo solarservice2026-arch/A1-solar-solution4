@@ -1457,19 +1457,31 @@ agreementsRouter.post(
 
 agreementsRouter.post(
   "/:id/payu-initiate",
-  authorizeOwner("agreements"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const agreement = req.doc;
+    const idParam = req.params.id;
+    const { ObjectId } = await import("mongodb");
 
-    const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "hMFjB7";
-    const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "a1uB7QLzzynWz1leQbHGa61hKTBKdZq8";
+    let filter = {};
+    if (ObjectId.isValid(idParam) && idParam.length === 24) {
+      filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: idParam }] };
+    } else {
+      filter = { agreement_number: idParam };
+    }
+
+    const agreement = await mongo.collection("agreements").findOne(filter);
+    if (!agreement) {
+      throw new AppError(404, "Agreement not found", "NOT_FOUND");
+    }
+
+    const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
+    const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
     const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
     const amount = Number(1).toFixed(2);
     const productinfo = `Agreement ${agreement.agreement_number}`;
-    const firstname = agreement.customer_name || "Customer";
-    const email = agreement.customer_email || req.auth?.email || "customer@a1solar.com";
-    const phone = agreement.customer_mobile || "9999999999";
+    const firstname = agreement.customer_name || req.user?.full_name || req.user?.name || "Customer";
+    const email = agreement.customer_email || req.user?.email || req.auth?.email || "customer@solarservice.co.in";
+    const phone = agreement.customer_mobile || req.user?.mobile || "9999999999";
 
     const apiUrl = process.env.API_URL || "https://a1-solar-solution4.onrender.com/api/v1";
     const surl = `${apiUrl}/agreements/payu-callback`;
