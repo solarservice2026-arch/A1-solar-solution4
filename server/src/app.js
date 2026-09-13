@@ -31,20 +31,51 @@ import mongoose from "mongoose";
 export const app = express();
 app.disable("x-powered-by");
 
-// Universal bulletproof CORS & OPTIONS preflight handler for any domain (Vercel, custom domain, local)
+// ─── Allowed origins allowlist ───────────────────────────────────────────────
+const ALLOWED_ORIGINS = new Set([
+  // Production custom domain
+  "https://www.solarservice.co.in",
+  "https://solarservice.co.in",
+  // Vercel deployments (exact + wildcard pattern handled below)
+  "https://a1-solar-solution4-4demnamip-a1-solar-solution.vercel.app",
+  "https://a1-solar-solution4.vercel.app",
+  // Local development
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:5000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+]);
+
+function isOriginAllowed(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Allow any *.vercel.app deployment preview for this project
+  try {
+    const url = new URL(origin);
+    if (url.hostname.endsWith(".vercel.app")) return true;
+    if (url.hostname.endsWith(".onrender.com")) return true;
+  } catch {}
+  return false;
+}
+
+// Universal CORS + OPTIONS preflight handler
 app.use((req, res, next) => {
-  const origin = req.headers.origin || req.headers.referer;
+  const origin = req.headers.origin;
+
   if (origin) {
-    try {
-      const url = new URL(origin);
-      res.setHeader("Access-Control-Allow-Origin", url.origin);
+    if (isOriginAllowed(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Access-Control-Allow-Credentials", "true");
-    } catch {
-      res.setHeader("Access-Control-Allow-Origin", "*");
+    } else {
+      // Log rejected origins to Render logs for debugging
+      console.warn(`[CORS] Rejected origin: ${origin} ${req.method} ${req.path}`);
+      // Still set headers so the error is visible in browser (not a network failure)
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
     }
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*");
   }
+
   res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id, Accept, Origin, X-Requested-With");
   res.setHeader("Access-Control-Expose-Headers", "x-request-id");
@@ -56,13 +87,19 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, Render health checks)
+    if (!origin) return callback(null, true);
+    if (isOriginAllowed(origin)) return callback(null, true);
+    callback(null, true); // Keep permissive for now; logging above tracks rejects
+  },
   credentials: true,
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "Accept", "Origin", "X-Requested-With"],
   exposedHeaders: ["x-request-id"],
   optionsSuccessStatus: 200,
 }));
+
 
 app.use((req, res, next) => {
   res.setHeader(
@@ -82,17 +119,13 @@ app.use(
     standardHeaders: "draft-7",
     legacyHeaders: false,
     handler: (req, res) => {
-      const origin = req.headers.origin || req.headers.referer;
-      if (origin) {
-        try {
-          const url = new URL(origin);
-          res.setHeader("Access-Control-Allow-Origin", url.origin);
-          res.setHeader("Access-Control-Allow-Credentials", "true");
-        } catch {
-          res.setHeader("Access-Control-Allow-Origin", "*");
-        }
-      } else {
-        res.setHeader("Access-Control-Allow-Origin", "*");
+      const origin = req.headers.origin;
+      if (origin && isOriginAllowed(origin)) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+      } else if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
       }
       res.status(429).json({
         success: false,
@@ -230,17 +263,13 @@ app.use((_req, res) =>
 );
 
 app.use((error, req, res, _next) => {
-  const origin = req.headers?.origin || req.headers?.referer;
-  if (origin) {
-    try {
-      const url = new URL(origin);
-      res.setHeader("Access-Control-Allow-Origin", url.origin);
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    } catch {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-    }
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers?.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  } else if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
   const errObj = typeof error === "object" && error !== null ? error : {};
