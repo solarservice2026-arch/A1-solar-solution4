@@ -167,9 +167,21 @@ export async function connectMongoDB() {
 
             // ─── 2. Purge customer GST, valid_until, and agreement payment_amount fields ───
             const collectionsToPurge = ["quotations", "invoices", "agreements", "customers", "estimates", "contracts"];
+            const purgeFilter = {
+              $or: [
+                { customer_gst: { $exists: true } },
+                { customer_gstin: { $exists: true } },
+                { customerGst: { $exists: true } },
+                { customerGstin: { $exists: true } },
+                { gst_number: { $exists: true } },
+                { valid_until: { $exists: true } },
+                { validUntil: { $exists: true } },
+                { valid_date: { $exists: true } }
+              ]
+            };
             for (const colName of collectionsToPurge) {
               await db.collection(colName).updateMany(
-                {},
+                purgeFilter,
                 {
                   $unset: {
                     customer_gst: "",
@@ -187,7 +199,16 @@ export async function connectMongoDB() {
               );
             }
             await db.collection("agreements").updateMany(
-              {},
+              {
+                $or: [
+                  { payment_amount: { $exists: true } },
+                  { paymentAmount: { $exists: true } },
+                  { project_value: { $exists: true } },
+                  { projectValue: { $exists: true } },
+                  { customer_email: { $exists: true } },
+                  { customerEmail: { $exists: true } }
+                ]
+              },
               {
                 $unset: {
                   payment_amount: "",

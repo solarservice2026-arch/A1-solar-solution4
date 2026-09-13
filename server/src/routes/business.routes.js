@@ -598,11 +598,13 @@ quotationsRouter.get(
             .sort({ created_at: -1 })
             .limit(200)
             .explain("executionStats");
-          const s = exp.executionStats;
+          const s = exp.executionStats || {};
           console.log(`[QUOTATIONS EXPLAIN] executionTimeMillis=${s.executionTimeMillis} totalDocsExamined=${s.totalDocsExamined} totalKeysExamined=${s.totalKeysExamined} nReturned=${s.nReturned}`);
           console.log(`[QUOTATIONS EXPLAIN PLAN] winningPlan: ${JSON.stringify(exp.queryPlanner?.winningPlan || {})}`);
+          return res.json({ success: true, explain: exp });
         } catch (expErr) {
           console.warn("[QUOTATIONS EXPLAIN WARNING]", expErr.message);
+          return res.status(500).json({ success: false, error: expErr.message });
         }
       }
 
