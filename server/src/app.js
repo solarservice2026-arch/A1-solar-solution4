@@ -90,7 +90,6 @@ const corsOptions = {
 
 // Apply CORS middleware BEFORE all routes
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
 // Fast Ping endpoint (does not require DB connection)
 app.get(["/ping", "/api/v1/ping"], (_req, res) => {
