@@ -621,12 +621,11 @@ quotationsRouter.get(
           .map((id) => new ObjectId(id));
 
         const userOrs = [];
-        if (ownerIdStrings.length > 0) {
-          userOrs.push({ _id: { $in: ownerIdStrings } });
-          userOrs.push({ id: { $in: ownerIdStrings } });
-        }
         if (ownerObjectIds.length > 0) {
           userOrs.push({ _id: { $in: ownerObjectIds } });
+        }
+        if (ownerIdStrings.length > 0) {
+          userOrs.push({ _id: { $in: ownerIdStrings } });
         }
         if (ownerEmailSet.size > 0) {
           userOrs.push({ email: { $in: [...ownerEmailSet] } });

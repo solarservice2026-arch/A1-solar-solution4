@@ -156,6 +156,7 @@ export async function connectMongoDB() {
 
               const usr = db.collection("users");
               await safeIdx(usr, { email: 1 });
+              await safeIdx(usr, { id: 1 }, { sparse: true });
               await safeIdx(usr, { ownerId: 1 }, { sparse: true });
               await safeIdx(usr, { createdBy: 1 }, { sparse: true });
               await safeIdx(usr, { role: 1 });
