@@ -12,7 +12,7 @@ async function check() {
   await mongoose.connect(uri);
   const db = mongoose.connection.db;
   const collections = await db.listCollections().toArray();
-  const targetId = '6aa6fc345910e60f4c779b8b';
+  const targetId = '6aa6fbc0926cbdc570ac97f7';
   const { ObjectId } = await import('mongodb');
 
   for (const c of collections) {
