@@ -58,6 +58,7 @@ function isOriginAllowed(origin) {
     const url = new URL(cleanOrigin);
     if (url.hostname.endsWith(".vercel.app") && url.hostname.includes("a1-solar-solution")) return true;
     if (url.hostname.endsWith(".onrender.com")) return true;
+    if (url.hostname.endsWith(".payu.in") || url.hostname === "payu.in") return true;
   } catch {}
   return false;
 }
@@ -89,8 +90,26 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
-// Apply CORS middleware BEFORE all routes
-app.use(cors(corsOptions));
+// Route PayU server-to-server POST callbacks safely without browser origin CORS blockage
+app.use((req, res, next) => {
+  const p = (req.path || "").toLowerCase();
+  if (p.includes("/payu/callback") || p.includes("/payu-callback")) {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin.replace(/\/$/, ""));
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    } else {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    if (req.method === "OPTIONS") {
+      return res.status(204).end();
+    }
+    return next();
+  }
+  return cors(corsOptions)(req, res, next);
+});
 app.use((req, _res, next) => {
   if (req.method === "OPTIONS" && req.path.includes("quotations")) {
     console.log(`[QUOTATIONS] OPTIONS received origin=${req.headers.origin || "none"}`);

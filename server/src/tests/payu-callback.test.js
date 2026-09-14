@@ -170,4 +170,29 @@ describe("PayU Payment Callback & Initiation Test Suite", () => {
     expect(res.status).toBe(303);
     expect(res.headers.location).toContain("status=success");
   });
+
+  it("7. POST /api/v1/payments/payu/callback with Origin: https://secure.payu.in is allowed by CORS and not blocked", async () => {
+    const status = "success";
+    const hashString = `${salt}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${testTxnid}|${key}`;
+    const validHash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+    const res = await request(app)
+      .post("/api/v1/payments/payu/callback")
+      .set("Origin", "https://secure.payu.in")
+      .type("form")
+      .send({
+        key,
+        txnid: testTxnid,
+        amount,
+        productinfo,
+        firstname,
+        email,
+        status,
+        hash: validHash,
+      });
+
+    expect(res.status).toBe(303);
+    expect(res.body?.message).not.toBe("Not allowed by CORS");
+    expect(res.headers.location).toContain("status=success");
+  });
 });

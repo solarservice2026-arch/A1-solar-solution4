@@ -1415,8 +1415,8 @@ export const handlePayUCallback = asyncHandler(async (req, res) => {
 
   const redirectWithStatus = (isSuccess, reason = "") => {
     const query = isSuccess
-      ? "status=success&payment=success"
-      : `status=failed&payment=failed${reason ? `&reason=${encodeURIComponent(reason)}` : ""}`;
+      ? `status=success&payment=success${txnid ? `&txnid=${encodeURIComponent(txnid)}` : ""}`
+      : `status=failed&payment=failed${txnid ? `&txnid=${encodeURIComponent(txnid)}` : ""}${reason ? `&reason=${encodeURIComponent(reason)}` : ""}`;
     const redirectUrl = `${webUrl}/app/agreements?${query}`;
     return res.redirect(303, redirectUrl);
   };
