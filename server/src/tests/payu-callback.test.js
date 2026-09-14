@@ -11,7 +11,7 @@ if (!process.env.MONGODB_URI) {
 }
 
 const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
-const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
+const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtIeMKBPi1o9x8pvxwB3r5";
 
 describe("PayU Payment Callback & Initiation Test Suite", () => {
   const testTxnid = `PAYU_TEST_${Date.now()}`;

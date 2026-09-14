@@ -1409,7 +1409,7 @@ export const handlePayUCallback = asyncHandler(async (req, res) => {
   const { status, txnid, productinfo, mihpayid, amount, key, hash } = payload;
 
   const expectedKey = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
-  const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
+  const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtIeMKBPi1o9x8pvxwB3r5";
   const rawWebUrl = process.env.WEB_URL || "https://www.solarservice.co.in";
   const webUrl = rawWebUrl.replace(/\/$/, "");
 
@@ -1821,7 +1821,7 @@ export const handlePayUInitiate = asyncHandler(async (req, res) => {
   }
 
   const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
-  const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
+  const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtIeMKBPi1o9x8pvxwB3r5";
   const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
   const amount = Number(1).toFixed(2);
   const productinfo = `Agreement ${agreement.agreement_number}`;
@@ -1837,9 +1837,11 @@ export const handlePayUInitiate = asyncHandler(async (req, res) => {
   const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
   const hash = crypto.createHash("sha512").update(hashString).digest("hex");
 
-  let rawPayuUrl = process.env.PAYU_URL || "https://test.payu.in/_payment";
+  let rawPayuUrl = process.env.PAYU_URL || process.env.PAYU_BASE_URL || "https://test.payu.in/_payment";
   if (!rawPayuUrl || typeof rawPayuUrl !== "string" || !rawPayuUrl.startsWith("http")) {
     rawPayuUrl = "https://test.payu.in/_payment";
+  } else if (!rawPayuUrl.includes("_payment")) {
+    rawPayuUrl = `${rawPayuUrl.replace(/\/$/, "")}/_payment`;
   }
   const payuUrl = rawPayuUrl;
 
