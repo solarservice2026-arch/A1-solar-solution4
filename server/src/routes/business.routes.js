@@ -1132,6 +1132,8 @@ invoicesRouter.get(
     return success(res, "Invoice retrieved", {
       id: inv._id.toString(),
       ...inv,
+      items: inv.items || inv.invoice_items || [],
+      invoice_items: inv.invoice_items || inv.items || [],
       company_name: owner?.company_name || inv.company_name || inv.companyName || null,
       company_address: owner?.company_address || inv.company_address || inv.companyAddress || null,
       company_gstin: owner?.company_gstin || inv.company_gstin || inv.companyGstin || null,
@@ -1217,6 +1219,7 @@ invoicesRouter.post(
       total,
       paid_amount: Number(b.paidAmount || 0),
       status: b.status || "Draft",
+      items: normalized,
       invoice_items: normalized,
       created_at: new Date(),
       created_by: userId,
