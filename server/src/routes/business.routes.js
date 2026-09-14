@@ -1113,7 +1113,7 @@ invoicesRouter.get(
   authorizeOwner("invoices"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
-    const inv = req.doc;
+    const inv = req.doc || {};
     const ownerId = inv.ownerId || inv.createdBy || inv.created_by;
     const ownerEmail = inv.ownerEmail ? String(inv.ownerEmail).trim().toLowerCase() : null;
     let owner = null;
@@ -1130,7 +1130,7 @@ invoicesRouter.get(
       );
     }
     return success(res, "Invoice retrieved", {
-      id: inv._id.toString(),
+      id: inv._id ? inv._id.toString() : String(req.params.id),
       ...inv,
       items: inv.items || inv.invoice_items || [],
       invoice_items: inv.invoice_items || inv.items || [],

@@ -184,7 +184,7 @@ app.get(["/health", "/api/v1/health"], async (_req, res) => {
   }
   return ok(res, "API is healthy", {
     status: "ok",
-    version: "v1.0.2-inv-fix-verified",
+    version: "v1.0.3-inv-safeguarded",
     database: {
       mongodb: mongoStatus,
     },
