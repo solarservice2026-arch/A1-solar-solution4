@@ -1113,6 +1113,7 @@ invoicesRouter.get(
   authorizeOwner("invoices"),
   asyncHandler(async (req, res) => {
     const mongo = await getMongoDb();
+    const inv = req.doc;
     const ownerId = inv.ownerId || inv.createdBy || inv.created_by;
     const ownerEmail = inv.ownerEmail ? String(inv.ownerEmail).trim().toLowerCase() : null;
     let owner = null;
