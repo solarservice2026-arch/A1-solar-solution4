@@ -511,11 +511,14 @@ function DataPage({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("order_id");
-    const status = params.get("status");
+    const status = params.get("status") || params.get("payment");
+    const reason = params.get("reason");
 
     if (path === "/agreements" && (status || orderId)) {
-      if (status && (status.toLowerCase() === "success" || status === "SUCCESS")) {
+      if (status && status.toLowerCase() === "success") {
         toast.success("Payment verified successfully! Agreement unlocked.");
+      } else if (status && (status.toLowerCase() === "failed" || status.toLowerCase() === "failure")) {
+        toast.error(`Payment failed or cancelled${reason ? `: ${reason}` : "."}`);
       } else if (orderId) {
         const verify = async () => {
           try {
@@ -1178,12 +1181,15 @@ function DataPage({
                       method: "POST",
                     });
 
-                    if (payuData && payuData.payu_url) {
+                    if (payuData && (payuData.payu_url || payuData.action)) {
                       toast.success("Redirecting to PayU Payment Gateway…");
 
                       const form = document.createElement("form");
                       form.method = "POST";
-                      form.action = payuData.payu_url;
+                      const rawUrl = payuData.payu_url || payuData.action;
+                      form.action = (rawUrl && typeof rawUrl === "string" && rawUrl.startsWith("http"))
+                        ? rawUrl
+                        : "https://test.payu.in/_payment";
 
                       const fields = [
                         "key",

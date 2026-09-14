@@ -1372,42 +1372,138 @@ agreementsRouter.post(
   })
 );
 
-agreementsRouter.post(
-  "/payu-callback",
-  asyncHandler(async (req, res) => {
-    const mongo = await getMongoDb();
-    const payload = req.body || {};
-    const { status, txnid, productinfo, mihpayid } = payload;
+export function verifyPayUResponseHash(payload, salt) {
+  if (!payload || !payload.hash) return false;
+  const key = payload.key || "";
+  const txnid = payload.txnid || "";
+  const amount = payload.amount || "";
+  const productinfo = payload.productinfo || "";
+  const firstname = payload.firstname || "";
+  const email = payload.email || "";
+  const status = payload.status || "";
+  const udf1 = payload.udf1 || "";
+  const udf2 = payload.udf2 || "";
+  const udf3 = payload.udf3 || "";
+  const udf4 = payload.udf4 || "";
+  const udf5 = payload.udf5 || "";
+  const udf6 = payload.udf6 || "";
+  const udf7 = payload.udf7 || "";
+  const udf8 = payload.udf8 || "";
+  const udf9 = payload.udf9 || "";
+  const udf10 = payload.udf10 || "";
 
-    let agreementNum = "";
-    if (productinfo && productinfo.includes("Agreement ")) {
-      agreementNum = productinfo.replace("Agreement ", "").trim();
+  let hashSequence = "";
+  if (payload.additionalCharges) {
+    hashSequence = `${payload.additionalCharges}|${salt}|${status}|${udf10}|${udf9}|${udf8}|${udf7}|${udf6}|${udf5}|${udf4}|${udf3}|${udf2}|${udf1}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  } else {
+    hashSequence = `${salt}|${status}|${udf10}|${udf9}|${udf8}|${udf7}|${udf6}|${udf5}|${udf4}|${udf3}|${udf2}|${udf1}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  }
+
+  const calculatedHash = crypto.createHash("sha512").update(hashSequence).digest("hex").toLowerCase();
+  return calculatedHash === String(payload.hash).trim().toLowerCase();
+}
+
+export const handlePayUCallback = asyncHandler(async (req, res) => {
+  const mongo = await getMongoDb();
+  const payload = req.body || {};
+  const { status, txnid, productinfo, mihpayid, amount, key, hash } = payload;
+
+  const expectedKey = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
+  const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
+  const rawWebUrl = process.env.WEB_URL || "https://www.solarservice.co.in";
+  const webUrl = rawWebUrl.replace(/\/$/, "");
+
+  const redirectWithStatus = (isSuccess, reason = "") => {
+    const query = isSuccess
+      ? "status=success&payment=success"
+      : `status=failed&payment=failed${reason ? `&reason=${encodeURIComponent(reason)}` : ""}`;
+    const redirectUrl = `${webUrl}/app/agreements?${query}`;
+    return res.redirect(303, redirectUrl);
+  };
+
+  // 1. Validate SHA-512 Hash
+  const isValidHash = verifyPayUResponseHash(payload, salt);
+  if (!isValidHash) {
+    console.warn(`[PayU Callback] Hash mismatch for txnid=${txnid}`);
+    return redirectWithStatus(false, "invalid_hash");
+  }
+
+  // 2. Validate Merchant Key if provided
+  if (key && key !== expectedKey) {
+    console.warn(`[PayU Callback] Merchant key mismatch: received ${key}, expected ${expectedKey}`);
+    return redirectWithStatus(false, "invalid_merchant_key");
+  }
+
+  // 3. Extract agreement details
+  let agreementNum = "";
+  if (productinfo && productinfo.includes("Agreement ")) {
+    agreementNum = productinfo.replace("Agreement ", "").trim();
+  }
+
+  let filter = {};
+  if (txnid) {
+    filter = { $or: [{ payu_txnid: txnid }, ...(agreementNum ? [{ agreement_number: agreementNum }] : [])] };
+  } else if (agreementNum) {
+    filter = { agreement_number: agreementNum };
+  } else {
+    return redirectWithStatus(false, "missing_transaction_id");
+  }
+
+  const agreement = await mongo.collection("agreements").findOne(filter);
+  if (!agreement) {
+    console.warn(`[PayU Callback] Agreement record not found for txnid=${txnid}, agreementNum=${agreementNum}`);
+    return redirectWithStatus(false, "agreement_not_found");
+  }
+
+  // 4. Verify transaction amount if present
+  if (amount) {
+    const receivedAmount = Number(amount);
+    const expectedAmount = Number(agreement.payu_amount || 1);
+    if (isNaN(receivedAmount) || Math.abs(receivedAmount - expectedAmount) > 0.01) {
+      console.warn(`[PayU Callback] Amount mismatch: received ${receivedAmount}, expected ${expectedAmount}`);
+      return redirectWithStatus(false, "amount_mismatch");
     }
+  }
 
-    let filter = {};
-    if (txnid) {
-      filter = { $or: [{ payu_txnid: txnid }, ...(agreementNum ? [{ agreement_number: agreementNum }] : [])] };
-    } else if (agreementNum) {
-      filter = { agreement_number: agreementNum };
-    }
+  // 5. Idempotency Check: if already marked Paid with this txnid, redirect safely without duplicating
+  if (agreement.payment_status === "Paid" && (agreement.payu_txnid === mihpayid || agreement.payu_txnid === txnid)) {
+    return redirectWithStatus(true);
+  }
 
-    if (status === "success" || status === "SUCCESS") {
-      await mongo.collection("agreements").updateOne(filter, {
+  // 6. Process status
+  const isStatusSuccess = status === "success" || status === "SUCCESS";
+  if (isStatusSuccess) {
+    await mongo.collection("agreements").updateOne(
+      { _id: agreement._id },
+      {
         $set: {
           payment_status: "Paid",
           paid_at: new Date().toISOString(),
-          payment_method: "Online",
-          payu_txnid: mihpayid || txnid || `PAY_${Date.now()}`
-        }
-      });
-    }
+          payment_method: "Online (PayU)",
+          payu_txnid: mihpayid || txnid || `PAY_${Date.now()}`,
+          payu_mihpayid: mihpayid || null,
+          payu_response_hash: hash || null,
+          updated_at: new Date().toISOString(),
+        },
+      }
+    );
+    return redirectWithStatus(true);
+  } else {
+    await mongo.collection("agreements").updateOne(
+      { _id: agreement._id },
+      {
+        $set: {
+          payment_status: "Failed",
+          payu_response_error: payload.error_Message || payload.error || "Payment failed at PayU gateway",
+          updated_at: new Date().toISOString(),
+        },
+      }
+    );
+    return redirectWithStatus(false, payload.error_Message || "payment_failed");
+  }
+});
 
-    const webUrl = process.env.WEB_URL || "https://a1-solar-solution4.vercel.app";
-    const redirectUrl = `${webUrl}/app/agreements?status=${status || "success"}`;
-    res.setHeader("content-type", "text/html");
-    return res.send(`<!DOCTYPE html><html><head><title>Payment Processing</title></head><body><h3>Payment Processing... Redirecting back to dashboard.</h3><script>window.location.href = ${JSON.stringify(redirectUrl)};</script></body></html>`);
-  })
-);
+agreementsRouter.post("/payu-callback", handlePayUCallback);
 
 agreementsRouter.use(requireAuth);
 
@@ -1707,63 +1803,76 @@ agreementsRouter.post(
   })
 );
 
-agreementsRouter.post(
-  "/:id/payu-initiate",
-  asyncHandler(async (req, res) => {
-    const mongo = await getMongoDb();
-    const idParam = req.params.id;
-    const { ObjectId } = await import("mongodb");
+export const handlePayUInitiate = asyncHandler(async (req, res) => {
+  const mongo = await getMongoDb();
+  const idParam = req.params.id;
+  const { ObjectId } = await import("mongodb");
 
-    let filter = {};
-    if (ObjectId.isValid(idParam) && idParam.length === 24) {
-      filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: idParam }] };
-    } else {
-      filter = { agreement_number: idParam };
-    }
+  let filter = {};
+  if (ObjectId.isValid(idParam) && idParam.length === 24) {
+    filter = { $or: [{ _id: new ObjectId(idParam) }, { _id: idParam }] };
+  } else {
+    filter = { agreement_number: idParam };
+  }
 
-    const agreement = await mongo.collection("agreements").findOne(filter);
-    if (!agreement) {
-      throw new AppError(404, "Agreement not found", "NOT_FOUND");
-    }
+  const agreement = await mongo.collection("agreements").findOne(filter);
+  if (!agreement) {
+    throw new AppError(404, "Agreement not found", "NOT_FOUND");
+  }
 
-    const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
-    const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
-    const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-    const amount = Number(1).toFixed(2);
-    const productinfo = `Agreement ${agreement.agreement_number}`;
-    const firstname = agreement.customer_name || req.user?.full_name || req.user?.name || "Customer";
-    const email = agreement.customer_email || req.user?.email || req.auth?.email || "customer@solarservice.co.in";
-    const phone = agreement.customer_mobile || req.user?.mobile || "9999999999";
+  const key = process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || "DQDKZp";
+  const salt = process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || "8gBtURI31zwtleMKBPilo9x8pvxwB3r5";
+  const txnid = `PAYU_${Date.now()}_${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+  const amount = Number(1).toFixed(2);
+  const productinfo = `Agreement ${agreement.agreement_number}`;
+  const firstname = agreement.customer_name || req.user?.full_name || req.user?.name || "Customer";
+  const email = agreement.customer_email || req.user?.email || req.auth?.email || "customer@solarservice.co.in";
+  const phone = agreement.customer_mobile || req.user?.mobile || "9999999999";
 
-    const apiUrl = process.env.API_URL || "https://a1-solar-solution4.onrender.com/api/v1";
-    const surl = `${apiUrl}/agreements/payu-callback`;
-    const furl = `${apiUrl}/agreements/payu-callback`;
+  const rawApiUrl = process.env.API_URL || "https://a1-solar-solution4.onrender.com/api/v1";
+  const apiUrl = rawApiUrl.replace(/\/$/, "");
+  const surl = `${apiUrl}/payments/payu/callback`;
+  const furl = `${apiUrl}/payments/payu/callback`;
 
-    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
-    const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+  const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
+  const hash = crypto.createHash("sha512").update(hashString).digest("hex");
 
-    await mongo.collection("agreements").updateOne(
-      { _id: agreement._id },
-      { $set: { payu_txnid: txnid, updated_at: new Date().toISOString() } }
-    );
+  let rawPayuUrl = process.env.PAYU_URL || "https://test.payu.in/_payment";
+  if (!rawPayuUrl || typeof rawPayuUrl !== "string" || !rawPayuUrl.startsWith("http")) {
+    rawPayuUrl = "https://test.payu.in/_payment";
+  }
+  const payuUrl = rawPayuUrl;
 
-    return success(res, "Payment initiated", {
-      payu_url: process.env.PAYU_URL || "https://test.payu.in/_payment",
-      key,
-      txnid,
-      amount,
-      productinfo,
-      firstname,
-      email,
-      phone,
-      surl,
-      furl,
-      hash,
-      agreement_id: agreement._id.toString(),
-      agreement_number: agreement.agreement_number
-    });
-  }),
-);
+  await mongo.collection("agreements").updateOne(
+    { _id: agreement._id },
+    { $set: { payu_txnid: txnid, payu_amount: amount, updated_at: new Date().toISOString() } }
+  );
+
+  const fields = {
+    key,
+    txnid,
+    amount,
+    productinfo,
+    firstname,
+    email,
+    phone,
+    surl,
+    furl,
+    hash,
+  };
+
+  return success(res, "Payment initiated", {
+    payu_url: payuUrl,
+    action: payuUrl,
+    ...fields,
+    fields,
+    agreement_id: agreement._id.toString(),
+    agreement_number: agreement.agreement_number,
+  });
+});
+
+agreementsRouter.post("/:id/payu-initiate", handlePayUInitiate);
+agreementsRouter.post("/:id/payu-checkout", handlePayUInitiate);
 
 agreementsRouter.get(
   "/:id/document",

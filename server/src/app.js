@@ -24,6 +24,7 @@ import {
   quotationsRouter,
   ticketsRouter,
   nextNumberRouter,
+  handlePayUCallback,
 } from "./routes/business.routes.js";
 import { companySettingsRouter } from "./routes/companySettings.routes.js";
 import mongoose from "mongoose";
@@ -168,6 +169,7 @@ app.use("/api/v1/notes", notesRouter);
 app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/company-settings", companySettingsRouter);
 app.use("/api/v1/next-number", nextNumberRouter);
+app.post(["/api/v1/payments/payu/callback", "/payments/payu/callback"], handlePayUCallback);
 
 const ok = (res, message, data, meta = {}) =>
   res.json({ success: true, message, data, meta });
